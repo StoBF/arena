@@ -1,0 +1,70 @@
+pip uninstall bcrypt passlib
+pip install bcrypt==4.0.1 passlib[bcrypt]
+
+
+
+Підготуйте віртуальне середовище
+Перейдіть у корінь проєкту, де лежить папка app/ і .env.
+
+Створіть і активуйте віртуалку:
+
+bat
+Копіювати
+Редагувати
+python -m venv .venv
+.venv\Scripts\activate
+(Якщо Unix-подібна система – source .venv/bin/activate.)
+
+2. Встановіть залежності для розробки
+Покладіть у requirements-dev.txt (або просто в requirements.txt) усі інструменти для тестування:
+
+nginx
+Копіювати
+Редагувати
+pytest
+pytest-asyncio
+httpx
+python-dotenv
+Інсталюйте їх:
+
+bat
+Копіювати
+Редагувати
+pip install --upgrade pip
+pip install -r requirements-dev.txt
+3. Налаштуйте pytest
+Створіть (або відредагуйте) файл pytest.ini в корені з цим вмістом:
+
+ini
+Копіювати
+Редагувати
+[pytest]
+python_files = test_*.py *_test.py
+addopts = 
+    --ignore=test_output.txt 
+    -q
+– Тепер Pytest не сприйматиме test_output.txt як тест.
+
+4. Переконайтесь, що .env підхоплюється
+У app/main.py на самому початку має бути:
+
+python
+Копіювати
+Редагувати
+from dotenv import load_dotenv
+load_dotenv()
+– Це дозволить усім os.getenv("DATABASE_URL") коректно читати змінну з твого .env.
+
+5. Запуск тестів
+В активованому віртуальному середовищі та в корені проєкту виконай:
+
+bat
+Копіювати
+Редагувати
+pytest
+або, якщо хочеш бачити докладний вивід:
+
+bat
+Копіювати
+Редагувати
+pytest -v

@@ -1,0 +1,26 @@
+[gd_scene load_steps=2 format=3 uid="uid://7atwgcy1jlae"]
+
+[ext_resource type="Script" uid="uid://bqd5fx28ygsuf" path="res://scripts/ui/AuctionPanel.gd" id="1"]
+
+[node name="Auction" type="Control"]
+script = ExtResource("1")
+
+[node name="AuctionScroll" type="ScrollContainer" parent="Auction"]
+
+[node name="AuctionsList" type="ItemList" parent="AuctionScroll"]
+
+[node name="DetailContainer" type="VBoxContainer" parent="Auction"]
+
+[node name="AuctionName" type="Label" parent="DetailContainer"]
+text = ""
+
+[node name="CurrentBid" type="Label" parent="DetailContainer"]
+text = ""
+
+[node name="BidAmount" type="LineEdit" parent="DetailContainer"]
+placeholder_text = "Amount"
+
+[node name="BidButton" type="Button" parent="DetailContainer"]
+text = "Bid"
+
+[connection signal="pressed" from="BidButton" to="Auction" method="_on_bid_button_pressed"]

@@ -1,0 +1,82 @@
+extends RefCounted
+class_name ServerConfig
+
+# Server configuration
+var ip: String = "10.193.125.163"
+var http_port: int = 8081
+var ws_port: int = 8081
+var status_endpoint: String = "/health"
+var use_https: bool = false
+
+# Singleton instance
+static var _instance: ServerConfig
+
+static func get_instance() -> ServerConfig:
+	if _instance == null:
+		_instance = ServerConfig.new()
+		_load_config()
+	return _instance
+
+# Computed properties
+func get_http_base_url() -> String:
+	var protocol = "https://" if use_https else "http://"
+	return "%s%s:%d" % [protocol, ip, http_port]
+
+func get_ws_base_url() -> String:
+	var protocol = "wss://" if use_https else "ws://"
+	return "%s%s:%d" % [protocol, ip, ws_port]
+
+func get_http_endpoint(path: String) -> String:
+	return get_http_base_url() + path
+
+func get_ws_endpoint(channel: String, token: String) -> String:
+	return "%s/ws/%s?token=%s" % [get_ws_base_url(), channel, token]
+
+# Load configuration from file
+static func _load_config() -> void:
+	var config = get_instance()
+	var config_path = "user://server_config.cfg"
+	var file = ConfigFile.new()
+	var err = file.load(config_path)
+	if err == OK:
+		config.ip = file.get_value("server", "ip", config.ip)
+		config.http_port = file.get_value("server", "http_port", config.http_port)
+		config.ws_port = file.get_value("server", "ws_port", config.ws_port)
+		config.use_https = file.get_value("server", "use_https", config.use_https)
+		config.status_endpoint = file.get_value("server", "status_endpoint", config.status_endpoint)
+	else:
+		_save_config()
+
+static func _save_config() -> void:
+	var config = get_instance()
+	var config_path = "user://server_config.cfg"
+	var file = ConfigFile.new()
+	file.set_value("server", "ip", config.ip)
+	file.set_value("server", "http_port", config.http_port)
+	file.set_value("server", "ws_port", config.ws_port)
+	file.set_value("server", "use_https", config.use_https)
+	file.set_value("server", "status_endpoint", config.status_endpoint)
+	file.save(config_path)
+
+static func update_config(ip: String, http_port_num: int, ws_port_num: int, secure: bool = false) -> void:
+	var config = get_instance()
+	config.ip = ip
+	config.http_port = http_port_num
+	config.ws_port = ws_port_num
+	config.use_https = secure
+	_save_config()
+
+# ---------- HTTP Request helper ----------
+# Використовувати так: ServerConfig.get_instance().check_server_status(self)
+func check_server_status(parent_node: Node) -> void:
+	var req = HTTPRequest.new()
+	parent_node.add_child(req)
+	req.request_completed.connect(parent_node._on_request_completed)
+	var err = req.request(get_http_endpoint(status_endpoint))
+	if err != OK:
+		print("HTTP request error: ", err)
+
+func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
+	print("Result: ", result)
+	print("Response Code: ", response_code)
+	print("Body: ", body.get_string_from_utf8())

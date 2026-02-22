@@ -1,0 +1,150 @@
+[gd_scene load_steps=6 format=3 uid="uid://5o0uyhod01ad"]
+
+[ext_resource type="Texture2D" uid="uid://cmin7x0eklklo" path="res://assets/a3d9253e-b813-4dd0-9571-896255d70f1a.png" id="1_7xvqn"]
+[ext_resource type="Texture2D" uid="uid://dxqv6q8vnt1er" path="res://assets/d3d3b1ce-3e22-4142-9229-a8a11b0d9721.png" id="2_3u8nt"]
+[ext_resource type="Script" uid="uid://c4ujn16gecmdu" path="res://scripts/ui/LoginPanel.gd" id="2_g270c"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_np7ol"]
+resource_name = "Sign In"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3u8nt"]
+bg_color = Color(0, 0.419608, 0.772549, 1)
+
+[node name="Login_screen" type="CanvasLayer"]
+metadata/_edit_vertical_guides_ = [-265.0]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+script = ExtResource("2_g270c")
+
+[node name="Control" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 4.0
+offset_top = -328.0
+offset_right = 1163.0
+offset_bottom = 650.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Control"]
+layout_mode = 0
+offset_left = -49.0
+offset_top = -5.0
+offset_right = 1176.0
+offset_bottom = 729.0
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/Control/VBoxContainer"]
+layout_mode = 2
+texture = ExtResource("1_7xvqn")
+
+[node name="SignIn" type="Button" parent="CanvasLayer/Control/VBoxContainer/TextureRect"]
+texture_filter = 4
+texture_repeat = 2
+material = SubResource("CanvasItemMaterial_np7ol")
+use_parent_material = true
+layout_mode = 0
+offset_left = 431.0
+offset_top = 688.0
+offset_right = 793.0
+offset_bottom = 761.0
+text = "Sign In"
+clip_text = true
+
+[node name="Button" type="Button" parent="CanvasLayer/Control/VBoxContainer/TextureRect/SignIn"]
+layout_mode = 0
+offset_left = -1.0
+offset_right = 1119.0
+offset_bottom = 418.0
+scale = Vector2(0.322266, 0.174805)
+theme_override_styles/hover_pressed_mirrored = SubResource("StyleBoxFlat_3u8nt")
+
+[node name="CreateAccount" type="Button" parent="CanvasLayer/Control/VBoxContainer/TextureRect"]
+layout_mode = 0
+offset_left = 430.0
+offset_top = 767.0
+offset_right = 793.0
+offset_bottom = 836.0
+text = "Create Account
+
+"
+
+[node name="Button" type="Button" parent="CanvasLayer/Control/VBoxContainer/TextureRect/CreateAccount"]
+layout_mode = 0
+offset_right = 1117.0
+offset_bottom = 383.0
+scale = Vector2(0.322266, 0.174805)
+
+[node name="LoginFields" type="TextureRect" parent="CanvasLayer/Control/VBoxContainer/TextureRect"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 376.0
+offset_top = 412.0
+offset_right = -379.0
+offset_bottom = -248.0
+mouse_filter = 2
+texture = ExtResource("2_3u8nt")
+expand_mode = 1
+
+[node name="username" type="LineEdit" parent="CanvasLayer/Control/VBoxContainer/TextureRect/LoginFields"]
+layout_mode = 0
+offset_left = 67.0
+offset_top = 132.0
+offset_right = 404.0
+offset_bottom = 176.0
+keep_editing_on_text_submit = true
+
+[node name="password" type="LineEdit" parent="CanvasLayer/Control/VBoxContainer/TextureRect/LoginFields"]
+layout_mode = 0
+offset_left = 66.0
+offset_top = 222.0
+offset_right = 403.0
+offset_bottom = 265.0
+keep_editing_on_text_submit = true
+secret = true
+
+[node name="RememberMeCheckBox" type="CheckBox" parent="CanvasLayer/Control/VBoxContainer/TextureRect/LoginFields"]
+layout_mode = 0
+offset_left = 418.0
+offset_top = 233.0
+offset_right = 563.0
+offset_bottom = 264.0
+text = "Remember me"
+
+[node name="LanguageContainer" type="HBoxContainer" parent="CanvasLayer/Control/VBoxContainer/TextureRect"]
+layout_mode = 0
+offset_left = 376.0
+offset_top = 320.0
+offset_right = 548.0
+offset_bottom = 360.0
+
+[node name="LanguageLabel" type="Label" parent="CanvasLayer/Control/VBoxContainer/TextureRect/LanguageContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Language"
+
+[node name="LanguageOption" type="OptionButton" parent="CanvasLayer/Control/VBoxContainer/TextureRect/LanguageContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+item_count = 3
+selected_index = 0
+popup/item_0/text = "English"
+popup/item_1/text = "Ukrainian"
+popup/item_2/text = "Polish"
+
+[node name="ServerStatusContainer" type="HBoxContainer" parent="CanvasLayer/Control/VBoxContainer/TextureRect"]
+layout_mode = 0
+offset_left = 376.0
+offset_top = 368.0
+offset_right = 548.0
+offset_bottom = 398.0
+
+[node name="ServerStatusLabel" type="Label" parent="CanvasLayer/Control/VBoxContainer/TextureRect/ServerStatusContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Checking server..."
+
+[node name="ServerStatusRefresh" type="Button" parent="CanvasLayer/Control/VBoxContainer/TextureRect/ServerStatusContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Refresh"
+

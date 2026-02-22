@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://cqlobum232vxt"]
+
+[sub_resource type="Resource" id="Resource_0l06f"]
+metadata/__load_path__ = "res://scripts/Inventory.gd"
+
+[node name="InventoryItemIcon" type="TextureButton"]
+script = SubResource("Resource_0l06f")

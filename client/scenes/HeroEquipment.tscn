@@ -1,0 +1,49 @@
+[gd_scene load_steps=2 format=3 uid="uid://dvocd657cjt8h"]
+
+[ext_resource type="Script" uid="uid://dad20rhc5voo0" path="res://scripts/ui/HeroEquipmentPanel.gd" id="1"]
+
+[node name="HeroEquipment" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1")
+
+[node name="HeroEquipment#HeroPanel" type="VBoxContainer" parent="."]
+layout_mode = 0
+
+[node name="HeroPanel#HeroStats" type="Label" parent="."]
+layout_mode = 0
+offset_left = 160.0
+offset_top = 138.0
+offset_right = 199.0
+offset_bottom = 161.0
+text = "Stats"
+
+[node name="HeroPanel#HeroModelView" type="Sprite2D" parent="."]
+
+[node name="HeroPanel#GenerateHeroButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 120.0
+offset_top = 212.0
+offset_right = 242.0
+offset_bottom = 243.0
+text = "Generate Hero"
+
+[node name="HeroEquipment#EquipmentGrid" type="GridContainer" parent="."]
+layout_mode = 0
+columns = 4
+
+[node name="EquipmentGrid#Slot_Head" type="TextureButton" parent="."]
+layout_mode = 0
+
+[node name="EquipmentGrid#Slot_Chest" type="TextureButton" parent="."]
+layout_mode = 0
+
+[node name="EquipmentGrid#Slot_Weapon" type="TextureButton" parent="."]
+layout_mode = 0
+
+[node name="EquipmentGrid#Slot_Offhand" type="TextureButton" parent="."]
+layout_mode = 0
+
+[node name="HeroEquipment#InventoryGrid" type="GridContainer" parent="."]
+layout_mode = 0
+columns = 5

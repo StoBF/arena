@@ -1,0 +1,283 @@
+[gd_scene load_steps=4 format=3 uid="uid://bv4gongxnr28e"]
+
+[ext_resource type="Script" uid="uid://dkqtlynloon07" path="res://scripts/ui/MainMenuScreen.gd" id="1_yqorp"]
+[ext_resource type="PackedScene" uid="uid://heroicon" path="res://scenes/HeroIcon.tscn" id="2_2wh52"]
+[ext_resource type="PackedScene" uid="uid://o3jyg78kpuht" path="res://scenes/ChatBox.tscn" id="3_ow34m"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1152.0
+offset_bottom = 648.0
+script = ExtResource("1_yqorp")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer"]
+offset_right = 1150.0
+offset_bottom = 645.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MarginContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_constants/separation = 200
+
+[node name="GridContainer" type="GridContainer" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="NicknameLabelTitle" type="Label" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/GridContainer"]
+layout_mode = 2
+text = "Nickname"
+
+[node name="NicknameLabel" type="Label" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/GridContainer"]
+layout_mode = 2
+
+[node name="CurrencyGridContainer" type="GridContainer" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/GridContainer"]
+layout_mode = 2
+columns = 2
+
+[node name="CurrencyLabelTitle" type="Label" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/GridContainer/CurrencyGridContainer"]
+layout_mode = 2
+text = "Валюта:"
+
+[node name="CurrencyLabel" type="Label" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/GridContainer/CurrencyGridContainer"]
+layout_mode = 2
+
+[node name="HeroPanel" type="HBoxContainer" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+focus_neighbor_left = NodePath("../../../HBoxContainer2")
+focus_neighbor_right = NodePath("../../../HBoxContainer2/StatsContainer")
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="GridContainer" type="GridContainer" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel"]
+custom_minimum_size = Vector2(600, 60)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_constants/h_separation = 110
+columns = 5
+
+[node name="HeroIcon" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer" instance=ExtResource("2_2wh52")]
+layout_mode = 2
+
+[node name="HeroIcon2" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer" instance=ExtResource("2_2wh52")]
+layout_mode = 2
+
+[node name="HeroIcon3" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer" instance=ExtResource("2_2wh52")]
+layout_mode = 2
+
+[node name="HeroIcon4" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer" instance=ExtResource("2_2wh52")]
+layout_mode = 2
+
+[node name="HeroIcon5" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer" instance=ExtResource("2_2wh52")]
+layout_mode = 2
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="CanvasLayer/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="CanvasLayer/MarginContainer/HBoxContainer2"]
+layout_mode = 2
+
+[node name="Control2" type="Control" parent="CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+
+[node name="HeroesButton" type="Button" parent="CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2"]
+layout_mode = 2
+text = "Створити героя"
+
+[node name="TrainingButton" type="Button" parent="CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2"]
+layout_mode = 2
+text = "Тренувати героя"
+
+[node name="AuctionButton" type="Button" parent="CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2"]
+layout_mode = 2
+text = "Аукціон"
+
+[node name="ToBattleButton" type="Button" parent="CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2"]
+layout_mode = 2
+text = "До битви"
+
+[node name="InventoryButton" type="Button" parent="CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2"]
+layout_mode = 2
+text = "Склад"
+
+[node name="DeletedHeroesButton" type="Button" parent="CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2"]
+layout_mode = 2
+theme_override_colors/font_hover_color = Color(0.945098, 0, 0, 1)
+text = "Видалені герої"
+
+[node name="Control" type="Control" parent="CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+
+[node name="ChatBox" parent="CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2/Control" instance=ExtResource("3_ow34m")]
+layout_mode = 2
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_top = 127.0
+offset_right = 334.0
+offset_bottom = 314.0
+
+[node name="Control" type="Control" parent="CanvasLayer/MarginContainer/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+
+[node name="StatsContainer" type="VBoxContainer" parent="CanvasLayer/MarginContainer/HBoxContainer2"]
+clip_contents = true
+layout_mode = 2
+
+[node name="GridContainer" type="GridContainer" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 50
+theme_override_constants/v_separation = 15
+columns = 2
+
+[node name="Name" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Імя"
+
+[node name="NameValue" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="XP" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Досвід"
+
+[node name="XPLabel" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="Level" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Рівень"
+
+[node name="LevelValue" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="LevelGeneration" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Рівень Генерації"
+
+[node name="LevelGenerationLabel" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="Strength" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Сила"
+
+[node name="StrengthLabel" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="Speed" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Швидкість"
+
+[node name="SpeedLabel" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="Agility" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Проворність"
+
+[node name="AgilityLabel" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="Endurance" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Витривалість"
+
+[node name="EnduranceLabel" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="Health" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Здоров'я "
+
+[node name="HealthLabel" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="Defense" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Захист"
+
+[node name="DefenseLabel" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="Luck" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Везіння"
+
+[node name="LuckLabel" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="Training" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Навчання"
+
+[node name="TrainingLabel" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="Field of View" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+text = "Поле Зору"
+
+[node name="FOVLabel" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/GridContainer"]
+layout_mode = 2
+
+[node name="PerckGrid" type="GridContainer" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer"]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+tooltip_text = "Perks
+"
+theme_override_constants/h_separation = 3
+theme_override_constants/v_separation = 2
+columns = 5
+
+[node name="perck_1" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/PerckGrid"]
+layout_mode = 2
+
+[node name="perck_2" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/PerckGrid"]
+layout_mode = 2
+
+[node name="perck_3" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/PerckGrid"]
+layout_mode = 2
+
+[node name="perck_4" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/PerckGrid"]
+layout_mode = 2
+
+[node name="perck_5" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/PerckGrid"]
+layout_mode = 2
+
+[node name="perck_6" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/PerckGrid"]
+layout_mode = 2
+
+[node name="perck_7" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/PerckGrid"]
+layout_mode = 2
+
+[node name="perck_8" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/PerckGrid"]
+layout_mode = 2
+
+[node name="perck_9" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/PerckGrid"]
+layout_mode = 2
+
+[node name="perck_10" type="Label" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/PerckGrid"]
+layout_mode = 2
+
+[node name="SettingsButton" type="Button" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer"]
+layout_mode = 2
+text = "Налаштування"
+
+[node name="ExitButton" type="Button" parent="CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer"]
+layout_mode = 2
+text = "Вихід"

@@ -1,0 +1,38 @@
+# PvP ресурси
+- id: 1
+  name: Сталь
+  type: PvP
+  source: arena
+  description: Основний PvP-ресурс для крафту зброї
+- id: 2
+  name: Срібло
+  type: PvP
+  source: arena
+  description: Використовується для крафту аксесуарів
+- id: 3
+  name: Кристал
+  type: PvP
+  source: arena
+  description: Рідкісний PvP-ресурс для епічних предметів
+- id: 4
+  name: Тканина хаосу
+  type: PvP
+  source: arena
+  description: Для магічних PvP-предметів
+
+# PvE ресурси (унікальні для кожного рейдбоса)
+- id: 101
+  name: Плазмова батарея
+  type: PvE
+  source: raid_boss_1
+  description: Дроп з рейдбоса "Плазмоїд"
+- id: 102
+  name: Кіберсердце
+  type: PvE
+  source: raid_boss_2
+  description: Дроп з рейдбоса "Кібердракон"
+- id: 103
+  name: Кристал хаосу
+  type: PvE
+  source: raid_boss_3
+  description: Дроп з рейдбоса "Хаос-Лорд" 

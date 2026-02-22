@@ -1,0 +1,15 @@
+{
+  "gutconfig": {
+    "test_directories": ["res://tests/"],
+    "test_prefix": "test_",
+    "test_suffix": ".gd",
+    "inner_class_name": "Inner",
+    "should_maximize": false,
+    "include_subdirectories": true,
+    "log_level": 1,
+    "ignore_pause": true,
+    "yield_between_tests": false,
+    "disable_strict_datatype_checks": false,
+    "compact_mode": false
+  }
+}
