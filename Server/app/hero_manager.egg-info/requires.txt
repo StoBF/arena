@@ -1,0 +1,12 @@
+pydantic>=2.0
+pydantic-settings
+fastapi
+uvicorn[standard]
+sqlalchemy
+asyncpg
+python-jose
+passlib[bcrypt]
+aiosqlite
+slowapi
+python-dotenv
+faker

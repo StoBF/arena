@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3 uid="uid://c7xy583db33tv"]
+
+[ext_resource type="Script" uid="uid://ci6ad56c08jig" path="res://scripts/ui/HeroListPanel.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://6wdyubr0cis2" path="res://scenes/GenerateDialog.tscn" id="2"]
+
+[node name="HeroList" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1")
+
+[node name="HeroList#HeroScroll" type="ScrollContainer" parent="."]
+layout_mode = 0
+
+[node name="HeroScroll#ListContainer" type="VBoxContainer" parent="."]
+layout_mode = 0
+
+[node name="HeroList#GenerateButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 81.0
+offset_top = 148.0
+offset_right = 161.0
+offset_bottom = 179.0
+text = "Generate"
+
+[node name="HeroList#GenerateDialog" parent="HeroList#GenerateButton" instance=ExtResource("2")]

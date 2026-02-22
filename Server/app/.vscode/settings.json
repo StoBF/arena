@@ -1,0 +1,11 @@
+{
+  "python.pythonPath": "C:/Users/user/AppData/Local/Programs/Python/Python313/python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/app"
+  ],
+  "python.analysis.packageIndexDepths": {
+    "app": 1
+  },
+  "python.formatting.provider": "black",
+  "editor.formatOnSave": true
+} 

@@ -1,0 +1,41 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Arena_manager"
+run/main_scene="uid://5o0uyhod01ad"
+config/use_custom_user_dir=true
+config/features=PackedStringArray("4.5", "C#", "Mobile")
+config/icon="res://icon.svg"
+
+[autoload]
+
+Network="*res://scripts/network/NetworkManager.gd"
+Localization="*res://autoload/Localization.gd"
+AppState="*res://autoload/AppState.gd"
+UIUtils="*res://autoload/UIUtils.gd"
+
+[dotnet]
+
+project/assembly_name="Arena_manager"
+project/solution_directory="E:\\GOG Games\\arena\\client"
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://locales/en.json", "res://locales/pl.json", "res://locales/uk.json")
+
+[mono]
+
+project_type="c#"
+
+[rendering]
+
+renderer/rendering_method="mobile"
