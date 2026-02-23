@@ -159,9 +159,9 @@ class HeroService(BaseService):
             # User is locked, so no race condition
             # Cost is 100 times the currency request (in Decimal for precision)
             cost = Decimal(100) * currency
-            if user.balance < cost:
-                raise HTTPException(400, "Insufficient balance for hero generation")
-            user.balance = (user.balance - cost).quantize(Decimal('0.01'))
+            from app.services.accounting import AccountingService
+            # adjust_balance will validate funds and record ledger entry
+            await AccountingService(self.session).adjust_balance(owner_id, -cost, "hero_generation", reference_id=None, field="balance")
             
             # Create hero record (WITHIN TRANSACTION)
             new_hero = Hero(

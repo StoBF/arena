@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from fastapi import HTTPException
 import logging
 from app.database.models.models import Auction, Bid, Stash, AuctionLot, AutoBid
+from app.core.enums import AuctionStatus
 from app.database.models.hero import Hero
 from app.database.models.user import User
 from app.services.base_service import BaseService
@@ -15,12 +16,28 @@ from decimal import Decimal
 logger = logging.getLogger(__name__)
 
 class AuctionService(BaseService):
+    def _txn(self):
+        """
+        Returns a transaction context manager suitable for the current
+        session state.
+
+        If a transaction is already in progress, we must use
+        ``begin_nested()`` to avoid ``InvalidRequestError`` when entering
+        another ``begin()`` block.  Otherwise we start a normal
+        ``begin()``.  Services can simply write ``async with self._txn():``
+        and have the right behaviour regardless of whether they are called
+        from another transactional function (e.g. during auction closing).
+        """
+        if self.session.in_transaction():
+            return self.session.begin_nested()
+        return self.session.begin()
+
     async def create_auction(self, seller_id: int, item_id: int, start_price: int, duration: int, quantity: int = 1):
         """
         Create item auction with atomic transaction.
         All-or-nothing: stash modified AND auction created, or neither.
         """
-        async with self.session.begin():  # Explicit transaction
+        async with self._txn():  # Explicit transaction
             # Lock stash entry immediately to prevent concurrent modifications
             stash_result = await self.session.execute(
                 select(Stash)
@@ -45,7 +62,7 @@ class AuctionService(BaseService):
                 start_price=start_price,
                 current_price=start_price,
                 end_time=end_time,
-                status="active",
+                status=AuctionStatus.ACTIVE,
                 created_at=datetime.utcnow(),
                 quantity=quantity
             )
@@ -84,14 +101,14 @@ class AuctionService(BaseService):
         # Get total count
         count_query = select(func.count()).select_from(Auction)
         if active_only:
-            count_query = count_query.where(and_(Auction.status == "active", Auction.end_time > datetime.utcnow()))
+            count_query = count_query.where(and_(Auction.status == AuctionStatus.ACTIVE, Auction.end_time > datetime.utcnow()))
         total_result = await self.session.execute(count_query)
         total = total_result.scalars().first() or 0
         
         # Get paginated items
         query = select(Auction).options(joinedload(Auction.bids))
         if active_only:
-            query = query.where(and_(Auction.status == "active", Auction.end_time > datetime.utcnow()))
+            query = query.where(and_(Auction.status == AuctionStatus.ACTIVE, Auction.end_time > datetime.utcnow()))
         query = query.limit(limit).offset(offset)
         result = await self.session.execute(query)
         items = result.unique().scalars().all()
@@ -108,7 +125,7 @@ class AuctionService(BaseService):
         Cancel auction with atomic transaction.
         All-or-nothing: auction canceled AND item returned, or neither.
         """
-        async with self.session.begin():
+        async with self._txn():
             # Lock auction immediately
             auction_result = await self.session.execute(
                 select(Auction)
@@ -118,13 +135,13 @@ class AuctionService(BaseService):
             auction = auction_result.scalars().first()
             if not auction or auction.seller_id != seller_id:
                 raise HTTPException(403, "Not allowed to cancel this auction")
-            if auction.status != "active" or auction.end_time < datetime.utcnow():
+            if auction.status != AuctionStatus.ACTIVE or auction.end_time < datetime.utcnow():
                 raise HTTPException(400, "Auction is not active or already ended")
             if auction.current_price != auction.start_price:
                 raise HTTPException(400, "Cannot cancel - bids already placed")
             
             # Update auction status
-            auction.status = "canceled"
+            auction.status = AuctionStatus.CANCELLED
             
             # Return item to stash (within transaction)
             stash_result = await self.session.execute(
@@ -153,7 +170,7 @@ class AuctionService(BaseService):
         - Double closure handled gracefully (logs and exits safely)
         - All transfers atomic (hero ownership + balances + items)
         """
-        async with self.session.begin():
+        async with self._txn():
             # CRITICAL: Lock auction row immediately with FOR UPDATE
             # This prevents multiple workers/background tasks from processing same auction simultaneously
             logger.info(f"[AUCTION_CLOSE_START] auction_id={auction_id}")
@@ -171,13 +188,13 @@ class AuctionService(BaseService):
                 raise HTTPException(404, "Auction not found")
             
             # SAFEGUARD: If auction already closed, exit safely (prevents double closure)
-            if auction.status != "active":
+            if auction.status != AuctionStatus.ACTIVE:
                 logger.info(f"[AUCTION_CLOSE_ALREADY_CLOSED] auction_id={auction_id} current_status={auction.status}")
                 # Already closed - this is safe even if called multiple times
                 return auction
             
             # Change status to FINISHED atomically (within transaction)
-            auction.status = "finished"
+            auction.status = AuctionStatus.FINISHED
             logger.info(f"[AUCTION_STATUS_CHANGED] auction_id={auction_id} new_status=finished seller_id={auction.seller_id}")
             
             # Find highest bid (protected by auction row lock)
@@ -211,8 +228,13 @@ class AuctionService(BaseService):
                     # If any step fails AFTER this, transaction is rolled back
                     # Decimal-safe adjustments and rounding to 2 decimals
                     amt = Decimal(highest_bid.amount or 0)
-                    winner.reserved = (winner.reserved - amt).quantize(Decimal('0.01'))
-                    seller.balance = (seller.balance + amt).quantize(Decimal('0.01'))
+                    from app.services.accounting import AccountingService
+
+                    # Release winner reserved funds and record ledger entry
+                    await AccountingService(self.session).adjust_balance(winner.id, -amt, "auction_release_reserved", reference_id=auction_id, field="reserved")
+
+                    # Pay seller
+                    await AccountingService(self.session).adjust_balance(seller.id, amt, "auction_payout", reference_id=auction_id, field="balance")
                     logger.info(f"[AUCTION_BALANCE_TRANSFER] auction_id={auction_id} winner_id={highest_bid.bidder_id} seller_id={auction.seller_id} amount={highest_bid.amount}")
                 else:
                     logger.error(f"[AUCTION_USER_NOT_FOUND] auction_id={auction_id} winner_id={highest_bid.bidder_id} seller_id={auction.seller_id}")
@@ -257,11 +279,11 @@ class AuctionService(BaseService):
         Create hero auction lot with atomic transaction.
         Ensures hero state consistency and prevents concurrent lot creation.
         """
-        async with self.session.begin():
+        async with self._txn():
             # Check for existing active lot (within transaction)
             existing = await self.session.execute(
                 select(AuctionLot)
-                .where(AuctionLot.hero_id == hero_id, AuctionLot.is_active == 1)
+                .where(AuctionLot.hero_id == hero_id, AuctionLot.status == AuctionStatus.ACTIVE)
                 .with_for_update()  # Lock existing lots for this hero
             )
             if existing.scalars().first():
@@ -297,7 +319,7 @@ class AuctionService(BaseService):
                 current_price=starting_price,
                 buyout_price=buyout_price,
                 end_time=end_time,
-                is_active=1,
+                status=AuctionStatus.ACTIVE,
                 created_at=datetime.utcnow()
             )
             self.session.add(lot)
@@ -332,12 +354,12 @@ class AuctionService(BaseService):
             offset = 0
         
         # Get total count
-        count_query = select(func.count()).select_from(AuctionLot).where(AuctionLot.is_active == 1)
+        count_query = select(func.count()).select_from(AuctionLot).where(AuctionLot.status == AuctionStatus.ACTIVE)
         total_result = await self.session.execute(count_query)
         total = total_result.scalars().first() or 0
         
         # Get paginated items
-        query = select(AuctionLot).options(joinedload(AuctionLot.bids)).where(AuctionLot.is_active == 1)
+        query = select(AuctionLot).options(joinedload(AuctionLot.bids)).where(AuctionLot.status == AuctionStatus.ACTIVE)
         query = query.limit(limit).offset(offset)
         result = await self.session.execute(query)
         items = result.unique().scalars().all()
@@ -354,7 +376,7 @@ class AuctionService(BaseService):
         Delete auction lot with atomic transaction.
         Prevents partial state where hero is still marked on auction.
         """
-        async with self.session.begin():
+        async with self._txn():
             # Lock lot immediately
             lot_result = await self.session.execute(
                 select(AuctionLot)
@@ -394,7 +416,7 @@ class AuctionService(BaseService):
         - Double closure handled gracefully (logs and exits safely)
         - Balance and ownership changes atomic (all-or-nothing)
         """
-        async with self.session.begin():
+        async with self._txn():
             # CRITICAL: Lock lot row immediately with FOR UPDATE
             # This prevents multiple concurrent closures of same lot
             logger.info(f"[LOT_CLOSE_START] lot_id={lot_id}")
@@ -412,7 +434,7 @@ class AuctionService(BaseService):
                 raise HTTPException(404, "Auction lot not found")
             
             # SAFEGUARD: If lot already closed, exit safely (prevents double closure)
-            if not lot.is_active:
+            if lot.status != AuctionStatus.ACTIVE:
                 logger.info(f"[LOT_CLOSE_ALREADY_CLOSED] lot_id={lot_id} hero_id={lot.hero_id}")
                 # Already closed - this is safe even if called multiple times
                 return lot
@@ -460,8 +482,9 @@ class AuctionService(BaseService):
                 if winner and seller:
                     # ATOMIC balance transfer (within transaction - all-or-nothing)
                     amt = Decimal(highest_bid.amount or 0)
-                    winner.reserved = (winner.reserved - amt).quantize(Decimal('0.01'))
-                    seller.balance = (seller.balance + amt).quantize(Decimal('0.01'))
+                    from app.services.accounting import AccountingService
+                    await AccountingService(self.session).adjust_balance(winner.id, -amt, "auction_release_reserved", reference_id=lot_id, field="reserved")
+                    await AccountingService(self.session).adjust_balance(seller.id, amt, "auction_payout", reference_id=lot_id, field="balance")
                     logger.info(f"[LOT_BALANCE_TRANSFER] lot_id={lot_id} winner_id={highest_bid.bidder_id} seller_id={lot.seller_id} amount={highest_bid.amount}")
                 else:
                     logger.error(f"[LOT_USER_NOT_FOUND] lot_id={lot_id} winner_id={highest_bid.bidder_id} seller_id={lot.seller_id}")
@@ -477,7 +500,7 @@ class AuctionService(BaseService):
             
             # Update hero and lot state (within transaction)
             hero.is_on_auction = False
-            lot.is_active = 0
+            lot.status = AuctionStatus.FINISHED
             logger.info(f"[LOT_CLOSE_COMPLETE] lot_id={lot_id} hero_id={lot.hero_id} status=closed")
             # Single commit point on transaction success (all changes atomic)
         

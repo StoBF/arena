@@ -1,0 +1,7 @@
+{
+  "ip": "api.example.com",
+  "http_port": 443,
+  "ws_port": 443,
+  "use_https": true,
+  "status_endpoint": "/health"
+}

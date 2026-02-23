@@ -1,6 +1,7 @@
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.models.models import Bid, Auction, AuctionLot, AutoBid
+from app.core.enums import AuctionStatus
 from app.database.models.user import User
 from app.database.models.hero import Hero
 from sqlalchemy import and_, func
@@ -67,6 +68,8 @@ class BidService(BaseService):
         return bid
 
     async def place_bid(self, bidder_id: int, auction_id: int, amount: Decimal, request_id: str = None):
+        # debug
+        print(f"[DEBUG][BidService] place_bid before begin in_transaction={self.session.in_transaction()}")
         """
         Place bid on item auction with atomic transaction and row-level locking.
         Supports idempotent requests via request_id UUID.
@@ -84,14 +87,17 @@ class BidService(BaseService):
                 # Return previous result (idempotent behavior)
                 print(f"[BID_IDEMPOTENT] Returning previous bid {existing_bid.id} for request_id {request_id}")
                 return existing_bid
-        
-        # Ensure max_amount is Decimal for safe arithmetic
-        max_amount = Decimal(max_amount)
-        async with self.session.begin():
+
+        # Determine transaction context: nested if already in one, else normal
+        tx_ctx = self.session.begin_nested() if self.session.in_transaction() else self.session.begin()
+        async with tx_ctx:
+            # Ensure amount is Decimal for safe arithmetic
+            amount = Decimal(amount)
+
             # Lock auction immediately (prevents concurrent modifications)
             auction_result = await self.session.execute(
                 select(Auction)
-                .where(Auction.id == auction_id, Auction.status == "active")
+                .where(Auction.id == auction_id, Auction.status == AuctionStatus.ACTIVE)
                 .with_for_update()  # PESSIMISTIC LOCK ON AUCTION
             )
             auction = auction_result.scalars().first()
@@ -102,7 +108,7 @@ class BidService(BaseService):
             # Ensure Decimal comparison (auction.current_price is Numeric/Decimal)
             if amount <= (auction.current_price or Decimal('0.00')):
                 raise HTTPException(400, "Bid must be higher than current price")
-            
+
             # Lock bidder user row to prevent concurrent balance modifications
             user_result = await self.session.execute(
                 select(User)
@@ -112,7 +118,7 @@ class BidService(BaseService):
             user = user_result.scalars().first()
             if not user or (user.balance - user.reserved) < amount:
                 raise HTTPException(400, "Insufficient funds")
-            
+
             # Release previous bidder's reserved funds (if not same bidder)
             prev_bid_result = await self.session.execute(
                 select(Bid)
@@ -130,13 +136,15 @@ class BidService(BaseService):
                 )
                 prev_user = prev_user_result.scalars().first()
                 if prev_user:
-                    # Decimal-safe subtraction with 2 decimal places
-                    prev_user.reserved = (prev_user.reserved - (prev_bid.amount or Decimal('0.00'))).quantize(Decimal('0.01'))
-            
-            # Update current bidder reserve (within transaction)
-            user.reserved = (user.reserved + amount).quantize(Decimal('0.01'))
-            
-            # Create bid with request_id for idempotency (all within single transaction)
+                    # Decimal-safe subtraction with ledger entry
+                    from app.services.accounting import AccountingService
+                    await AccountingService(self.session).adjust_balance(prev_user.id, -(prev_bid.amount or Decimal('0.00')), "bid_release_reserved", reference_id=auction_id, field="reserved")
+
+            # Update current bidder reserve (ledgered)
+            from app.services.accounting import AccountingService
+            await AccountingService(self.session).adjust_balance(user.id, amount, "bid_reserve", reference_id=auction_id, field="reserved")
+
+            # Create bid with request_id for idempotency
             bid = Bid(
                 request_id=request_id,  # Store idempotency key
                 auction_id=auction_id,
@@ -145,17 +153,15 @@ class BidService(BaseService):
                 created_at=datetime.utcnow()
             )
             self.session.add(bid)
-            
-            # Update auction (within transaction)
+
+            # Update auction
             # Store price rounded to 2 decimals
             auction.current_price = amount.quantize(Decimal('0.01'))
             auction.winner_id = bidder_id
-            
+
             await self.session.flush()
-            # Transaction auto-commits on success
-        
-        await self.session.refresh(bid)
-        return bid
+            await self.session.refresh(bid)
+            return bid
 
     async def place_lot_bid(self, bidder_id: int, lot_id: int, amount: Decimal, request_id: str = None):
         """
@@ -175,12 +181,14 @@ class BidService(BaseService):
                 # Return previous result (idempotent behavior)
                 print(f"[BID_IDEMPOTENT] Returning previous bid {existing_bid.id} for request_id {request_id}")
                 return existing_bid
-        
-        async with self.session.begin():
+
+        # select transaction context (nested if already in transaction)
+        tx_ctx = self.session.begin_nested() if self.session.in_transaction() else self.session.begin()
+        async with tx_ctx:
             # Lock lot immediately
             lot_result = await self.session.execute(
                 select(AuctionLot)
-                .where(AuctionLot.id == lot_id, AuctionLot.is_active == 1)
+                .where(AuctionLot.id == lot_id, AuctionLot.status == AuctionStatus.ACTIVE)
                 .with_for_update()  # PESSIMISTIC LOCK ON LOT
             )
             lot = lot_result.scalars().first()
@@ -190,7 +198,7 @@ class BidService(BaseService):
                 raise HTTPException(400, "Seller cannot bid on own lot")
             if amount <= (lot.current_price or Decimal('0.00')):
                 raise HTTPException(400, "Bid must be higher than current price")
-            
+
             # Lock bidder user row to prevent concurrent balance modifications
             user_result = await self.session.execute(
                 select(User)
@@ -200,7 +208,7 @@ class BidService(BaseService):
             user = user_result.scalars().first()
             if not user or (user.balance - user.reserved) < amount:
                 raise HTTPException(400, "Insufficient funds")
-            
+
             # Release previous bidder's reserved funds (if not same bidder)
             prev_bid_result = await self.session.execute(
                 select(Bid)
@@ -218,12 +226,14 @@ class BidService(BaseService):
                 )
                 prev_user = prev_user_result.scalars().first()
                 if prev_user:
-                    prev_user.reserved = (prev_user.reserved - (prev_bid.amount or Decimal('0.00'))).quantize(Decimal('0.01'))
-            
-            # Update current bidder reserve (within transaction)
-            user.reserved = (user.reserved + amount).quantize(Decimal('0.01'))
-            
-            # Create bid with request_id for idempotency (all within single transaction)
+                    from app.services.accounting import AccountingService
+                    await AccountingService(self.session).adjust_balance(prev_user.id, -(prev_bid.amount or Decimal('0.00')), "bid_release_reserved", reference_id=lot_id, field="reserved")
+
+            # Update current bidder reserve (ledgered)
+            from app.services.accounting import AccountingService
+            await AccountingService(self.session).adjust_balance(user.id, amount, "bid_reserve", reference_id=lot_id, field="reserved")
+
+            # Create bid with request_id for idempotency
             bid = Bid(
                 request_id=request_id,  # Store idempotency key
                 lot_id=lot_id,
@@ -232,23 +242,26 @@ class BidService(BaseService):
                 created_at=datetime.utcnow()
             )
             self.session.add(bid)
-            
-            # Update lot (within transaction) - round to 2 decimals
+
+            # Update lot - round to 2 decimals
             lot.current_price = amount.quantize(Decimal('0.01'))
             lot.winner_id = bidder_id
-            
+
             await self.session.flush()
-            # Transaction auto-commits on success
-        
-        await self.session.refresh(bid)
-        return bid
+            await self.session.refresh(bid)
+            return bid
 
     async def set_auto_bid(self, user_id: int, auction_id: int = None, lot_id: int = None, max_amount: Decimal = Decimal('0.00')):
         """
         Set or update autobid with atomic transaction and user lock.
         Prevents race conditions on user reserve balance.
         """
-        async with self.session.begin():
+        # choose a transaction context depending on whether one is already active
+        if self.session.in_transaction():
+            tx = self.session.begin_nested()
+        else:
+            tx = self.session.begin()
+        async with tx:
             # Lock user immediately to prevent concurrent reserve modifications
             user_result = await self.session.execute(
                 select(User)
@@ -284,7 +297,11 @@ class BidService(BaseService):
                 # Update existing autobid (account for difference)
                 old_reserve = autobid.max_amount or Decimal('0.00')
                 new_reserve = max_amount
-                user.reserved = (user.reserved - old_reserve + new_reserve).quantize(Decimal('0.01'))
+                # Adjust reserved amount via ledger
+                from app.services.accounting import AccountingService
+                diff = new_reserve - old_reserve
+                if diff != Decimal('0.00'):
+                    await AccountingService(self.session).adjust_balance(user.id, diff, "autobid_reserve_update", reference_id=None, field="reserved")
                 autobid.max_amount = new_reserve.quantize(Decimal('0.01'))
             else:
                 # Create new autobid
@@ -295,7 +312,8 @@ class BidService(BaseService):
                     max_amount=max_amount.quantize(Decimal('0.01'))
                 )
                 self.session.add(autobid)
-                user.reserved = (user.reserved + max_amount).quantize(Decimal('0.01'))
+                from app.services.accounting import AccountingService
+                await AccountingService(self.session).adjust_balance(user.id, max_amount, "autobid_reserve", reference_id=None, field="reserved")
             
             await self.session.flush()
             # Transaction auto-commits on success

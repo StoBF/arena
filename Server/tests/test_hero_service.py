@@ -1,4 +1,5 @@
 import pytest
+from decimal import Decimal
 from app.services.hero import HeroService
 from app.database.models.hero import Hero
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +31,7 @@ def test_generate_hero_with_all_attributes(async_session):
     from app.core.hero_config import ATTRIBUTE_RANGES
     owner_id = 42
     gen = 5
-    currency = 100
+    currency = Decimal("100")
     locale = "en"
     hero = asyncio.get_event_loop().run_until_complete(
         generate_hero(async_session, owner_id, gen, currency, locale=locale, seed=123)

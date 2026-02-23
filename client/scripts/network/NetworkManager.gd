@@ -1,7 +1,7 @@
 extends Node
 class_name NetworkManager
 
-signal request_completed(result: int, code: int, headers: PackedStringArray, body_text: String)
+signal request_completed(request_id: int, result: int, code: int, headers: PackedStringArray, body_text: String)
 signal server_status_checked(online: bool, latency_ms: float, error_message: String)
 signal token_refreshed(success: bool)
 
@@ -16,6 +16,7 @@ var _status_request_start_time: float = 0.0
 
 # Active requests cache
 var active_requests: Dictionary = {}
+var _responses: Dictionary = {}
 
 # Token refresh protection (prevent infinite loops)
 var _token_refresh_in_progress: bool = false
@@ -64,6 +65,7 @@ func request(endpoint: String, method := HTTPClient.METHOD_GET, data := {}, head
 		_on_request_completed(request_id, result, code, hdrs, body)
 	)
 
+	print("[HTTP SEND] %s %s headers=%s" % [method, url, final_headers])
 	var err = http_request.request(url, final_headers, method, json_data)
 	if err != OK:
 		print("HTTP request failed: ", err)
@@ -77,7 +79,16 @@ func _on_request_completed(request_id: int, result: int, response_code: int, hea
 	if request_info == null:
 		return
 
+	# Build body text
 	var body_text: String = body.get_string_from_utf8()
+
+	# Store response for awaiting callers
+	_responses[request_id] = {
+		"result": result,
+		"code": response_code,
+		"headers": headers,
+		"body_text": body_text
+	}
 
 	# CRITICAL: Handle 401 Unauthorized - token may have expired
 	# Try to refresh and retry request ONCE
@@ -96,7 +107,7 @@ func _on_request_completed(request_id: int, result: int, response_code: int, hea
 		_retry_request(request_info)
 	else:
 		# Emit success or final failure
-		emit_signal("request_completed", result, response_code, headers, body_text)
+		emit_signal("request_completed", request_id, result, response_code, headers, body_text)
 
 	# Cleanup
 	if request_info.http_request:
@@ -233,7 +244,14 @@ func _handle_request_error(request_id: int, error: int) -> void:
 	if request_info.retry_count < max_retries:
 		_retry_request(request_info)
 	else:
-		emit_signal("request_completed", HTTPRequest.RESULT_CANT_CONNECT, 0, PackedStringArray(), PackedByteArray())
+		# Populate response for waiting callers
+		_responses[request_id] = {
+			"result": HTTPRequest.RESULT_CANT_CONNECT,
+			"code": 0,
+			"headers": PackedStringArray(),
+			"body_text": ""
+		}
+		emit_signal("request_completed", request_id, HTTPRequest.RESULT_CANT_CONNECT, 0, PackedStringArray(), PackedByteArray())
 
 	if request_info.http_request:
 		request_info.http_request.queue_free()

@@ -4,9 +4,35 @@ from redis.asyncio import Redis
 from typing import AsyncGenerator, Optional
 import os
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = os.getenv("REDIS_URL")
 
-redis_pubsub = Redis.from_url(REDIS_URL, encoding="utf-8", decode_responses=True)
+# In test environments the REDIS_URL may be intentionally unset; provide
+# a lightweight no-op stub so import-time operations and test collection
+# do not fail. In production the environment must provide `REDIS_URL`.
+if REDIS_URL:
+    redis_pubsub = Redis.from_url(REDIS_URL, encoding="utf-8", decode_responses=True)
+else:
+    class _StubPubSub:
+        async def publish(self, *args, **kwargs):
+            return 0
+
+        def pubsub(self):
+            return self
+
+        async def subscribe(self, *args, **kwargs):
+            return
+
+        async def listen(self):
+            if False:
+                yield
+
+        async def unsubscribe(self, *args, **kwargs):
+            return
+
+        async def close(self):
+            return
+
+    redis_pubsub = _StubPubSub()
 
 # Канали: general, trade, private:{user_id}
 def get_channel_name(channel: str, user_id: Optional[int] = None) -> str:

@@ -1,9 +1,12 @@
+import os
 import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from app.database.models.raid_boss import RaidBoss, RaidDropItem, RecipeDrop
 
-DATABASE_URL = "postgresql+asyncpg://user:password@localhost/dbname"  # Заміни на свій
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable is required for seed scripts")
 
 async def seed_raid_bosses():
     engine = create_async_engine(DATABASE_URL, echo=True)

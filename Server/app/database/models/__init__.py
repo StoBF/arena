@@ -11,6 +11,7 @@ from .pve import MobTemplate, BossPerk, MobPerk, RaidArenaInstance, PvEBattleLog
 from .raid_boss import RaidBoss, RaidDropItem, RecipeDrop
 from .tournament import TournamentTemplate, TournamentInstance
 from .event import EventDefinition, EventInstance
+from .currency_transaction import CurrencyTransaction
 from .models import (
     Auction, AuctionLot, Bid, AuctionLot, ChatMessage, OfflineMessage,
     Equipment, Stash, PvPMatch, PvPBattleLog, LeaderboardEntry

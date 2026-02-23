@@ -1,5 +1,6 @@
 import pytest
 import asyncio
+from decimal import Decimal
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from app.database.session import Base
@@ -30,8 +31,8 @@ async def db():
 
 @pytest.mark.asyncio
 async def test_create_auction_and_bid(db):
-    user1 = User(username="seller", email="seller@example.com", balance=1000, reserved=0)
-    user2 = User(username="buyer", email="buyer@example.com", balance=2000, reserved=0)
+    user1 = User(username="seller", email="seller@example.com", balance=Decimal("1000"), reserved=Decimal("0"))
+    user2 = User(username="buyer", email="buyer@example.com", balance=Decimal("2000"), reserved=Decimal("0"))
     db.add_all([user1, user2])
     await db.commit()
     await db.refresh(user1)
@@ -44,59 +45,61 @@ async def test_create_auction_and_bid(db):
     db.add(stash)
     await db.commit()
     service = AuctionService(db)
-    auction = await service.create_auction(seller_id=user1.id, item_id=item.id, start_price=100, duration=1, quantity=3)
+    auction = await service.create_auction(seller_id=user1.id, item_id=item.id, start_price=Decimal("100"), duration=1, quantity=3)
     assert auction.quantity == 3
     # Ставка
     bid_service = BidService(db)
-    bid = await bid_service.place_bid(bidder_id=user2.id, auction_id=auction.id, amount=150)
-    assert bid.amount == 150
+    bid = await bid_service.place_bid(bidder_id=user2.id, auction_id=auction.id, amount=Decimal("150"))
+    assert bid.amount == Decimal("150")
     # Закриття аукціону
     closed = await service.close_auction(auction.id)
-    assert closed.status == "closed"
+    # status changed to the enum value FINISHED
+    assert closed.status == "finished"
     # Перевірка передачі предмета
     stash_buyer = await db.get(Stash, 1)
     assert stash_buyer is not None
     # Перевірка балансу
     await db.refresh(user2)
     await db.refresh(user1)
-    assert user2.reserved == 0
-    assert user1.balance > 1000
+    assert user2.reserved == Decimal("0")
+    assert user1.balance > Decimal("1000")
 
 @pytest.mark.asyncio
 async def test_auctionlot_and_bid(db):
-    user1 = User(username="hero_seller", email="hero_seller@example.com", balance=1000, reserved=0)
-    user2 = User(username="hero_buyer", email="hero_buyer@example.com", balance=2000, reserved=0)
+    user1 = User(username="hero_seller", email="hero_seller@example.com", balance=Decimal("1000"), reserved=Decimal("0"))
+    user2 = User(username="hero_buyer", email="hero_buyer@example.com", balance=Decimal("2000"), reserved=Decimal("0"))
     db.add_all([user1, user2])
     await db.commit()
     await db.refresh(user1)
     await db.refresh(user2)
-    hero = Hero(name="TestHero", generation=1, nickname="TH", strength=1, agility=1, endurance=1, speed=1, health=1, defense=1, luck=1, field_of_view=1, level=1, experience=0, locale="en", owner_id=user1.id, gold=0)
+    hero = Hero(name="TestHero", generation=1, nickname="TH", strength=1, agility=1, endurance=1, speed=1, health=1, defense=1, luck=1, field_of_view=1, level=1, experience=0, locale="en", owner_id=user1.id, gold=Decimal("0"))
     db.add(hero)
     await db.commit()
     await db.refresh(hero)
     service = AuctionService(db)
-    lot = await service.create_auction_lot(hero_id=hero.id, seller_id=user1.id, starting_price=500, duration=1)
+    lot = await service.create_auction_lot(hero_id=hero.id, seller_id=user1.id, starting_price=Decimal("500"), duration=1)
     assert lot.hero_id == hero.id
     # Ставка
     bid_service = BidService(db)
-    bid = await bid_service.place_lot_bid(bidder_id=user2.id, lot_id=lot.id, amount=600)
-    assert bid.amount == 600
+    bid = await bid_service.place_lot_bid(bidder_id=user2.id, lot_id=lot.id, amount=Decimal("600"))
+    assert bid.amount == Decimal("600")
     # Закриття лота
     closed = await service.close_auction_lot(lot.id)
-    assert closed.is_active == 0
+    # auction lots also transition to finished when closed
+    assert closed.status == "finished"
     # Перевірка передачі героя
     await db.refresh(hero)
     assert hero.owner_id == user2.id
     # Перевірка балансу
     await db.refresh(user2)
     await db.refresh(user1)
-    assert user2.reserved == 0
-    assert user1.balance > 1000
+    assert user2.reserved == Decimal("0")
+    assert user1.balance > Decimal("1000")
 
 @pytest.mark.asyncio
 async def test_autobid(db):
-    user1 = User(username="auto1", email="auto1@example.com", balance=5000, reserved=0)
-    user2 = User(username="auto2", email="auto2@example.com", balance=5000, reserved=0)
+    user1 = User(username="auto1", email="auto1@example.com", balance=Decimal("5000"), reserved=Decimal("0"))
+    user2 = User(username="auto2", email="auto2@example.com", balance=Decimal("5000"), reserved=Decimal("0"))
     db.add_all([user1, user2])
     await db.commit()
     await db.refresh(user1)
@@ -109,16 +112,16 @@ async def test_autobid(db):
     db.add(stash)
     await db.commit()
     service = AuctionService(db)
-    auction = await service.create_auction(seller_id=user1.id, item_id=item.id, start_price=100, duration=1, quantity=1)
+    auction = await service.create_auction(seller_id=user1.id, item_id=item.id, start_price=Decimal("100"), duration=1, quantity=1)
     bid_service = BidService(db)
-    autobid1 = await bid_service.set_auto_bid(user_id=user2.id, auction_id=auction.id, max_amount=1000)
-    assert autobid1.max_amount == 1000
+    autobid1 = await bid_service.set_auto_bid(user_id=user2.id, auction_id=auction.id, max_amount=Decimal("1000"))
+    assert autobid1.max_amount == Decimal("1000")
     # (Тут можна додати логіку proxy-bid, якщо реалізовано)
 
 @pytest.mark.asyncio
 async def test_bid_edge_cases(db):
-    user1 = User(username="fail1", email="fail1@example.com", balance=100, reserved=0)
-    user2 = User(username="fail2", email="fail2@example.com", balance=100, reserved=0)
+    user1 = User(username="fail1", email="fail1@example.com", balance=Decimal("100"), reserved=Decimal("0"))
+    user2 = User(username="fail2", email="fail2@example.com", balance=Decimal("100"), reserved=Decimal("0"))
     db.add_all([user1, user2])
     await db.commit()
     await db.refresh(user1)
@@ -131,11 +134,11 @@ async def test_bid_edge_cases(db):
     db.add(stash)
     await db.commit()
     service = AuctionService(db)
-    auction = await service.create_auction(seller_id=user1.id, item_id=item.id, start_price=100, duration=1, quantity=1)
+    auction = await service.create_auction(seller_id=user1.id, item_id=item.id, start_price=Decimal("100"), duration=1, quantity=1)
     bid_service = BidService(db)
     # Недостатньо коштів
     with pytest.raises(HTTPException):
-        await bid_service.place_bid(bidder_id=user2.id, auction_id=auction.id, amount=200)
+        await bid_service.place_bid(bidder_id=user2.id, auction_id=auction.id, amount=Decimal("200"))
     # Не можна ставити на свій лот
     with pytest.raises(HTTPException):
-        await bid_service.place_bid(bidder_id=user1.id, auction_id=auction.id, amount=110) 
+        await bid_service.place_bid(bidder_id=user1.id, auction_id=auction.id, amount=Decimal("110")) 

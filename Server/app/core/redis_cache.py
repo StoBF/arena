@@ -5,8 +5,11 @@ import json
 from typing import Any, Optional
 from redis.asyncio import Redis
 
-# Зчитуємо URL із .env (за замовчуванням локальний Redis)
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+# Read Redis URL from environment; avoid hardcoded defaults
+REDIS_URL = os.getenv("REDIS_URL")
+if not REDIS_URL:
+    # In testing environments this module may be used as a stub; do not raise here.
+    REDIS_URL = None
 
 class RedisCache:
     def __init__(self):

@@ -2,9 +2,9 @@ extends RefCounted
 class_name ServerConfig
 
 # Server configuration
-var ip: String = "10.193.125.163"
-var http_port: int = 8081
-var ws_port: int = 8081
+var ip: String = ""
+var http_port: int = 0
+var ws_port: int = 0
 var status_endpoint: String = "/health"
 var use_https: bool = false
 
@@ -35,10 +35,32 @@ func get_ws_endpoint(channel: String, token: String) -> String:
 # Load configuration from file
 static func _load_config() -> void:
 	var config = get_instance()
+	# Decide environment (dev/prod) via ARENA_ENV environment variable, default to "dev"
+	var env = OS.get_environment("ARENA_ENV")
+	if env == "":
+		env = "dev"
+
+	var json_path = "res://config/%s.json" % env
+	var f = File.new()
+	var err = f.open(json_path, File.READ)
+	if err == OK:
+		var text = f.get_as_text()
+		f.close()
+		var parsed = JSON.parse(text)
+		if parsed.error == OK:
+			var data = parsed.result
+			config.ip = str(data.get("ip", config.ip))
+			config.http_port = int(data.get("http_port", config.http_port))
+			config.ws_port = int(data.get("ws_port", config.ws_port))
+			config.use_https = bool(data.get("use_https", config.use_https))
+			config.status_endpoint = str(data.get("status_endpoint", config.status_endpoint))
+			return
+
+	# Fallback: try existing user config (keeps previous behavior)
 	var config_path = "user://server_config.cfg"
 	var file = ConfigFile.new()
-	var err = file.load(config_path)
-	if err == OK:
+	var load_err = file.load(config_path)
+	if load_err == OK:
 		config.ip = file.get_value("server", "ip", config.ip)
 		config.http_port = file.get_value("server", "http_port", config.http_port)
 		config.ws_port = file.get_value("server", "ws_port", config.ws_port)

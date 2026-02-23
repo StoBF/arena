@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 from sqlalchemy.future import select
 from app.database.models.models import Auction
+from app.core.enums import AuctionStatus
 from app.database.session import AsyncSessionLocal
 from app.services.auction import AuctionService
 from app.core.redis_pubsub import publish_message
@@ -22,7 +23,7 @@ async def close_expired_auctions_task():
                 # CRITICAL: Lock expired auctions with FOR UPDATE to prevent race
                 result = await session.execute(
                     select(Auction)
-                    .where(Auction.status == "active", Auction.end_time <= now)
+                    .where(Auction.status == AuctionStatus.ACTIVE, Auction.end_time <= now)
                     .with_for_update()  # PESSIMISTIC LOCK - PREVENTS CONCURRENT PROCESSING
                     .skip_locked()  # Skip already-locked rows (for other workers)
                 )

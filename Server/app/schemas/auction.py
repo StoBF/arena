@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
 from decimal import Decimal
+from app.core.enums import AuctionStatus
 
 class AuctionCreate(BaseModel):
     item_id: int = Field(..., example=101)
@@ -16,7 +17,7 @@ class AuctionOut(BaseModel):
     start_price: Decimal = Field(..., example="500.00")
     current_price: Decimal = Field(..., example="750.00")
     end_time: datetime = Field(..., example="2024-06-01T12:00:00Z")
-    status: str = Field(..., example="active")
+    status: AuctionStatus = Field(..., example=AuctionStatus.ACTIVE)
     winner_id: Optional[int] = Field(None, example=None)
     quantity: int = Field(..., example=1)
     created_at: datetime = Field(..., example="2024-05-31T12:00:00Z")
@@ -42,7 +43,7 @@ class AuctionLotOut(BaseModel):
     buyout_price: Optional[Decimal] = Field(None, example="2000.00")
     end_time: datetime = Field(...)
     winner_id: Optional[int] = Field(None, example=None)
-    is_active: bool = Field(..., example=True)
+    status: AuctionStatus = Field(..., example=AuctionStatus.ACTIVE)
     created_at: datetime = Field(...)
 
     class Config:

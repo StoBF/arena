@@ -1,0 +1,7 @@
+{
+  "ip": "127.0.0.1",
+  "http_port": 8081,
+  "ws_port": 8081,
+  "use_https": false,
+  "status_endpoint": "/health"
+}

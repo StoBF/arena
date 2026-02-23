@@ -37,7 +37,8 @@ async def test_can_craft_not_enough_resources(async_session: AsyncSession, test_
 
 @pytest.mark.asyncio
 async def test_start_and_finish_craft(async_session: AsyncSession, test_user):
-    item = Item(name="Potion", description="", type=ItemType.consumable, slot_type=SlotType.artifact, bonus_strength=0)
+    # use string values for enums when creating Item to avoid sqlite binding issues
+    item = Item(name="Potion", description="", type=ItemType.consumable.value, slot_type=SlotType.artifact.value, bonus_strength=0)
     async_session.add(item)
     await async_session.flush()
     recipe = CraftRecipe(name="Test Potion", item_type="consumable", grade=1, craft_time_sec=0, result_item_id=item.id)
@@ -89,10 +90,7 @@ async def test_can_craft_pvp_pve(async_session: AsyncSession, test_user):
 
 @pytest.mark.asyncio
 async def test_epic_legendary_limit(async_session: AsyncSession, test_user):
-    today = datetime.utcnow()
-    crafted = CraftedItem(user_id=test_user.id, item_type="artifact", grade=4, is_mutated=False, created_at=datetime(today.year, today.month, today.day))
-    async_session.add(crafted)
-    await async_session.flush()
+    # create recipe first so we can reference it from the existing crafted item
     recipe = CraftRecipe(
         name="Epic",
         item_type="artifact",
@@ -101,14 +99,26 @@ async def test_epic_legendary_limit(async_session: AsyncSession, test_user):
     )
     async_session.add(recipe)
     await async_session.flush()
+
+    today = datetime.utcnow()
+    crafted = CraftedItem(
+        user_id=test_user.id,
+        item_type="artifact",
+        grade=4,
+        is_mutated=False,
+        created_at=datetime(today.year, today.month, today.day),
+        recipe_id=recipe.id,
+    )
+    async_session.add(crafted)
+    await async_session.flush()
+
     service = CraftService(async_session)
     with pytest.raises(ValueError):
         await service.start_craft(test_user.id, recipe.id)
 
 @pytest.mark.asyncio
 async def test_disenchant_returns_resources(async_session: AsyncSession, test_user):
-    crafted = CraftedItem(user_id=test_user.id, item_type="weapon", grade=3, is_mutated=False)
-    async_session.add(crafted)
+    # create recipe and craft item pointing to it
     recipe = CraftRecipe(
         item_type="weapon",
         grade=3,
@@ -116,13 +126,17 @@ async def test_disenchant_returns_resources(async_session: AsyncSession, test_us
     )
     async_session.add(recipe)
     await async_session.flush()
+    crafted = CraftedItem(user_id=test_user.id, item_type="weapon", grade=3, is_mutated=False, recipe_id=recipe.id)
+    async_session.add(crafted)
     res1 = CraftRecipeResource(recipe_id=recipe.id, resource_id=1, quantity=4, type="pvp")
     res2 = CraftRecipeResource(recipe_id=recipe.id, resource_id=101, quantity=2, type="pve")
     async_session.add_all([res1, res2])
     await async_session.flush()
     service = CraftService(async_session)
     returned = await service.disenchant_item(test_user.id, crafted.id)
-    for res in recipe.resources:
+    # avoid triggering lazy-load in async context by iterating over saved list
+    resources = [res1, res2]
+    for res in resources:
         assert returned[str(res.resource_id)] == int(res.quantity * 0.5)
     stash1 = await async_session.execute(Stash.__table__.select().where(Stash.user_id == test_user.id, Stash.item_id == 1))
     stash2 = await async_session.execute(Stash.__table__.select().where(Stash.user_id == test_user.id, Stash.item_id == 101))

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from app.database.base import Base
 import enum
 from app.database.models.user import User
+from app.core.enums import AuctionStatus
 from sqlalchemy.orm import Session
 from uuid import uuid4
 from decimal import Decimal
@@ -77,7 +78,7 @@ class Auction(Base):
     end_time = Column(DateTime, nullable=False, index=True)
     winner_id = Column(Integer, ForeignKey("users.id"))  # user
     quantity = Column(Integer, default=1)  # кількість предметів у лоті
-    status = Column(String, default="active", index=True)
+    status = Column(Enum(AuctionStatus), default=AuctionStatus.ACTIVE, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     __table_args__ = (
         CheckConstraint('start_price > 0', name='ck_auction_start_price_positive'),
@@ -139,7 +140,7 @@ class AuctionLot(Base):
     buyout_price = Column(Numeric(12, 2), nullable=True)
     end_time = Column(DateTime, nullable=False, index=True)
     winner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    is_active = Column(Integer, default=1)  # 1 = active, 0 = closed
+    status = Column(Enum(AuctionStatus), default=AuctionStatus.ACTIVE, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     __table_args__ = (
         CheckConstraint('starting_price > 0', name='ck_lot_starting_price_positive'),

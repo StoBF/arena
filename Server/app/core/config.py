@@ -1,4 +1,5 @@
 from typing import List
+import os
 
 class Settings:
     # Use in-memory SQLite by default for testing and development
@@ -15,8 +16,8 @@ class Settings:
     TOKEN_ROTATION_ENABLED: bool = True  # Enable token rotation for security
     
     ALLOWED_ORIGINS: str = "*"
-    HOST: str = "0.0.0.0"
-    PORT: int = 8081
+    HOST: str = os.getenv("HOST", "0.0.0.0")
+    PORT: int = int(os.getenv("PORT", os.getenv("APP_PORT", "8081")))
     EMAIL_HOST: str = "smtp.example.com"
     EMAIL_PORT: int = 587
     EMAIL_FROM: str = "noreply@example.com"

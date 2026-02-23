@@ -7,7 +7,7 @@ class AnnouncementService(BaseService):
     async def create_announcement(self, message: str, author_id: int = None):
         ann = Announcement(message=message, author_id=author_id)
         self.session.add(ann)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(ann)
         return ann
 

@@ -1,6 +1,7 @@
 import pytest
 import pytest_asyncio
 import httpx
+from decimal import Decimal
 from httpx import AsyncClient as _AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,7 +33,15 @@ async def async_session() -> AsyncSession:
 
 @pytest_asyncio.fixture
 async def test_user(async_session: AsyncSession):
-    user = User(username="testuser", email="test@example.com")
+    # create a fresh user each time to avoid uniqueness conflicts
+    from uuid import uuid4
+    suffix = uuid4().hex[:8]
+    user = User(
+        username=f"testuser_{suffix}",
+        email=f"test{suffix}@example.com",
+        balance=Decimal("1000"),
+        reserved=Decimal("0"),
+    )
     async_session.add(user)
     await async_session.flush()
     return user
@@ -45,7 +54,7 @@ async def test_user_token(test_user: User):
 @pytest_asyncio.fixture
 async def other_user_crafted_item_id(async_session: AsyncSession):
     # Create a second user and a crafted item for them
-    other = User(username="otheruser", email="other@example.com")
+    other = User(username="otheruser", email="other@example.com", balance=Decimal("1000"), reserved=Decimal("0"))
     async_session.add(other)
     await async_session.flush()
     crafted = CraftedItem(
