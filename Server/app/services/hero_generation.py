@@ -11,8 +11,11 @@ from sqlalchemy.future import select
 logger = logging.getLogger("hero_gen")
 
 def calc_currency_bonus(base, currency, k=0.001):
+    # `currency` may be a Decimal in our code; math.exp only works with floats
+    # so convert before doing the calculation.  Return a float since this is
+    # used for probability checks.
     max_bonus = base * MAX_BONUS_FACTOR
-    bonus = max_bonus * (1 - math.exp(-k * currency))
+    bonus = max_bonus * (1 - math.exp(-k * float(currency)))
     return bonus
 
 def roll_attributes(gen):

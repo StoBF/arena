@@ -20,13 +20,17 @@ class CraftService:
         self.db = db
 
     async def get_recipes(self) -> List[CraftRecipe]:
-        result = await self.db.execute(CraftRecipe.__table__.select())
+        # use ORM select so we return `CraftRecipe` instances rather than raw
+        # primary key values (table select returns scalar id by default)
+        result = await self.db.execute(select(CraftRecipe))
         return result.scalars().all()
 
-    async def can_craft(self, user_id: int, recipe: CraftRecipe) -> bool:
-        # Ensure user has required ingredients
+    async def can_craft(self, user_id: int, recipe: CraftRecipe | int) -> bool:
+        # Ensure user has required ingredients.  Accept either full recipe object
+        # or its id (some callers simply pass the integer).
+        recipe_id = recipe.id if hasattr(recipe, "id") else recipe
         result = await self.db.execute(
-            select(CraftRecipeResource).where(CraftRecipeResource.recipe_id == recipe.id)
+            select(CraftRecipeResource).where(CraftRecipeResource.recipe_id == recipe_id)
         )
         comps = result.scalars().all()
         for comp in comps:

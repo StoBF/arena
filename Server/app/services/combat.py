@@ -51,7 +51,9 @@ class CombatService:
                 joinedload(Hero.equipment_items)
             ).where(Hero.id.in_(hero_ids))
         )
-        loaded_heroes = {h.id: h for h in result.scalars().all()}
+        # `joinedload` may produce duplicate rows when loading collections, so
+        # ensure unique heroes before building our map.
+        loaded_heroes = {h.id: h for h in result.scalars().unique().all()}
         # Підготовка бійців: застосування бонусів від перків
         for hero in team_a + team_b:
             h = loaded_heroes.get(hero.id, hero)

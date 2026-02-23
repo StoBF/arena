@@ -137,7 +137,8 @@ async def test_disenchant_returns_resources(async_session: AsyncSession, test_us
     # avoid triggering lazy-load in async context by iterating over saved list
     resources = [res1, res2]
     for res in resources:
-        assert returned[str(res.resource_id)] == int(res.quantity * 0.5)
+        # ledger uses integer keys
+        assert returned[res.resource_id] == int(res.quantity * 0.5)
     stash1 = await async_session.execute(Stash.__table__.select().where(Stash.user_id == test_user.id, Stash.item_id == 1))
     stash2 = await async_session.execute(Stash.__table__.select().where(Stash.user_id == test_user.id, Stash.item_id == 101))
     assert stash1.first() is not None
@@ -170,6 +171,10 @@ async def test_craft_not_enough_pvp(async_session: AsyncSession, test_user):
     )
     async_session.add(recipe)
     await async_session.flush()
+    # require more resources than stash contains
+    resource = CraftRecipeResource(recipe_id=recipe.id, resource_id=1, quantity=5, type="pvp")
+    async_session.add(resource)
+    await async_session.flush()
     stash = Stash(user_id=test_user.id, item_id=1, quantity=2)
     async_session.add(stash)
     await async_session.flush()
@@ -188,6 +193,10 @@ async def test_craft_not_enough_pve(async_session: AsyncSession, test_user):
         craft_time_sec=0
     )
     async_session.add(recipe)
+    await async_session.flush()
+    # require more resources than present
+    resource = CraftRecipeResource(recipe_id=recipe.id, resource_id=101, quantity=3, type="pve")
+    async_session.add(resource)
     await async_session.flush()
     stash = Stash(user_id=test_user.id, item_id=101, quantity=1)
     async_session.add(stash)
@@ -227,7 +236,11 @@ async def test_disenchant_not_found(async_session: AsyncSession, test_user):
 
 @pytest.mark.asyncio
 async def test_disenchant_not_owner(async_session: AsyncSession, test_user):
-    crafted = CraftedItem(user_id=999, item_type="artifact", grade=2, is_mutated=False)
+    # create dummy recipe to satisfy non-null constraint
+    recipe = CraftRecipe(item_type="artifact", grade=2, craft_time_sec=0)
+    async_session.add(recipe)
+    await async_session.flush()
+    crafted = CraftedItem(user_id=999, item_type="artifact", grade=2, is_mutated=False, recipe_id=recipe.id)
     async_session.add(crafted)
     await async_session.flush()
     with pytest.raises(ValueError):
@@ -289,10 +302,12 @@ async def test_ready_at_field(async_session: AsyncSession, test_user):
 
 @pytest.mark.asyncio
 async def test_disenchant_removes_item(async_session: AsyncSession, test_user):
-    crafted = CraftedItem(user_id=test_user.id, item_type="artifact", grade=2, is_mutated=False)
-    async_session.add(crafted)
+    # create recipe first to satisfy non-null constraint
     recipe = CraftRecipe(item_type="artifact", grade=2, craft_time_sec=0)
     async_session.add(recipe)
+    await async_session.flush()
+    crafted = CraftedItem(user_id=test_user.id, item_type="artifact", grade=2, is_mutated=False, recipe_id=recipe.id)
+    async_session.add(crafted)
     await async_session.flush()
     service = CraftService(async_session)
     await service.disenchant_item(test_user.id, crafted.id)

@@ -4,12 +4,20 @@ from app.database.models.models import Equipment, Stash, Item, SlotType
 from app.services.base_service import BaseService
 
 class EquipmentService(BaseService):
+    def _txn(self):
+        # helper to mirror AuctionService behavior: use nested transaction if
+        # one is already in progress so callers can safely call us from within
+        # other transactional contexts.
+        if self.session.in_transaction():
+            return self.session.begin_nested()
+        return self.session.begin()
+
     async def equip_item(self, hero_id: int, user_id: int, item_id: int, slot: SlotType):
         """
         Equip item to hero with atomic transaction.
         Handles auto-swap of old equipment atomically.
         """
-        async with self.session.begin():
+        async with self._txn():
             # Lock stash entry to check availability
             stash_result = await self.session.execute(
                 select(Stash)
@@ -73,7 +81,7 @@ class EquipmentService(BaseService):
         Unequip item from hero with atomic transaction.
         Ensures equipment and stash stay synchronized.
         """
-        async with self.session.begin():
+        async with self._txn():
             # Lock equipment for the slot (if exists)
             equipment_result = await self.session.execute(
                 select(Equipment)

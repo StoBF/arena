@@ -37,10 +37,31 @@ class HeroService(BaseService):
         await self.session.refresh(hero)
         return hero
 
-    async def get_hero(self, hero_id: int, only_active: bool = True):
+    async def get_hero(
+        self,
+        hero_id: int,
+        only_active: bool = True,
+        load_perks: bool = False,
+        load_equipment: bool = False,
+    ):
+        """Retrieve a hero optionally eager-loading relationships.
+
+        The extra flags are useful in async code where lazy-loading would
+        otherwise trigger I/O outside of a greenlet causing MissingGreenlet
+        errors in tests.
+        """
         query = select(Hero).where(Hero.id == hero_id)
         if only_active:
             query = query.where(Hero.is_deleted == False)
+        if load_perks:
+            query = query.options(joinedload(Hero.perks))
+        if load_equipment:
+            # import here to avoid circular import
+            from app.database.models.models import Equipment
+
+            query = query.options(
+                joinedload(Hero.equipment_items).joinedload(Equipment.item)
+            )
         result = await self.session.execute(query)
         return result.scalars().first()
 
@@ -281,10 +302,11 @@ class HeroService(BaseService):
         return hero
 
     async def get_hero_with_perks(self, hero_id: int) -> HeroRead:
-        hero = await self.session.get(Hero, hero_id)
+        # use helper that eagerly loads relationships so we can iterate safely
+        hero = await self.get_hero(hero_id, load_perks=True)
         if not hero:
             raise HTTPException(status_code=404, detail="Hero not found")
-        # Підвантажити перки з Perk
+        # perks list is already available thanks to joinedload
         perks = []
         for hp in hero.perks:
             perk = await self.session.get(Perk, hp.perk_id)
@@ -304,15 +326,21 @@ class HeroService(BaseService):
         return HeroRead(**hero_dict)
 
     async def upgrade_perk(self, hero_id: int, perk_id: int, user_id: int, max_level: int = 100):
+        # first ensure the hero exists and belongs to the caller; we don't
+        # need to load its perks here since we'll query them separately.
         hero = await self.get_hero(hero_id)
         if not hero or hero.owner_id != user_id:
             raise HTTPException(status_code=404, detail="Hero not found or not yours")
-        # Знайти перк героя
-        perk = None
-        for p in hero.perks:
-            if p.perk_id == perk_id:
-                perk = p
-                break
+        # query specific hero perk row instead of iterating lazy-loaded list
+        from app.database.models.hero import HeroPerk
+
+        result = await self.session.execute(
+            select(HeroPerk).where(
+                HeroPerk.hero_id == hero_id,
+                HeroPerk.perk_id == perk_id,
+            )
+        )
+        perk = result.scalars().first()
         if not perk:
             raise HTTPException(status_code=404, detail="Perk not found for this hero")
         if perk.perk_level >= max_level:

@@ -25,6 +25,18 @@ async def init_db():
     # Create database tables before any tests run
     await create_db_and_tables()
 
+# monkeypatch bcrypt to avoid environment-specific issues during tests
+# some environments have an incompatible bcrypt backend which causes
+# passlib to raise ValueError when initializing.  We replace the hash/verify
+# functions with trivial implementations for speed and reliability.
+@pytest.fixture(autouse=True)
+def disable_real_hashing(monkeypatch):
+    from app.services import auth
+
+    monkeypatch.setattr(auth.pwd_context, "hash", lambda pw: f"hashed-{pw}")
+    monkeypatch.setattr(auth.pwd_context, "verify", lambda pw, h: h == f"hashed-{pw}")
+    yield
+
 @pytest_asyncio.fixture
 async def async_session() -> AsyncSession:
     # Provide a fresh AsyncSession for each test
