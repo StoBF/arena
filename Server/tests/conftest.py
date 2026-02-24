@@ -4,6 +4,7 @@ import httpx
 from decimal import Decimal
 from httpx import AsyncClient as _AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import AsyncGenerator
 
 from app.database.session import get_async_session, create_db_and_tables
 from app.database.models.user import User
@@ -38,7 +39,7 @@ def disable_real_hashing(monkeypatch):
     yield
 
 @pytest_asyncio.fixture
-async def async_session() -> AsyncSession:
+async def async_session() -> AsyncGenerator[AsyncSession, None]:
     # Provide a fresh AsyncSession for each test
     async for session in get_async_session():
         yield session
