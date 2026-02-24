@@ -1,0 +1,35 @@
+[gd_scene load_steps=3 format=3 uid="uid://stat-panel"]
+
+[ext_resource type="Script" uid="uid://script" path="res://scripts/ui/components/StatPanel.gd" id="1"]
+
+[node name="StatPanel" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+
+[node name="StatPanel/Strength" type="Label" parent="."]
+text = "Strength: 0"
+
+[node name="StatPanel/Speed" type="Label" parent="."]
+text = "Speed: 0"
+
+[node name="StatPanel/Agility" type="Label" parent="."]
+text = "Agility: 0"
+
+[node name="StatPanel/Endurance" type="Label" parent="."]
+text = "Endurance: 0"
+
+[node name="StatPanel/Health" type="Label" parent="."]
+text = "Health: 0"
+
+[node name="StatPanel/Defense" type="Label" parent="."]
+text = "Defense: 0"
+
+[node name="StatPanel/Luck" type="Label" parent="."]
+text = "Luck: 0"
+
+[node name="StatPanel/Training" type="Label" parent="."]
+text = "Training: none"
+
+[node name="StatPanel/View" type="Label" parent="."]
+text = "Field of View: 0"
+

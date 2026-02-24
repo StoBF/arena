@@ -1,0 +1,32 @@
+[gd_scene load_steps=6 format=3 uid="uid://hero-menu-scene"]
+
+[ext_resource type="Script" uid="uid://script" path="res://scripts/ui/HeroMenuPanel.gd" id="1"]
+
+[node name="HeroMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1")
+
+[node name="HeroIcon" type="TextureButton" parent="."]
+# clicking this button should open the HeroMenu from wherever it appears
+
+[node name="EquipmentGrid" type="GridContainer" parent="."]
+columns = 5
+
+[node name="EquipmentGrid#Slot_Helmet" type="TextureButton" parent="."]
+
+[node name="EquipmentGrid#Slot_Armor" type="TextureButton" parent="."]
+
+[node name="EquipmentGrid#Slot_Gloves" type="TextureButton" parent="."]
+
+[node name="EquipmentGrid#Slot_Boots" type="TextureButton" parent="."]
+
+[node name="EquipmentGrid#Slot_QuantumModule" type="TextureButton" parent="."]
+
+[node name="ItemsGrid" type="GridContainer" parent="."]
+columns = 4
+
+[node name="Tooltip" type="PopupPanel" parent="."]
+
+[node name="Tooltip/Label" type="Label" parent="Tooltip"]
+text = ""

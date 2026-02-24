@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3 uid="uid://chat-panel"]
+
+[ext_resource type="Script" uid="uid://script" path="res://scripts/ui/components/ChatPanel.gd" id="1"]
+
+[node name="ChatPanel" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+
+[node name="ChatPanel/Tabs" type="TabContainer" parent="."]
+
+[node name="Tabs/General" type="VBoxContainer" parent="Tabs"]
+
+[node name="General/MessageList" type="ItemList" parent="General"]
+
+[node name="General/InputHBox" type="HBoxContainer" parent="General"]
+[node name="InputHBox/LineEdit" type="LineEdit" parent="InputHBox"]
+[node name="InputHBox/Send" type="Button" parent="InputHBox"]
+text = "Send"
+

@@ -1,0 +1,10 @@
+[gd_scene load_steps=4 format=3 uid="uid://hero-card"]
+
+[ext_resource type="Script" uid="uid://script" path="res://scripts/ui/components/HeroCard.gd" id="1"]
+
+[node name="HeroCard" type="Button"]
+layout_mode = 3
+anchors_preset = 0
+text = "Hero Name (Lvl)"
+script = ExtResource("1")
+

@@ -1,0 +1,64 @@
+[gd_scene load_steps=10 format=3 uid="uid://battle-prep-room"]
+
+[ext_resource type="Script" uid="uid://script" path="res://scripts/ui/BattlePreparationRoom.gd" id="1"]
+
+[node name="BattlePreparationRoom" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+
+[node name="VBox/Header" type="Label" parent="VBox"]
+text = "Battle Preparation Room"
+
+[node name="VBox/HeroSelectHBox" type="HBoxContainer" parent="VBox"]
+
+[node name="HeroSelectHBox/Label" type="Label" parent="HeroSelectHBox"]
+text = "Choose hero:"
+
+[node name="HeroSelectHBox/HeroList" type="OptionButton" parent="HeroSelectHBox"]
+
+[node name="VBox/SubmitHBox" type="HBoxContainer" parent="VBox"]
+
+[node name="SubmitHBox/SubmitButton" type="Button" parent="SubmitHBox"]
+text = "Submit to Queue"
+
+[node name="SubmitHBox/QueueDisplay" type="Label" parent="SubmitHBox"]
+text = "Queue: empty"
+
+[node name="VBox/StatsContainer" type="HBoxContainer" parent="VBox"]
+
+[node name="StatsContainer/YourStats" type="VBoxContainer" parent="StatsContainer"]
+
+[node name="YourStats/Label" type="Label" parent="YourStats"]
+text = "Your Hero"
+
+[node name="YourStats/Stats" type="Label" parent="YourStats"]
+text = ""
+
+[node name="StatsContainer/OpponentStats" type="VBoxContainer" parent="StatsContainer"]
+
+[node name="OpponentStats/Label" type="Label" parent="OpponentStats"]
+text = "Opponent"
+
+[node name="OpponentStats/Stats" type="Label" parent="OpponentStats"]
+text = ""
+
+[node name="VBox/Prediction" type="Label" parent="VBox"]
+text = "Prediction: N/A"
+
+[node name="VBox/BetContainer" type="HBoxContainer" parent="VBox"]
+
+[node name="BetContainer/Label" type="Label" parent="BetContainer"]
+text = "Bet:" 
+
+[node name="BetContainer/Amount" type="LineEdit" parent="BetContainer"]
+
+[node name="BetContainer/PlaceBet" type="Button" parent="BetContainer"]
+text = "Place Bet"
+
+[node name="BattlePreparationRoom/QueueTimer" type="Timer" parent="."]
+wait_time = 2.0
+one_shot = false
+

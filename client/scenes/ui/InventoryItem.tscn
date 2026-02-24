@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://inv-item"]
+
+[ext_resource type="Script" uid="uid://script" path="res://scripts/ui/components/InventoryItem.gd" id="1"]
+
+[node name="InventoryItem" type="HBoxContainer"]
+layout_mode = 3
+anchors_preset = 0
+
+[node name="InventoryItem/Icon" type="TextureRect" parent="."]
+rect_min_size = Vector2(32,32)
+
+[node name="InventoryItem/Name" type="Label" parent="."]
+text = "Item"
+
+[node name="InventoryItem/Quantity" type="Label" parent="."]
+text = "x0"
+

@@ -95,3 +95,52 @@ async def raid(
         "team_a_remaining": result.team_a_remaining,
         "team_b_remaining": result.team_b_remaining
     } 
+# ---------- simple queue & betting prototype ----------
+queue: List[Dict] = []  # {hero_id, player_id, timestamp}
+bets: List[Dict] = []   # {player_id, hero_id, amount}
+# placeholder stats
+_hero_stats = {
+    1: {"hero_id":1, "attack":10, "defense":8, "health":50},
+    2: {"hero_id":2, "attack":7, "defense":12, "health":45},
+}
+
+class SubmitIn(BaseModel):
+    hero_id: int
+
+class BetIn(BaseModel):
+    hero_id: int
+    amount: int
+
+@router.post("/queue/submit")
+async def submit_queue(data: SubmitIn, current_user=Depends(get_current_user_info)):
+    entry = {"hero_id": data.hero_id, "player_id": current_user["user_id"], "timestamp": datetime.utcnow()}
+    queue.append(entry)
+    return {"status":"ok"}
+
+@router.get("/queue")
+async def get_queue():
+    return queue
+
+@router.get("/hero/{hero_id}")
+async def get_hero_stats(hero_id: int):
+    stats = _hero_stats.get(hero_id)
+    if not stats:
+        raise HTTPException(404, "Hero not found")
+    return stats
+
+@router.post("/bet")
+async def post_bet(data: BetIn, current_user=Depends(get_current_user_info)):
+    bets.append({"player_id": current_user["user_id"], "hero_id": data.hero_id, "amount": data.amount})
+    return {"status":"ok"}
+
+@router.get("/predict")
+async def predict():
+    if len(queue) < 2:
+        raise HTTPException(400, "not enough heroes")
+    h1 = _hero_stats.get(queue[0]["hero_id"])
+    h2 = _hero_stats.get(queue[1]["hero_id"])
+    score1 = h1["attack"] + h1["defense"] + h1["health"]
+    score2 = h2["attack"] + h2["defense"] + h2["health"]
+    winner = queue[0]["hero_id"] if score1 >= score2 else queue[1]["hero_id"]
+    chance = score1/float(score1+score2)
+    return {"winner_id": winner, "chance": chance}
