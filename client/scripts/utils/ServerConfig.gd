@@ -56,7 +56,7 @@ static func _load_config() -> void:
 			config.status_endpoint = str(data.get("status_endpoint", config.status_endpoint))
 			return
 
-	# Fallback: try existing user config (keeps previous behavior)
+# Fallback: try existing user config (keeps previous behavior)
 	var config_path = "user://server_config.cfg"
 	var file = ConfigFile.new()
 	var load_err = file.load(config_path)

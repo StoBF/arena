@@ -24,8 +24,7 @@ async def close_expired_auctions_task():
                 result = await session.execute(
                     select(Auction)
                     .where(Auction.status == AuctionStatus.ACTIVE, Auction.end_time <= now)
-                    .with_for_update()  # PESSIMISTIC LOCK - PREVENTS CONCURRENT PROCESSING
-                    .skip_locked()  # Skip already-locked rows (for other workers)
+                    .with_for_update(skip_locked=True)  # PESSIMISTIC LOCK + SKIP LOCKED
                 )
                 expired_auctions = result.scalars().all()
                 
