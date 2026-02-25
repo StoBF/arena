@@ -18,6 +18,19 @@ class BaseService:
     async def return_user(self, user):
         return UserOut.from_orm(user)
 
+    def _txn(self):
+        """Return a transaction context manager.
+
+        If a transaction is already active on the session we start a
+        nested (savepoint) transaction so that callers can safely nest
+        ``async with self._txn():`` blocks without interfering with the
+        outer transaction.  This mirrors the helper previously living in
+        ``EquipmentService`` and ``AuctionService``.
+        """
+        if self.session.in_transaction():
+            return self.session.begin_nested()
+        return self.session.begin()
+
     async def place_bid(self, hero_id, user_id, amount):
         async with self.session.begin():
             hero = await self.session.get(Hero, hero_id, with_for_update=True)

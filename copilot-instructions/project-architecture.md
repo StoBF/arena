@@ -10,7 +10,10 @@ out shortcomings and concrete refactorings.
 
 - `/Server/app/main.py` is the FastAPI application; routers are mounted there and
   startup/shutdown events are defined.
-- `/Server/app/routers` contains HTTP and WebSocket endpoints grouped by feature
+- The Godot client lives under `/client`.  UI panels such as `AuctionPanel.gd`
+  talk to the backend via `Network.request()`.  Recent updates added an item/lot
+  toggle and call the new `/auctions/lots` endpoints; the panel also adjusts
+  bid URLs based on the selected mode.- `/Server/app/routers` contains HTTP and WebSocket endpoints grouped by feature
   (`hero.py`, `auction.py`, `chat.py`, etc.).  A new helper in
   `routers/_ws.py` centralises the subscribe/publish loop; `chat.py` now
   calls `websocket_loop()` and performs only per-channel persistence.  The
@@ -101,6 +104,11 @@ Auctions (items) and lots (heroes) are handled by
    `AuctionService.close_auction()` one by one.  The task is started in
    `main.on_startup` via `asyncio.create_task()`.
 
+   Transactions are common across services; a helper `_txn()` was originally
+   copied between `AuctionService`, `EquipmentService` and others.  This has
+   been factored into `BaseService` so that every subclass inherits the
+   same nested‑transaction behaviour without duplication.
+
 ### Current expiration behaviour and shortcomings
 
 - There is **no hard limit** on the `duration` parameter; a malicious client
@@ -190,15 +198,31 @@ History endpoints (`/chat/history`, `/chat/private-history`) perform straight SQ
 
 A review of the existing implementation reveals several pain points:
 
-1. **Hard‑coded secrets**: `chat.py` defines `SECRET_KEY = "your_secret_key"` which is never used; authentication is performed via `decode_access_token` but the dummy constant remains and may mislead maintainers.
-2. **Duplication between auctions and lots**: `auction.py` contains almost identical logic for item auctions and hero lots (`create`, `close`, `cancel`, `list`).  The `close_expired_auctions_task` only handles `Auction` rows; hero lots are closed inside the same method in `AuctionService.close_auction_lot`, but the task does not call it.  There is no automatic sweep of expired lots.
+1. **Hard‑coded secrets**: `chat.py` previously defined
+   `SECRET_KEY = "your_secret_key"` which was unused; all authentication now
+   uses the central JWT helpers and configuration, so the constant has been
+   removed to avoid confusion.
+2. **Auction/lot logic separated**: originally all auction code lived in
+   `auction.py` and handled both items and hero lots.  This led to a massive
+   `AuctionService` class (>500 lines) and duplicated validation/transfer logic.
+   Hero‑lot support has now been extracted to `AuctionLotService`.  `AuctionService`
+   no longer exposes `create_auction_lot`, `delete_auction_lot`, or
+   `close_auction_lot`; the background sweep delegates expired lots to the
+   smaller `AuctionLotService` and startup performs a unified sweep.  This
+   separation simplifies testing and enforces the single‑responsibility principle.
 3. **No startup sweep for expired auctions/lots**: as mentioned above, the background task runs only after a delay.  Tests and logs show repeated exceptions leaking into `server.log` (see earlier grep output).  This suggests the task sometimes fails due to misconfigured models and then leaves auctions active.
 4. **Large service classes**: `AuctionService` is over 500 lines long, mixing query logic, business rules, notification publishing, and transaction helpers.  It is difficult to unit‑test and reason about.  The `_txn()` helper is repeated in other services.
 5. **Missing WebSocket abstraction**: each `ws_*` handler duplicates subscription/publishing code and session management; there is an opportunity to factor common behaviour into a base class or helper functions.
 6. **Weak typing and shape of JSON**: some endpoints take bare primitive types (`duration: int`) without validation beyond Pydantic; the auth router mixes string user IDs and ints inconsistently.
-7. **Tight coupling to Redis**: earlier versions had services such as `AuctionService` call `redis_cache.delete` directly after mutations; this made testing harder and mixed cache concerns with domain logic.  The refactor introduces a lightweight in‑process event emitter (`app/core/events.py`).  Services now call `emit("cache_invalidate", key)` rather than accessing `redis_cache` directly.  The cache module itself subscribes to these events and performs the real deletion.  This decouples the business code from any particular caching backend and allows tests to observe or stub invalidation events.
+7. **Decoupled cache invalidation via events**: services no longer
+   import `redis_cache`.  Instead they emit `cache_invalidate` events through
+   the new `app/core/events.py` emitter.  The cache layer subscribes and
+   handles wildcards (e.g. `auctions:active*`), enabling paginated cache keys
+   to be invalidated with a single event.  This reduces coupling, simplifies
+   testing (handlers can record emitted keys), and prepares for possible future
+   swaps of the caching backend.
 8. **Thread‑safety and startup ordering**: background tasks were previously started unawaited and any uncaught exception would log an error but otherwise kill the task silently.  The `close_expired_auctions_task` now wraps its loop in a try/except block and sleeps briefly on failure, ensuring the worker remains alive even if a transient database error occurs.  Startup logic also now forces an initial sweep of expired auctions so outages don't leave auctions active.
-9. **Hero soft‑delete special case**: deleted heroes remain in the same table and many queries must explicitly filter `is_deleted == False`; a single `get_hero` call defaults to `only_active=True`, but there is no global query filter, leading to repeated where clauses.
+9. **Hero soft‑delete special case**: deleted heroes remain in the same table and many queries must explicitly filter `is_deleted == False`; a single `get_hero` call defaults to `only_active=True`, but there is no global query filter, leading to repeated where clauses.  The mixin used to attach a `before_compile` event to each mapped class, but SQLAlchemy doesn't support that event on arbitrary targets; it has been replaced by a global listener on `Query` which inspects the entities and adds the filter.
 10. **Empty `MessageService`**: the placeholder class is imported by `HeroService` but never implemented; indicates incomplete code and inconsistent dependency graphs.
 
 ---

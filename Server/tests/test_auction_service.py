@@ -48,9 +48,10 @@ async def test_create_auction_and_bid(db):
     service = AuctionService(db)
     auction = await service.create_auction(seller_id=user1.id, item_id=item.id, start_price=Decimal("100"), duration=1, quantity=3)
     assert auction.quantity == 3
-    # duration clamp check: passing >24 should raise via validator
-    with pytest.raises(Exception):
-        await service.create_auction(seller_id=user1.id, item_id=item.id, start_price=Decimal("100"), duration=48, quantity=1)
+    # duration clamp check: passing >24 should not raise; end_time should be capped 24h from now
+    long_auction = await service.create_auction(seller_id=user1.id, item_id=item.id, start_price=Decimal("100"), duration=48, quantity=1)
+    max_span = long_auction.end_time - long_auction.created_at
+    assert max_span <= timedelta(hours=24)
     # Ставка
     bid_service = BidService(db)
     bid = await bid_service.place_bid(bidder_id=user2.id, auction_id=auction.id, amount=Decimal("150"))
@@ -87,9 +88,15 @@ async def test_auctionlot_and_bid(db):
     bid_service = BidService(db)
     bid = await bid_service.place_lot_bid(bidder_id=user2.id, lot_id=lot.id, amount=Decimal("600"))
     assert bid.amount == Decimal("600")
-    # clamp on lot duration
-    with pytest.raises(Exception):
-        await AuctionLotService(db).create_auction_lot(hero_id=hero.id, seller_id=user1.id, starting_price=Decimal("500"), duration=72)
+    # clamp on lot duration: create a second hero to avoid active-lot conflict
+    hero2 = Hero(name="AnotherHero", generation=1, nickname="AH", strength=1, agility=1,
+                 endurance=1, speed=1, health=1, defense=1, luck=1, field_of_view=1,
+                 level=1, experience=0, locale="en", owner_id=user1.id, gold=Decimal("0"))
+    db.add(hero2)
+    await db.commit()
+    await db.refresh(hero2)
+    long_lot = await AuctionLotService(db).create_auction_lot(hero_id=hero2.id, seller_id=user1.id, starting_price=Decimal("500"), duration=72)
+    assert long_lot.end_time - long_lot.created_at <= timedelta(hours=24)
     # Закриття лота
     closed = await service.close_auction_lot(lot.id)
     # auction lots also transition to finished when closed
@@ -154,6 +161,25 @@ async def test_bid_edge_cases(db):
 async def test_cache_event_emitted(db):
     # verify that creating/cancelling auctions fires the cache invalidation event
     from app.core.events import subscribe, clear_subscribers
+    # patch redis_cache with simple in-memory store so we can verify caching
+    from app.core import redis_cache
+    cache_store: dict = {}
+    async def fake_get(key):
+        return cache_store.get(key)
+    async def fake_set(key, value, expire=60):
+        cache_store[key] = value
+    async def fake_delete(key):
+        if key.endswith("*"):
+            prefix = key[:-1]
+            for k in list(cache_store.keys()):
+                if k.startswith(prefix):
+                    cache_store.pop(k, None)
+        else:
+            cache_store.pop(key, None)
+    redis_cache.get = fake_get
+    redis_cache.set = fake_set
+    redis_cache.delete = fake_delete
+
     keys = []
     async def handler(key):
         keys.append(key)
@@ -176,17 +202,25 @@ async def test_cache_event_emitted(db):
     service = AuctionService(db)
     auction = await service.create_auction(seller_id=user.id, item_id=item.id, start_price=Decimal("10"), duration=1, quantity=1)
     assert keys == ["auctions:active*"]
+    # caching should have stored the auction list
+    from app.routers.auction import list_auctions
+    resp = await list_auctions(limit=10, offset=0, db=db, current_user={"user_id": user.id})
+    assert cache_store.get("auctions:active:10:0") is not None
     keys.clear()
 
     # cancelling should also emit
     await service.cancel_auction(auction.id, seller_id=user.id)
     assert keys == ["auctions:active*"]
+    assert cache_store == {}  # cache should be invalidated
     keys.clear()
 
     # closing finished auction should emit (we need a fresh one)
     auction2 = await service.create_auction(seller_id=user.id, item_id=item.id, start_price=Decimal("5"), duration=1, quantity=1)
+    # ignore cache event from creation of auction2
+    keys.clear()
     await service.close_auction(auction2.id)
     assert keys == ["auctions:active*"]
+    assert cache_store == {}
     keys.clear()
 
     # hero lot operations via AuctionLotService
@@ -203,12 +237,20 @@ async def test_cache_event_emitted(db):
     # delete lot should emit
     await lot_service.delete_auction_lot(lot.id, seller_id=user.id)
     assert keys == ["auctions:active*"]
+    assert cache_store == {}
     keys.clear()
 
     # create again and close
     lot2 = await lot_service.create_auction_lot(hero_id=hero.id, seller_id=user.id, starting_price=Decimal("20"), duration=1)
+    # caching for lots should also work
+    from app.routers.auction import list_auction_lots
+    resp = await list_auction_lots(limit=10, offset=0, db=db, current_user={"user_id": user.id})
+    assert cache_store.get("auctions:active_lots:10:0") is not None
+    # ignore event from the new lot creation
+    keys.clear()
     await lot_service.close_auction_lot(lot2.id)
     assert keys == ["auctions:active*"]
+    assert cache_store == {}
     keys.clear()
 
 

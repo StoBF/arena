@@ -14540,3 +14540,100 @@ AttributeError: 'int' object has no attribute 'id'
 [2026-02-23 19:28:04,828] INFO in cleanup: [REVIVE] Немає героїв для відродження.
 [2026-02-23 19:29:04,851] INFO in cleanup: [REVIVE] Немає героїв для відродження.
 [2026-02-23 19:30:04,881] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:01:17,371] INFO in auction: [AUCTION_CLOSE_START] auction_id=1
+[2026-02-25 19:01:17,373] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=1 new_status=finished seller_id=1
+[2026-02-25 19:01:17,374] INFO in auction: [AUCTION_WINNER_FOUND] auction_id=1 winner_id=2 bid_amount=150.00
+[2026-02-25 19:01:17,380] INFO in auction: [AUCTION_BALANCE_TRANSFER] auction_id=1 winner_id=2 seller_id=1 amount=150.00
+[2026-02-25 19:01:17,381] INFO in auction: [AUCTION_ITEM_TRANSFERRED] auction_id=1 winner_id=2 item_id=1 quantity=3
+[2026-02-25 19:01:17,381] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=1 status=finished
+[2026-02-25 19:01:29,274] INFO in auction: [AUCTION_CLOSE_START] auction_id=2
+[2026-02-25 19:01:29,275] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=2 new_status=finished seller_id=3
+[2026-02-25 19:01:29,277] INFO in auction: [AUCTION_NO_BIDS] auction_id=2 seller_id=3 returning_item
+[2026-02-25 19:01:29,278] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=2 seller_id=3 item_id=1 quantity=1
+[2026-02-25 19:01:29,278] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=2 status=finished
+[2026-02-25 19:01:58,948] INFO in auction_lot: [LOT_CLOSE_START] lot_id=1
+[2026-02-25 19:01:58,951] INFO in auction_lot: [LOT_WINNER_FOUND] lot_id=1 hero_id=1 winner_id=2 bid_amount=600.00
+[2026-02-25 19:01:58,960] INFO in auction_lot: [LOT_BALANCE_TRANSFER] lot_id=1 winner_id=2 seller_id=1 amount=600.00
+[2026-02-25 19:01:58,960] INFO in auction_lot: [LOT_HERO_OWNERSHIP_TRANSFERRED] lot_id=1 hero_id=1 new_owner_id=2
+[2026-02-25 19:01:58,960] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=1 hero_id=1 status=closed
+[2026-02-25 19:01:58,995] INFO in auction: [AUCTION_CLOSE_START] auction_id=2
+[2026-02-25 19:01:58,996] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=2 new_status=finished seller_id=3
+[2026-02-25 19:01:58,999] INFO in auction: [AUCTION_NO_BIDS] auction_id=2 seller_id=3 returning_item
+[2026-02-25 19:01:59,001] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=2 seller_id=3 item_id=1 quantity=1
+[2026-02-25 19:01:59,001] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=2 status=finished
+[2026-02-25 19:01:59,022] INFO in auction_lot: [LOT_CLOSE_START] lot_id=3
+[2026-02-25 19:01:59,025] INFO in auction_lot: [LOT_NO_BIDS] lot_id=3 hero_id=3 seller_id=3 returning_hero
+[2026-02-25 19:01:59,025] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=3 hero_id=3 status=closed
+[2026-02-25 19:04:05,147] INFO in auction: [AUCTION_CLOSE_START] auction_id=2
+[2026-02-25 19:04:05,148] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=2 new_status=finished seller_id=1
+[2026-02-25 19:04:05,151] INFO in auction: [AUCTION_NO_BIDS] auction_id=2 seller_id=1 returning_item
+[2026-02-25 19:04:05,152] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=2 seller_id=1 item_id=1 quantity=1
+[2026-02-25 19:04:05,152] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=2 status=finished
+[2026-02-25 19:04:05,178] INFO in auction_lot: [LOT_CLOSE_START] lot_id=1
+[2026-02-25 19:04:05,181] INFO in auction_lot: [LOT_NO_BIDS] lot_id=1 hero_id=1 seller_id=1 returning_hero
+[2026-02-25 19:04:05,181] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=1 hero_id=1 status=closed
+[2026-02-25 19:09:19,028] INFO in _client: HTTP Request: POST http://test/auth/register "HTTP/1.1 200 OK"
+[2026-02-25 19:09:19,031] INFO in auth: [AUTH_TOKENS_GENERATED] user_id=1 family=9846d3e4-0f1a-4910-81d1-4b6d8b9aecf3
+[2026-02-25 19:09:19,031] INFO in auth: [AUTH_LOGIN_SUCCESS] user_id=1 family=9846d3e4-0f1a-4910-81d1-4b6d8b9aecf3
+[2026-02-25 19:09:19,032] INFO in _client: HTTP Request: POST http://test/auth/login "HTTP/1.1 200 OK"
+[2026-02-25 19:09:19,033] WARNING in auth: [AUTH_REFRESH_FAILED] no_refresh_token_in_cookie
+[2026-02-25 19:09:19,033] ERROR in main: HTTP error occurred: Refresh token not found in cookie
+[2026-02-25 19:09:19,033] INFO in _client: HTTP Request: POST http://test/auth/refresh "HTTP/1.1 401 Unauthorized"
+[2026-02-25 19:09:19,194] INFO in auction: [AUCTION_CLOSE_START] auction_id=1
+[2026-02-25 19:09:19,196] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=1 new_status=finished seller_id=1
+[2026-02-25 19:09:19,198] INFO in auction: [AUCTION_WINNER_FOUND] auction_id=1 winner_id=2 bid_amount=150.00
+[2026-02-25 19:09:19,205] INFO in auction: [AUCTION_BALANCE_TRANSFER] auction_id=1 winner_id=2 seller_id=1 amount=150.00
+[2026-02-25 19:09:19,207] INFO in auction: [AUCTION_ITEM_TRANSFERRED] auction_id=1 winner_id=2 item_id=1 quantity=3
+[2026-02-25 19:09:19,207] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=1 status=finished
+[2026-02-25 19:09:19,251] INFO in auction_lot: [LOT_CLOSE_START] lot_id=1
+[2026-02-25 19:09:19,254] INFO in auction_lot: [LOT_WINNER_FOUND] lot_id=1 hero_id=1 winner_id=4 bid_amount=600.00
+[2026-02-25 19:09:19,259] INFO in auction_lot: [LOT_BALANCE_TRANSFER] lot_id=1 winner_id=4 seller_id=3 amount=600.00
+[2026-02-25 19:09:19,259] INFO in auction_lot: [LOT_HERO_OWNERSHIP_TRANSFERRED] lot_id=1 hero_id=1 new_owner_id=4
+[2026-02-25 19:09:19,260] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=1 hero_id=1 status=closed
+[2026-02-25 19:09:19,323] INFO in auction: [AUCTION_CLOSE_START] auction_id=6
+[2026-02-25 19:09:19,324] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=6 new_status=finished seller_id=9
+[2026-02-25 19:09:19,326] INFO in auction: [AUCTION_NO_BIDS] auction_id=6 seller_id=9 returning_item
+[2026-02-25 19:09:19,327] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=6 seller_id=9 item_id=4 quantity=1
+[2026-02-25 19:09:19,327] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=6 status=finished
+[2026-02-25 19:09:19,347] INFO in auction_lot: [LOT_CLOSE_START] lot_id=3
+[2026-02-25 19:09:19,349] INFO in auction_lot: [LOT_NO_BIDS] lot_id=3 hero_id=3 seller_id=9 returning_hero
+[2026-02-25 19:09:19,349] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=3 hero_id=3 status=closed
+[2026-02-25 19:09:19,362] INFO in auction: [AUCTION_CLOSE_START] auction_id=7
+[2026-02-25 19:09:19,363] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=7 new_status=finished seller_id=10
+[2026-02-25 19:09:19,364] INFO in auction: [AUCTION_NO_BIDS] auction_id=7 seller_id=10 returning_item
+[2026-02-25 19:09:19,365] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=7 seller_id=10 item_id=5 quantity=1
+[2026-02-25 19:09:19,365] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=7 status=finished
+[2026-02-25 19:09:19,376] INFO in auction_lot: [LOT_CLOSE_START] lot_id=4
+[2026-02-25 19:09:19,378] INFO in auction_lot: [LOT_NO_BIDS] lot_id=4 hero_id=4 seller_id=10 returning_hero
+[2026-02-25 19:09:19,378] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=4 hero_id=4 status=closed
+[2026-02-25 19:09:19,452] INFO in auth: [AUTH_TOKENS_GENERATED] user_id=1 family=a07686c4-3b49-4a60-bbba-ce8678d0e36f
+[2026-02-25 19:09:19,453] INFO in auth: [AUTH_TOKEN_REFRESHED] user_id=1 family=a07686c4-3b49-4a60-bbba-ce8678d0e36f
+[2026-02-25 19:10:19,695] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:11:19,705] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:12:19,713] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:13:19,769] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:14:19,778] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:15:19,833] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:16:19,866] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:17:19,911] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:18:19,936] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:19:19,966] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:20:20,022] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:21:20,059] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:22:20,109] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:23:20,161] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:24:20,223] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:25:20,281] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:26:20,325] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:27:20,356] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:28:20,418] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:29:20,476] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:30:20,505] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:31:20,567] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:32:20,606] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:33:20,665] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:34:20,727] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:35:20,789] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:36:20,800] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:37:20,819] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:38:20,865] INFO in cleanup: [REVIVE] Немає героїв для відродження.

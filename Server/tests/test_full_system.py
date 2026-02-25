@@ -18,6 +18,71 @@ async def test_jwt_auth_endpoints(test_client: AsyncClient):
     assert resp.status_code == 401
 
 @pytest.mark.asyncio
+async def test_auction_api_endpoints(async_session, test_client: AsyncClient, test_user_token, test_user):
+    # prepare item and stash for auction
+    item = Item(name="FullItem", description="", type="resource", slot_type="gadget")
+    async_session.add(item)
+    await async_session.commit()
+    await async_session.refresh(item)
+    stash = Stash(user_id=test_user.id, item_id=item.id, quantity=2)
+    async_session.add(stash)
+    await async_session.commit()
+
+    # subscribe to cache events and track keys
+    from app.core.events import subscribe, clear_subscribers
+    events = []
+    async def ev_handler(key):
+        events.append(key)
+    clear_subscribers()
+    subscribe("cache_invalidate", ev_handler)
+
+    # create auction via API
+    resp = await test_client.post(
+        "/auctions/",
+        headers={"Authorization": f"Bearer {test_user_token}"},
+        json={"item_id": item.id, "start_price": "100", "duration": 1, "quantity": 1},
+    )
+    assert resp.status_code == 200
+    auc = resp.json()
+    assert auc["item_id"] == item.id
+    # one invalidation event should have fired
+    assert events == ["auctions:active*"]
+    events.clear()
+
+    # list auctions
+    resp = await test_client.get(
+        "/auctions",
+        headers={"Authorization": f"Bearer {test_user_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] >= 1
+
+    # create hero and place lot
+    hero = Hero(name="LotHero", generation=1, nickname="LH", strength=1, agility=1, endurance=1, speed=1, health=1, defense=1, luck=1, field_of_view=1, level=1, experience=0, locale="en", owner_id=test_user.id, gold=Decimal("0"))
+    async_session.add(hero)
+    await async_session.commit()
+    await async_session.refresh(hero)
+
+    resp = await test_client.post(
+        "/auctions/lots",
+        headers={"Authorization": f"Bearer {test_user_token}"},
+        json={"hero_id": hero.id, "starting_price": "500", "duration": 1},
+    )
+    assert resp.status_code == 200
+    lot = resp.json()
+    assert lot["hero_id"] == hero.id
+
+    # list auction lots
+    resp = await test_client.get(
+        "/auctions/lots",
+        headers={"Authorization": f"Bearer {test_user_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] >= 1
+
+@pytest.mark.asyncio
 async def test_hero_creation_api(test_client: AsyncClient, test_user_token):
     # create hero through endpoint
     resp = await test_client.post(
@@ -149,4 +214,3 @@ async def test_integration_client_like_flow(async_session, test_client: AsyncCli
     stats = await HeroService(async_session).get_total_stats(hero.id)
     # since new_item has no bonuses, stats should be unchanged
     assert stats["strength"] == hero.strength
-```

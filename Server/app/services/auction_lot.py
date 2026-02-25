@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from fastapi import HTTPException
 import logging
 from app.database.models.models import AuctionLot, Bid
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from decimal import Decimal
 from app.core.enums import AuctionStatus
 from app.database.models.hero import Hero

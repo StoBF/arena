@@ -8,7 +8,6 @@ from app.services.auction_lot import AuctionLotService
 from app.services.bid import BidService
 from app.database.session import get_session
 from app.auth import get_current_user_info
-from app.core.events import emit
 
 router = APIRouter(prefix="/auctions", tags=["Auction"])
 
@@ -21,7 +20,6 @@ router = APIRouter(prefix="/auctions", tags=["Auction"])
 async def create_auction(data: AuctionCreate, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionService(db)
     auction = await service.create_auction(seller_id=current_user["user_id"], item_id=data.item_id, start_price=data.start_price, duration=data.duration, quantity=data.quantity)
-    await emit("cache_invalidate", "auctions:active*")
     return AuctionOut.from_orm(auction)
 
 @router.get(
@@ -75,7 +73,6 @@ async def get_auction(auction_id: int, db: AsyncSession = Depends(get_session), 
 async def cancel_auction(auction_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionService(db)
     auction = await service.cancel_auction(auction_id, seller_id=current_user["user_id"])
-    await emit("cache_invalidate", "auctions:active*")
     return AuctionOut.from_orm(auction)
 
 @router.post(
@@ -87,7 +84,6 @@ async def cancel_auction(auction_id: int, db: AsyncSession = Depends(get_session
 async def close_auction(auction_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionService(db)
     auction = await service.close_auction(auction_id)
-    await emit("cache_invalidate", "auctions:active*")
     return AuctionOut.from_orm(auction)
 
 @router.post(
@@ -99,7 +95,6 @@ async def close_auction(auction_id: int, db: AsyncSession = Depends(get_session)
 async def create_auction_lot(data: AuctionLotCreate, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionLotService(db)
     lot = await service.create_auction_lot(hero_id=data.hero_id, seller_id=current_user["user_id"], starting_price=data.starting_price, duration=data.duration, buyout_price=data.buyout_price)
-    await emit("cache_invalidate", "auctions:active*")
     return AuctionLotOut.from_orm(lot)
 
 @router.get(
@@ -114,15 +109,21 @@ async def list_auction_lots(
     db: AsyncSession = Depends(get_session),
     current_user=Depends(get_current_user_info)
 ):
+    cache_key = f"auctions:active_lots:{limit}:{offset}"
+    cached = await redis_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     service = AuctionLotService(db)
     result = await service.list_auction_lots(limit=limit, offset=offset)
-    
-    return {
+    response = {
         "items": [AuctionLotOut.from_orm(l) for l in result["items"]],
         "total": result["total"],
         "limit": result["limit"],
         "offset": result["offset"]
     }
+    await redis_cache.set(cache_key, [l.dict() for l in response["items"]], expire=30)
+    return response
 
 @router.post(
     "/lots/{lot_id}/close",
@@ -133,7 +134,6 @@ async def list_auction_lots(
 async def close_auction_lot(lot_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionLotService(db)
     lot = await service.close_auction_lot(lot_id)
-    await emit("cache_invalidate", "auctions:active*")
     return AuctionLotOut.from_orm(lot)
 
 @router.post(
@@ -145,7 +145,6 @@ async def close_auction_lot(lot_id: int, db: AsyncSession = Depends(get_session)
 async def delete_auction_lot(lot_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionLotService(db)
     lot = await service.delete_auction_lot(lot_id, seller_id=current_user["user_id"])
-    await emit("cache_invalidate", "auctions:active*")
     return AuctionLotOut.from_orm(lot)
 
 @router.post(

@@ -5,6 +5,14 @@
 [node name="Auction" type="Control"]
 script = ExtResource("1")
 
+[node name="ButtonContainer" type="HBoxContainer" parent="Auction"]
+
+[node name="ItemsButton" type="Button" parent="ButtonContainer"]
+text = "Items"
+
+[node name="LotsButton" type="Button" parent="ButtonContainer"]
+text = "Lots"
+
 [node name="AuctionScroll" type="ScrollContainer" parent="Auction"]
 
 [node name="AuctionsList" type="ItemList" parent="AuctionScroll"]

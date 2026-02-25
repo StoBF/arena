@@ -4,13 +4,6 @@ from app.database.models.models import Equipment, Stash, Item, SlotType
 from app.services.base_service import BaseService
 
 class EquipmentService(BaseService):
-    def _txn(self):
-        # helper to mirror AuctionService behavior: use nested transaction if
-        # one is already in progress so callers can safely call us from within
-        # other transactional contexts.
-        if self.session.in_transaction():
-            return self.session.begin_nested()
-        return self.session.begin()
 
     async def equip_item(self, hero_id: int, user_id: int, item_id: int, slot: SlotType):
         """
