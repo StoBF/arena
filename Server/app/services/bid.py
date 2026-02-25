@@ -68,12 +68,10 @@ class BidService(BaseService):
         return bid
 
     async def place_bid(self, bidder_id: int, auction_id: int, amount: Decimal, request_id: str = None):
-        # debug
-        print(f"[DEBUG][BidService] place_bid before begin in_transaction={self.session.in_transaction()}")
         """
         Place bid on item auction with atomic transaction and row-level locking.
         Supports idempotent requests via request_id UUID.
-        
+
         Prevents race conditions on user balance/reserved and auction updates.
         If same request_id is provided again, returns previous result without duplicate charge.
         """
@@ -88,9 +86,8 @@ class BidService(BaseService):
                 print(f"[BID_IDEMPOTENT] Returning previous bid {existing_bid.id} for request_id {request_id}")
                 return existing_bid
 
-        # Determine transaction context: nested if already in one, else normal
-        tx_ctx = self.session.begin_nested() if self.session.in_transaction() else self.session.begin()
-        async with tx_ctx:
+        # Use BaseService._txn() for correct nested behaviour
+        async with self._txn():
             # Ensure amount is Decimal for safe arithmetic
             amount = Decimal(amount)
 
@@ -182,9 +179,7 @@ class BidService(BaseService):
                 print(f"[BID_IDEMPOTENT] Returning previous bid {existing_bid.id} for request_id {request_id}")
                 return existing_bid
 
-        # select transaction context (nested if already in transaction)
-        tx_ctx = self.session.begin_nested() if self.session.in_transaction() else self.session.begin()
-        async with tx_ctx:
+        async with self._txn():
             # Lock lot immediately
             lot_result = await self.session.execute(
                 select(AuctionLot)

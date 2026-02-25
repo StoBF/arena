@@ -4,10 +4,11 @@ from typing import List
 from app.schemas.auction import AuctionCreate, AuctionOut, AuctionLotCreate, AuctionLotOut, AutoBidCreate, AutoBidOut
 from app.schemas.pagination import AuctionsPaginatedResponse, AuctionLotsPaginatedResponse
 from app.services.auction import AuctionService
+from app.services.auction_lot import AuctionLotService
 from app.services.bid import BidService
 from app.database.session import get_session
 from app.auth import get_current_user_info
-from app.core.redis_cache import redis_cache
+from app.core.events import emit
 
 router = APIRouter(prefix="/auctions", tags=["Auction"])
 
@@ -20,7 +21,7 @@ router = APIRouter(prefix="/auctions", tags=["Auction"])
 async def create_auction(data: AuctionCreate, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionService(db)
     auction = await service.create_auction(seller_id=current_user["user_id"], item_id=data.item_id, start_price=data.start_price, duration=data.duration, quantity=data.quantity)
-    await redis_cache.delete("auctions:active")
+    await emit("cache_invalidate", "auctions:active*")
     return AuctionOut.from_orm(auction)
 
 @router.get(
@@ -74,7 +75,7 @@ async def get_auction(auction_id: int, db: AsyncSession = Depends(get_session), 
 async def cancel_auction(auction_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionService(db)
     auction = await service.cancel_auction(auction_id, seller_id=current_user["user_id"])
-    await redis_cache.delete("auctions:active")
+    await emit("cache_invalidate", "auctions:active*")
     return AuctionOut.from_orm(auction)
 
 @router.post(
@@ -86,7 +87,7 @@ async def cancel_auction(auction_id: int, db: AsyncSession = Depends(get_session
 async def close_auction(auction_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionService(db)
     auction = await service.close_auction(auction_id)
-    await redis_cache.delete("auctions:active")
+    await emit("cache_invalidate", "auctions:active*")
     return AuctionOut.from_orm(auction)
 
 @router.post(
@@ -96,9 +97,9 @@ async def close_auction(auction_id: int, db: AsyncSession = Depends(get_session)
     description="Creates a new auction lot for a hero."
 )
 async def create_auction_lot(data: AuctionLotCreate, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
-    service = AuctionService(db)
+    service = AuctionLotService(db)
     lot = await service.create_auction_lot(hero_id=data.hero_id, seller_id=current_user["user_id"], starting_price=data.starting_price, duration=data.duration, buyout_price=data.buyout_price)
-    await redis_cache.delete("auctions:active")
+    await emit("cache_invalidate", "auctions:active*")
     return AuctionLotOut.from_orm(lot)
 
 @router.get(
@@ -113,7 +114,7 @@ async def list_auction_lots(
     db: AsyncSession = Depends(get_session),
     current_user=Depends(get_current_user_info)
 ):
-    service = AuctionService(db)
+    service = AuctionLotService(db)
     result = await service.list_auction_lots(limit=limit, offset=offset)
     
     return {
@@ -130,9 +131,9 @@ async def list_auction_lots(
     description="Closes a hero auction lot and determines the winner."
 )
 async def close_auction_lot(lot_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
-    service = AuctionService(db)
+    service = AuctionLotService(db)
     lot = await service.close_auction_lot(lot_id)
-    await redis_cache.delete("auctions:active")
+    await emit("cache_invalidate", "auctions:active*")
     return AuctionLotOut.from_orm(lot)
 
 @router.post(
@@ -142,9 +143,9 @@ async def close_auction_lot(lot_id: int, db: AsyncSession = Depends(get_session)
     description="Deletes a hero auction lot if no bids have been placed."
 )
 async def delete_auction_lot(lot_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
-    service = AuctionService(db)
+    service = AuctionLotService(db)
     lot = await service.delete_auction_lot(lot_id, seller_id=current_user["user_id"])
-    await redis_cache.delete("auctions:active")
+    await emit("cache_invalidate", "auctions:active*")
     return AuctionLotOut.from_orm(lot)
 
 @router.post(

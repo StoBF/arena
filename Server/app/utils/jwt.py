@@ -53,3 +53,17 @@ def decode_refresh_token(token: str):
         return payload
     except JWTError:
         return None
+
+
+def get_user_id_from_token(token: str) -> int | None:
+    """Helper used by WebSocket handlers.
+
+    Decodes access token and returns integer user_id, or ``None`` if invalid.
+    """
+    try:
+        payload = decode_access_token(token)
+        if not payload:
+            return None
+        return int(payload.get("sub"))
+    except Exception:
+        return None

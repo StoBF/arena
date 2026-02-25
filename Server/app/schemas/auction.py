@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from datetime import datetime
 from typing import Optional
 from decimal import Decimal
@@ -7,7 +7,13 @@ from app.core.enums import AuctionStatus
 class AuctionCreate(BaseModel):
     item_id: int = Field(..., example=101)
     start_price: Decimal = Field(..., example="500.00", decimal_places=2)
-    duration: int = Field(..., example=24, description="у годинах")
+    duration: int = Field(..., example=24, description="у годинах (max 24)")
+
+    @validator('duration')
+    def max_24h(cls, v):
+        if v < 1 or v > 24:
+            raise ValueError('duration must be between 1 and 24 hours')
+        return v
     quantity: int = Field(1, example=1)
 
 class AuctionOut(BaseModel):
@@ -32,7 +38,13 @@ class AuctionLotCreate(BaseModel):
     hero_id: int = Field(..., example=10)
     starting_price: Decimal = Field(..., example="1000.00", decimal_places=2)
     buyout_price: Optional[Decimal] = Field(None, example="2000.00", decimal_places=2)
-    duration: int = Field(..., example=24)
+    duration: int = Field(..., example=24, description="in hours, max 24")
+
+    @validator('duration')
+    def max_24h(cls, v):
+        if v < 1 or v > 24:
+            raise ValueError('duration must be between 1 and 24 hours')
+        return v
 
 class AuctionLotOut(BaseModel):
     id: int = Field(..., example=1)

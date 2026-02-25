@@ -16,15 +16,9 @@ from app.services.notification import NotificationService
 
 router = APIRouter()
 
-SECRET_KEY = "your_secret_key"  # замініть на ваш ключ
-ALGORITHM = "HS256"
-
-async def get_user_id_from_token(token: str):
-    try:
-        payload = decode_access_token(token)
-        return int(payload["sub"])
-    except Exception:
-        return None
+# WebSocket authentication uses JWT access tokens; helper provided by utils/jwt
+from app.utils.jwt import get_user_id_from_token  # replaces previous local impl
+from app.routers._ws import websocket_loop
 
 @router.websocket("/ws/general")
 async def ws_general(websocket: WebSocket):
@@ -34,23 +28,13 @@ async def ws_general(websocket: WebSocket):
         await websocket.close(code=1008)
         return
     await websocket.accept()
-    send_task = None
-    try:
-        async def sender():
-            async for msg in subscribe_channel("general"):
-                await websocket.send_text(json.dumps(msg))
-        send_task = asyncio.create_task(sender())
-        while True:
-            data = await websocket.receive_text()
-            # Зберігаємо повідомлення у БД
-            async with AsyncSessionLocal() as db:
-                msg = ChatMessage(sender_id=user_id, text=data, channel="general")
-                db.add(msg)
-                await db.commit()
-            await publish_message("general", {"type": "general", "user_id": user_id, "text": data})
-    except WebSocketDisconnect:
-        if send_task:
-            send_task.cancel()
+    # define persistence callback
+    async def save(data):
+        async with AsyncSessionLocal() as db:
+            msg = ChatMessage(sender_id=user_id, text=data, channel="general")
+            db.add(msg)
+            await db.commit()
+    await websocket_loop(websocket, "general", save)
 
 @router.websocket("/ws/trade")
 async def ws_trade(websocket: WebSocket):
@@ -60,23 +44,12 @@ async def ws_trade(websocket: WebSocket):
         await websocket.close(code=1008)
         return
     await websocket.accept()
-    send_task = None
-    try:
-        async def sender():
-            async for msg in subscribe_channel("trade"):
-                await websocket.send_text(json.dumps(msg))
-        send_task = asyncio.create_task(sender())
-        while True:
-            data = await websocket.receive_text()
-            # Зберігаємо повідомлення у БД
-            async with AsyncSessionLocal() as db:
-                msg = ChatMessage(sender_id=user_id, text=data, channel="trade")
-                db.add(msg)
-                await db.commit()
-            await publish_message("trade", {"type": "trade", "user_id": user_id, "text": data})
-    except WebSocketDisconnect:
-        if send_task:
-            send_task.cancel()
+    async def save(data):
+        async with AsyncSessionLocal() as db:
+            msg = ChatMessage(sender_id=user_id, text=data, channel="trade")
+            db.add(msg)
+            await db.commit()
+    await websocket_loop(websocket, "trade", save)
 
 @router.websocket("/ws/private")
 async def ws_private(websocket: WebSocket):
@@ -88,43 +61,33 @@ async def ws_private(websocket: WebSocket):
     # Додаємо користувача до онлайн-сету
     await redis_pubsub.sadd("online_users", user_id)
     await websocket.accept()
-    # Доставляємо офлайн-повідомлення при підключенні (публікуємо їх у Redis Pub/Sub)
+    # Доставляємо офлайн-повідомлення при підключенні
     async with AsyncSessionLocal() as db:
         await NotificationService.send_offline_messages(user_id, db)
-    send_task = None
-    try:
-        async def sender():
-            async for msg in subscribe_channel("private", user_id):
-                await websocket.send_text(json.dumps(msg))
-        send_task = asyncio.create_task(sender())
-        while True:
-            raw = await websocket.receive_text()
-            data = json.loads(raw)
-            target_id = data.get("to")
-            text = data.get("text")
-            if target_id:
-                # Зберігаємо повідомлення у БД
-                async with AsyncSessionLocal() as db:
-                    msg = ChatMessage(sender_id=user_id, text=text, channel="private", recipient_id=target_id)
-                    db.add(msg)
-                    await db.commit()
-                # Якщо отримувач онлайн — надсилаємо через Pub/Sub, інакше зберігаємо offline
-                is_online = await redis_pubsub.sismember("online_users", target_id)
-                if is_online:
-                    await publish_message("private", {"type": "private", "from": user_id, "text": text}, user_id=target_id)
-                else:
-                    async with AsyncSessionLocal() as db:
-                        offline = OfflineMessage(sender_id=user_id, recipient_id=target_id, text=text)
-                        db.add(offline)
-                        await db.commit()
-                await websocket.send_text(json.dumps({"type": "private", "to": target_id, "text": text}))
+
+    async def save(data):
+        # data is raw string containing json with to/text
+        obj = json.loads(data)
+        tgt = obj.get("to")
+        txt = obj.get("text")
+        if tgt:
+            async with AsyncSessionLocal() as db:
+                msg = ChatMessage(sender_id=user_id, text=txt, channel="private", recipient_id=tgt)
+                db.add(msg)
+                await db.commit()
+            is_online = await redis_pubsub.sismember("online_users", tgt)
+            if is_online:
+                await publish_message("private", {"type": "private", "from": user_id, "text": txt}, user_id=tgt)
             else:
-                await websocket.send_text(json.dumps({"type": "system", "text": f"User {target_id} is offline."}))
-    except WebSocketDisconnect:
-        if send_task:
-            send_task.cancel()
-        # Видаляємо користувача з онлайн-сету
-        await redis_pubsub.srem("online_users", user_id)
+                async with AsyncSessionLocal() as db:
+                    offline = OfflineMessage(sender_id=user_id, recipient_id=tgt, text=txt)
+                    db.add(offline)
+                    await db.commit()
+            await websocket.send_text(json.dumps({"type": "private", "to": tgt, "text": txt}))
+        else:
+            await websocket.send_text(json.dumps({"type": "system", "text": f"User {tgt} is offline."}))
+
+    await websocket_loop(websocket, "private", save)
 
 # Для системних повідомлень з інших частин коду:
 def send_system_message(user_id: int, text: str):

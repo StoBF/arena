@@ -1,10 +1,10 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint, Boolean, DateTime, Numeric, CheckConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint, Boolean, DateTime, Numeric, CheckConstraint, Index
 from sqlalchemy.orm import relationship
-from app.database.base import Base
+from app.database.base import Base, SoftDeleteMixin
 from datetime import datetime
 from decimal import Decimal
 
-class Hero(Base):
+class Hero(SoftDeleteMixin, Base):
     __tablename__ = "heroes"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
@@ -28,14 +28,14 @@ class Hero(Base):
     owner_id = Column(Integer, ForeignKey("users.id"), index=True)
     owner = relationship("User", back_populates="heroes")
     perks = relationship("HeroPerk", back_populates="hero", cascade="all, delete-orphan")
-    is_deleted = Column(Boolean, default=False)
-    deleted_at = Column(DateTime, nullable=True)
+    # is_deleted and deleted_at provided by SoftDeleteMixin
     equipment_items = relationship("Equipment", back_populates="hero", cascade="all, delete-orphan")
     is_dead = Column(Boolean, default=False)
     dead_until = Column(DateTime, nullable=True)
     is_on_auction = Column(Boolean, default=False)
     __table_args__ = (
         CheckConstraint('gold >= 0', name='ck_hero_gold_non_negative'),
+        Index('ix_heroes_owner_deleted', 'owner_id', 'is_deleted'),
     )
 
 class HeroPerk(Base):

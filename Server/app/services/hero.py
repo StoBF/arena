@@ -18,7 +18,6 @@ from app.database.session import get_session, AsyncSessionLocal
 from app.core.hero_config import MAX_HEROES
 import json
 import asyncio
-from app.services.auction import AuctionService
 from app.services.message import MessageService
 from fastapi import Depends
 from sqlalchemy.orm import joinedload
@@ -51,8 +50,7 @@ class HeroService(BaseService):
         errors in tests.
         """
         query = select(Hero).where(Hero.id == hero_id)
-        if only_active:
-            query = query.where(Hero.is_deleted == False)
+        # Soft-delete mixin adds default filter; only_active flag kept for clarity
         if load_perks:
             query = query.options(joinedload(Hero.perks))
         if load_equipment:
@@ -88,14 +86,14 @@ class HeroService(BaseService):
             offset = 0
         
         # Get total count
-        count_query = select(func.count()).select_from(Hero).where(Hero.is_deleted == False)
+        count_query = select(func.count()).select_from(Hero)
         if user_id is not None:
             count_query = count_query.where(Hero.owner_id == user_id)
         total_result = await self.session.execute(count_query)
         total = total_result.scalars().first() or 0
         
         # Get paginated items
-        query = select(Hero).options(joinedload(Hero.perks), joinedload(Hero.equipment_items)).where(Hero.is_deleted == False)
+        query = select(Hero).options(joinedload(Hero.perks), joinedload(Hero.equipment_items))
         if user_id is not None:
             query = query.where(Hero.owner_id == user_id)
         query = query.limit(limit).offset(offset)

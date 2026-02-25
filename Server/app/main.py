@@ -24,6 +24,7 @@ from app.database.session import create_db_and_tables, AsyncSessionLocal, engine
 from app.routers import auth, hero, auction, bid, announcement, inventory, equipment, workshop
 from app.tasks.cleanup import delete_old_heroes_task
 from app.tasks.auctions import close_expired_auctions_task
+from app.services.auction import AuctionService
 from app.routers.health import router as health_router
 from app.routers.raid import router as raid_router
 from app.routers.craft import router as craft_router
@@ -135,13 +136,23 @@ async def create_database_if_not_exists():
 async def on_startup():
     await create_database_if_not_exists()
     await create_db_and_tables()
+    # connect to Redis if configured (cache & pub/sub)
+    if settings.REDIS_URL:
+        await redis_cache.connect()
+    # immediate sweep of expired auctions/lots before background loops
+    async with AsyncSessionLocal() as session:
+        await AuctionService(session).close_expired_auctions()
     asyncio.create_task(delete_old_heroes_task())
     asyncio.create_task(close_expired_auctions_task())
 
 # Clean up database connections on shutdown
 @app.on_event("shutdown")
 async def on_shutdown():
+    # clean up database engine
     await engine.dispose()
+    # close redis if opened
+    if settings.REDIS_URL:
+        await redis_cache.close()
 
 # Add health router
 app.include_router(health_router)
