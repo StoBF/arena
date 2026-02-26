@@ -14637,3 +14637,249 @@ AttributeError: 'int' object has no attribute 'id'
 [2026-02-25 19:36:20,800] INFO in cleanup: [REVIVE] Немає героїв для відродження.
 [2026-02-25 19:37:20,819] INFO in cleanup: [REVIVE] Немає героїв для відродження.
 [2026-02-25 19:38:20,865] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:39:20,921] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:40:20,974] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:41:21,034] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:42:21,109] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:43:21,169] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:44:21,193] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:45:21,226] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:46:21,286] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:47:21,347] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:48:21,398] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:49:21,449] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:50:21,465] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:51:21,523] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:52:21,585] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:53:21,646] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:54:21,710] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:55:21,718] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:56:21,779] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:57:21,809] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:58:21,872] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 19:59:21,936] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 20:00:21,993] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 20:01:22,035] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 20:02:22,057] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 20:03:22,097] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 20:04:22,145] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 20:05:22,201] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 20:06:22,248] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 20:07:22,301] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 20:08:22,362] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-25 20:09:22,417] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 15:34:15,119] INFO in _client: HTTP Request: POST http://test/auth/register "HTTP/1.1 200 OK"
+[2026-02-26 15:34:15,124] INFO in auth: [AUTH_TOKENS_GENERATED] user_id=1 family=ee8ecae2-de3d-4a7e-a052-c2ec5b154a7a
+[2026-02-26 15:34:15,125] INFO in auth: [AUTH_LOGIN_SUCCESS] user_id=1 family=ee8ecae2-de3d-4a7e-a052-c2ec5b154a7a
+[2026-02-26 15:34:15,129] INFO in _client: HTTP Request: POST http://test/auth/login "HTTP/1.1 200 OK"
+[2026-02-26 15:34:15,133] WARNING in auth: [AUTH_REFRESH_FAILED] no_refresh_token_in_cookie
+[2026-02-26 15:34:15,133] ERROR in main: HTTP error occurred: Refresh token not found in cookie
+[2026-02-26 15:34:15,134] INFO in _client: HTTP Request: POST http://test/auth/refresh "HTTP/1.1 401 Unauthorized"
+[2026-02-26 15:34:29,088] INFO in auction: [AUCTION_CLOSE_START] auction_id=1
+[2026-02-26 15:34:29,090] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=1 new_status=finished seller_id=1
+[2026-02-26 15:34:29,092] INFO in auction: [AUCTION_WINNER_FOUND] auction_id=1 winner_id=2 bid_amount=150.00
+[2026-02-26 15:34:29,097] INFO in auction: [AUCTION_BALANCE_TRANSFER] auction_id=1 winner_id=2 seller_id=1 amount=150.00
+[2026-02-26 15:34:29,098] INFO in auction: [AUCTION_ITEM_TRANSFERRED] auction_id=1 winner_id=2 item_id=1 quantity=3
+[2026-02-26 15:34:29,098] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=1 status=finished
+[2026-02-26 15:34:29,133] INFO in auction_lot: [LOT_CLOSE_START] lot_id=1
+[2026-02-26 15:34:29,136] INFO in auction_lot: [LOT_WINNER_FOUND] lot_id=1 hero_id=1 winner_id=4 bid_amount=600.00
+[2026-02-26 15:34:29,141] INFO in auction_lot: [LOT_BALANCE_TRANSFER] lot_id=1 winner_id=4 seller_id=3 amount=600.00
+[2026-02-26 15:34:29,141] INFO in auction_lot: [LOT_HERO_OWNERSHIP_TRANSFERRED] lot_id=1 hero_id=1 new_owner_id=4
+[2026-02-26 15:34:29,142] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=1 hero_id=1 status=closed
+[2026-02-26 15:34:29,270] INFO in auction: [AUCTION_CLOSE_START] auction_id=6
+[2026-02-26 15:34:29,271] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=6 new_status=finished seller_id=10
+[2026-02-26 15:34:29,273] INFO in auction: [AUCTION_NO_BIDS] auction_id=6 seller_id=10 returning_item
+[2026-02-26 15:34:29,274] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=6 seller_id=10 item_id=5 quantity=1
+[2026-02-26 15:34:29,274] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=6 status=finished
+[2026-02-26 15:34:29,286] INFO in auction_lot: [LOT_CLOSE_START] lot_id=3
+[2026-02-26 15:34:29,289] INFO in auction_lot: [LOT_NO_BIDS] lot_id=3 hero_id=3 seller_id=10 returning_hero
+[2026-02-26 15:34:29,289] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=3 hero_id=3 status=closed
+[2026-02-26 15:34:52,441] INFO in auction: [AUCTION_CLOSE_START] auction_id=1
+[2026-02-26 15:34:52,443] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=1 new_status=finished seller_id=1
+[2026-02-26 15:34:52,449] INFO in auction: [AUCTION_WINNER_FOUND] auction_id=1 winner_id=2 bid_amount=150.00
+[2026-02-26 15:34:52,462] INFO in auction: [AUCTION_BALANCE_TRANSFER] auction_id=1 winner_id=2 seller_id=1 amount=150.00
+[2026-02-26 15:34:52,463] INFO in auction: [AUCTION_ITEM_TRANSFERRED] auction_id=1 winner_id=2 item_id=1 quantity=3
+[2026-02-26 15:34:52,463] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=1 status=finished
+[2026-02-26 15:34:52,552] INFO in auction_lot: [LOT_CLOSE_START] lot_id=1
+[2026-02-26 15:34:52,564] INFO in auction_lot: [LOT_WINNER_FOUND] lot_id=1 hero_id=1 winner_id=4 bid_amount=600.00
+[2026-02-26 15:34:52,575] INFO in auction_lot: [LOT_BALANCE_TRANSFER] lot_id=1 winner_id=4 seller_id=3 amount=600.00
+[2026-02-26 15:34:52,575] INFO in auction_lot: [LOT_HERO_OWNERSHIP_TRANSFERRED] lot_id=1 hero_id=1 new_owner_id=4
+[2026-02-26 15:34:52,576] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=1 hero_id=1 status=closed
+[2026-02-26 15:34:52,740] INFO in auction: [AUCTION_CLOSE_START] auction_id=6
+[2026-02-26 15:34:52,741] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=6 new_status=finished seller_id=10
+[2026-02-26 15:34:52,742] INFO in auction: [AUCTION_NO_BIDS] auction_id=6 seller_id=10 returning_item
+[2026-02-26 15:34:52,743] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=6 seller_id=10 item_id=5 quantity=1
+[2026-02-26 15:34:52,743] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=6 status=finished
+[2026-02-26 15:34:52,758] INFO in auction_lot: [LOT_CLOSE_START] lot_id=3
+[2026-02-26 15:34:52,761] INFO in auction_lot: [LOT_NO_BIDS] lot_id=3 hero_id=3 seller_id=10 returning_hero
+[2026-02-26 15:34:52,762] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=3 hero_id=3 status=closed
+[2026-02-26 15:36:25,768] INFO in auction: [AUCTION_CLOSE_START] auction_id=1
+[2026-02-26 15:36:25,770] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=1 new_status=finished seller_id=1
+[2026-02-26 15:36:25,772] INFO in auction: [AUCTION_WINNER_FOUND] auction_id=1 winner_id=2 bid_amount=150.00
+[2026-02-26 15:36:25,777] INFO in auction: [AUCTION_BALANCE_TRANSFER] auction_id=1 winner_id=2 seller_id=1 amount=150.00
+[2026-02-26 15:36:25,778] INFO in auction: [AUCTION_ITEM_TRANSFERRED] auction_id=1 winner_id=2 item_id=1 quantity=3
+[2026-02-26 15:36:25,778] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=1 status=finished
+[2026-02-26 15:36:25,813] INFO in auction_lot: [LOT_CLOSE_START] lot_id=1
+[2026-02-26 15:36:25,816] INFO in auction_lot: [LOT_WINNER_FOUND] lot_id=1 hero_id=1 winner_id=4 bid_amount=600.00
+[2026-02-26 15:36:25,821] INFO in auction_lot: [LOT_BALANCE_TRANSFER] lot_id=1 winner_id=4 seller_id=3 amount=600.00
+[2026-02-26 15:36:25,821] INFO in auction_lot: [LOT_HERO_OWNERSHIP_TRANSFERRED] lot_id=1 hero_id=1 new_owner_id=4
+[2026-02-26 15:36:25,822] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=1 hero_id=1 status=closed
+[2026-02-26 15:36:25,868] INFO in auction: [AUCTION_CLOSE_START] auction_id=6
+[2026-02-26 15:36:25,869] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=6 new_status=finished seller_id=9
+[2026-02-26 15:36:25,871] INFO in auction: [AUCTION_NO_BIDS] auction_id=6 seller_id=9 returning_item
+[2026-02-26 15:36:25,873] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=6 seller_id=9 item_id=4 quantity=1
+[2026-02-26 15:36:25,873] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=6 status=finished
+[2026-02-26 15:36:25,888] INFO in auction_lot: [LOT_CLOSE_START] lot_id=3
+[2026-02-26 15:36:25,891] INFO in auction_lot: [LOT_NO_BIDS] lot_id=3 hero_id=3 seller_id=9 returning_hero
+[2026-02-26 15:36:25,891] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=3 hero_id=3 status=closed
+[2026-02-26 15:36:25,904] INFO in auction: [AUCTION_CLOSE_START] auction_id=7
+[2026-02-26 15:36:25,906] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=7 new_status=finished seller_id=10
+[2026-02-26 15:36:25,907] INFO in auction: [AUCTION_NO_BIDS] auction_id=7 seller_id=10 returning_item
+[2026-02-26 15:36:25,908] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=7 seller_id=10 item_id=5 quantity=1
+[2026-02-26 15:36:25,908] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=7 status=finished
+[2026-02-26 15:36:25,919] INFO in auction_lot: [LOT_CLOSE_START] lot_id=4
+[2026-02-26 15:36:25,921] INFO in auction_lot: [LOT_NO_BIDS] lot_id=4 hero_id=4 seller_id=10 returning_hero
+[2026-02-26 15:36:25,921] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=4 hero_id=4 status=closed
+[2026-02-26 17:39:57,916] INFO in _client: HTTP Request: POST http://test/auth/register "HTTP/1.1 200 OK"
+[2026-02-26 17:39:57,956] INFO in auth: [AUTH_TOKENS_GENERATED] user_id=1 family=147f4c6a-3434-4549-aff0-ea2e608c571a
+[2026-02-26 17:39:57,956] INFO in auth: [AUTH_LOGIN_SUCCESS] user_id=1 family=147f4c6a-3434-4549-aff0-ea2e608c571a
+[2026-02-26 17:39:57,958] INFO in _client: HTTP Request: POST http://test/auth/login "HTTP/1.1 200 OK"
+[2026-02-26 17:39:57,960] WARNING in auth: [AUTH_REFRESH_FAILED] no_refresh_token_in_cookie
+[2026-02-26 17:39:57,961] ERROR in main: HTTP error occurred: Refresh token not found in cookie
+[2026-02-26 17:39:57,961] INFO in _client: HTTP Request: POST http://test/auth/refresh "HTTP/1.1 401 Unauthorized"
+[2026-02-26 17:39:58,109] INFO in auction: [AUCTION_CLOSE_START] auction_id=1
+[2026-02-26 17:39:58,111] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=1 new_status=finished seller_id=1
+[2026-02-26 17:39:58,113] INFO in auction: [AUCTION_WINNER_FOUND] auction_id=1 winner_id=2 bid_amount=150.00
+[2026-02-26 17:39:58,118] INFO in auction: [AUCTION_BALANCE_TRANSFER] auction_id=1 winner_id=2 seller_id=1 amount=150.00
+[2026-02-26 17:39:58,119] INFO in auction: [AUCTION_ITEM_TRANSFERRED] auction_id=1 winner_id=2 item_id=1 quantity=3
+[2026-02-26 17:39:58,119] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=1 status=finished
+[2026-02-26 17:39:58,155] INFO in auction_lot: [LOT_CLOSE_START] lot_id=1
+[2026-02-26 17:39:58,160] INFO in auction_lot: [LOT_WINNER_FOUND] lot_id=1 hero_id=1 winner_id=4 bid_amount=600.00
+[2026-02-26 17:39:58,168] INFO in auction_lot: [LOT_BALANCE_TRANSFER] lot_id=1 winner_id=4 seller_id=3 amount=600.00
+[2026-02-26 17:39:58,169] INFO in auction_lot: [LOT_HERO_OWNERSHIP_TRANSFERRED] lot_id=1 hero_id=1 new_owner_id=4
+[2026-02-26 17:39:58,169] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=1 hero_id=1 status=closed
+[2026-02-26 17:39:58,233] INFO in auction: [AUCTION_CLOSE_START] auction_id=6
+[2026-02-26 17:39:58,235] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=6 new_status=finished seller_id=9
+[2026-02-26 17:39:58,236] INFO in auction: [AUCTION_NO_BIDS] auction_id=6 seller_id=9 returning_item
+[2026-02-26 17:39:58,238] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=6 seller_id=9 item_id=4 quantity=1
+[2026-02-26 17:39:58,239] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=6 status=finished
+[2026-02-26 17:39:58,257] INFO in auction_lot: [LOT_CLOSE_START] lot_id=3
+[2026-02-26 17:39:58,259] INFO in auction_lot: [LOT_NO_BIDS] lot_id=3 hero_id=3 seller_id=9 returning_hero
+[2026-02-26 17:39:58,259] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=3 hero_id=3 status=closed
+[2026-02-26 17:39:58,273] INFO in auction: [AUCTION_CLOSE_START] auction_id=7
+[2026-02-26 17:39:58,274] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=7 new_status=finished seller_id=10
+[2026-02-26 17:39:58,276] INFO in auction: [AUCTION_NO_BIDS] auction_id=7 seller_id=10 returning_item
+[2026-02-26 17:39:58,277] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=7 seller_id=10 item_id=5 quantity=1
+[2026-02-26 17:39:58,277] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=7 status=finished
+[2026-02-26 17:39:58,291] INFO in auction_lot: [LOT_CLOSE_START] lot_id=4
+[2026-02-26 17:39:58,294] INFO in auction_lot: [LOT_NO_BIDS] lot_id=4 hero_id=4 seller_id=10 returning_hero
+[2026-02-26 17:39:58,294] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=4 hero_id=4 status=closed
+[2026-02-26 17:39:58,375] INFO in auth: [AUTH_TOKENS_GENERATED] user_id=1 family=5414ee67-7e08-4817-8a90-708ed06eef53
+[2026-02-26 17:39:58,376] INFO in auth: [AUTH_TOKEN_REFRESHED] user_id=1 family=5414ee67-7e08-4817-8a90-708ed06eef53
+[2026-02-26 17:40:58,483] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:41:58,515] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:42:58,524] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:43:58,551] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:44:58,613] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:45:58,675] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:46:58,733] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:47:58,794] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:48:58,852] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:49:58,904] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:50:58,964] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:51:59,020] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:52:59,049] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:53:59,084] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:54:59,117] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:55:59,168] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:56:59,228] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:57:59,278] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:58:59,316] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 17:59:59,348] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:00:59,380] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:01:59,423] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:02:59,485] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:03:59,540] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:04:59,567] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:05:59,628] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:06:59,636] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:07:59,687] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:08:59,741] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:09:59,789] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:10:59,844] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:11:59,898] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:12:59,949] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:14:00,005] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:15:00,067] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:16:00,108] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:17:00,140] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:18:00,162] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:19:00,211] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:20:00,250] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:21:00,285] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:22:00,344] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:23:00,403] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:24:00,459] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:25:00,508] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:26:00,532] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:27:00,594] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:28:00,636] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:29:00,684] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:30:00,742] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:31:00,792] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:32:00,842] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:33:00,901] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:34:00,904] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:35:00,962] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:36:00,980] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:37:01,036] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:38:01,098] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:39:01,160] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:40:01,222] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:41:01,282] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:42:01,324] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:43:01,381] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:44:01,440] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:45:01,473] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:46:01,531] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:47:01,594] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:48:01,636] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:49:01,698] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:50:01,739] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:51:01,800] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:52:01,855] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:53:01,916] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:54:01,976] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:55:02,015] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:56:02,075] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:57:02,133] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:58:02,194] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 18:59:02,222] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:00:02,284] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:01:02,355] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:02:02,417] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:03:02,476] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:04:02,531] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:05:02,590] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:06:02,610] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:07:02,654] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:08:02,676] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:09:02,725] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:10:02,790] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:11:02,831] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:12:02,881] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:13:02,945] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:14:03,008] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:15:03,070] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:16:03,123] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:17:03,186] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:18:03,216] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:19:03,276] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:20:03,338] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:21:03,401] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:22:03,462] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:23:03,490] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:24:03,554] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:25:03,618] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:26:03,680] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-26 19:27:03,724] INFO in cleanup: [REVIVE] Немає героїв для відродження.

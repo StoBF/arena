@@ -16,6 +16,7 @@ from app.schemas.hero import HeroCreate, HeroOut, HeroRead, HeroGenerateRequest,
 from app.auth import get_current_user
 from app.database.session import get_session, AsyncSessionLocal
 from app.core.hero_config import MAX_HEROES
+from app.core.events import emit
 import json
 import asyncio
 from app.services.message import MessageService
@@ -34,6 +35,7 @@ class HeroService(BaseService):
         self.session.add(hero)
         await self.commit_or_rollback()
         await self.session.refresh(hero)
+        await emit("cache_invalidate", f"heroes:{owner_id}*")
         return hero
 
     async def get_hero(
@@ -114,6 +116,7 @@ class HeroService(BaseService):
         hero.name = name
         await self.commit_or_rollback()
         await self.session.refresh(hero)
+        await emit("cache_invalidate", f"heroes:{user_id}*")
         return hero
 
     async def delete_hero(self, hero_id: int, user_id: int):
@@ -123,6 +126,7 @@ class HeroService(BaseService):
         hero.is_deleted = True
         hero.deleted_at = datetime.utcnow()
         await self.commit_or_rollback()
+        await emit("cache_invalidate", f"heroes:{user_id}*")
         return hero
 
     async def restore_hero(self, hero_id: int, user_id: int):
@@ -135,6 +139,7 @@ class HeroService(BaseService):
         hero.is_deleted = False
         hero.deleted_at = None
         await self.commit_or_rollback()
+        await emit("cache_invalidate", f"heroes:{user_id}*")
         return hero
 
     async def generate_and_store(self, owner_id: int, req: HeroGenerateRequest):
@@ -205,6 +210,7 @@ class HeroService(BaseService):
             # Transaction auto-commits on success
         
         await self.session.refresh(new_hero)
+        await emit("cache_invalidate", f"heroes:{owner_id}*")
         return new_hero
 
     async def send_offline_messages(self, user_id: int, websocket: str):
@@ -224,6 +230,7 @@ class HeroService(BaseService):
             leveled_up = True
         await self.commit_or_rollback()
         await self.session.refresh(hero)
+        await emit("cache_invalidate", f"heroes:{hero.owner_id}*")
         return hero, leveled_up
 
     async def get_total_stats(self, hero_id: int):
@@ -282,6 +289,7 @@ class HeroService(BaseService):
         hero.training_end_time = datetime.utcnow() + timedelta(minutes=duration_minutes)
         await self.commit_or_rollback()
         await self.session.refresh(hero)
+        await emit("cache_invalidate", f"heroes:{hero.owner_id}*")
         return hero
 
     async def complete_training(self, hero_id: int, xp_reward: int = 50):
@@ -297,6 +305,7 @@ class HeroService(BaseService):
         await self.add_experience(hero.id, xp_reward)
         await self.commit_or_rollback()
         await self.session.refresh(hero)
+        await emit("cache_invalidate", f"heroes:{hero.owner_id}*")
         return hero
 
     async def get_hero_with_perks(self, hero_id: int) -> HeroRead:
@@ -346,4 +355,5 @@ class HeroService(BaseService):
         perk.perk_level += 1
         await self.commit_or_rollback()
         await self.session.refresh(perk)
+        await emit("cache_invalidate", f"heroes:{user_id}*")
         return perk

@@ -76,6 +76,12 @@ The entire hero lifecycle is implemented in `/Server/app/services/hero.py`:
   method is called from the `/heroes/generate` router.
 - Training, experience gain and stat computation are also implemented here.
 
+**Cross-cutting note:** `BidService` (the largest service at 316 lines) now
+emits cache invalidation events when bids are placed.  Both item auctions and
+hero lots trigger `auctions:active*` (and `auctions:active_lots*` for lot
+bids), ensuring the paginated listing endpoints stay fresh without router
+intervention.
+
 ### Improvement request already satisfied
 > Heroes can be restored only within 7 days.  — this is exactly the behaviour
 of `restore_hero` (see the `cutoff` calculation above).

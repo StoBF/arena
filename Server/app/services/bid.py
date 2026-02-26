@@ -158,7 +158,10 @@ class BidService(BaseService):
 
             await self.session.flush()
             await self.session.refresh(bid)
-            return bid
+        # transaction complete; clear related caches
+        from app.core.events import emit
+        await emit("cache_invalidate", "auctions:active*")
+        return bid
 
     async def place_lot_bid(self, bidder_id: int, lot_id: int, amount: Decimal, request_id: str = None):
         """
@@ -244,7 +247,11 @@ class BidService(BaseService):
 
             await self.session.flush()
             await self.session.refresh(bid)
-            return bid
+        # transaction complete; invalidate both caches
+        from app.core.events import emit
+        await emit("cache_invalidate", "auctions:active*")
+        await emit("cache_invalidate", "auctions:active_lots*")
+        return bid
 
     async def set_auto_bid(self, user_id: int, auction_id: int = None, lot_id: int = None, max_amount: Decimal = Decimal('0.00')):
         """

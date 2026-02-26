@@ -8,6 +8,7 @@ from app.services.auction_lot import AuctionLotService
 from app.services.bid import BidService
 from app.database.session import get_session
 from app.auth import get_current_user_info
+from app.core.redis_cache import redis_cache
 
 router = APIRouter(prefix="/auctions", tags=["Auction"])
 
