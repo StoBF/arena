@@ -1,8 +1,0 @@
-auth
-core
-database
-routers
-schemas
-services
-tasks
-utils
