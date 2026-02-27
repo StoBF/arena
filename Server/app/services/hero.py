@@ -19,7 +19,6 @@ from app.core.hero_config import MAX_HEROES
 from app.core.events import emit
 import json
 import asyncio
-from app.services.message import MessageService
 from fastapi import Depends
 from sqlalchemy.orm import joinedload
 

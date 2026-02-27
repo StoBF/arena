@@ -62,6 +62,7 @@ async def test_create_auction_and_bid(db):
     assert max_span <= timedelta(hours=24)
     # Ставка
     bid_service = BidService(db)
+    events.clear()  # clear events accumulated from auction creations above
     bid = await bid_service.place_bid(bidder_id=user2.id, auction_id=auction.id, amount=Decimal("150"))
     assert bid.amount == Decimal("150")
     assert events == ["auctions:active*"]
@@ -81,6 +82,13 @@ async def test_create_auction_and_bid(db):
 
 @pytest.mark.asyncio
 async def test_auctionlot_and_bid(db):
+    from app.core.events import subscribe, clear_subscribers
+    events = []
+    async def h(k):
+        events.append(k)
+    clear_subscribers()
+    subscribe("cache_invalidate", h)
+
     user1 = User(username="hero_seller", email="hero_seller@example.com", balance=Decimal("1000"), reserved=Decimal("0"))
     user2 = User(username="hero_buyer", email="hero_buyer@example.com", balance=Decimal("2000"), reserved=Decimal("0"))
     db.add_all([user1, user2])
@@ -96,6 +104,7 @@ async def test_auctionlot_and_bid(db):
     assert lot.hero_id == hero.id
     # Ставка
     bid_service = BidService(db)
+    events.clear()  # clear event from create_auction_lot above
     bid = await bid_service.place_lot_bid(bidder_id=user2.id, lot_id=lot.id, amount=Decimal("600"))
     assert bid.amount == Decimal("600")
     assert events == ["auctions:active*", "auctions:active_lots*"]
