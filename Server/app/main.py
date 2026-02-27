@@ -26,6 +26,7 @@ from app.tasks.cleanup import delete_old_heroes_task
 from app.tasks.auctions import close_expired_auctions_task
 from app.services.auction import AuctionService
 from app.routers.health import router as health_router
+from app.routers.battle import router as battle_router
 from app.routers.raid import router as raid_router
 from app.routers.craft import router as craft_router
 from app.routers.pvp import router as pvp_router
@@ -158,6 +159,7 @@ async def on_shutdown():
 app.include_router(health_router)
 
 # Add domain routers
+app.include_router(battle_router)
 app.include_router(raid_router)
 app.include_router(craft_router)
 app.include_router(pvp_router)
