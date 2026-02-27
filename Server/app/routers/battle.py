@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import Any, Dict, List
+from datetime import datetime
+from pydantic import BaseModel
 from app.services.combat import CombatService
-from app.database.models.hero import Hero
 from app.database.session import get_session
 from app.auth import get_current_user_info
 from app.services.hero import HeroService
@@ -96,8 +97,8 @@ async def raid(
         "team_b_remaining": result.team_b_remaining
     } 
 # ---------- simple queue & betting prototype ----------
-queue: List[Dict] = []  # {hero_id, player_id, timestamp}
-bets: List[Dict] = []   # {player_id, hero_id, amount}
+queue: List[Dict[str, Any]] = []  # {hero_id, player_id, timestamp}
+bets: List[Dict[str, Any]] = []   # {player_id, hero_id, amount}
 # placeholder stats
 _hero_stats = {
     1: {"hero_id":1, "attack":10, "defense":8, "health":50},
