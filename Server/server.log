@@ -14883,3 +14883,91 @@ AttributeError: 'int' object has no attribute 'id'
 [2026-02-26 19:25:03,618] INFO in cleanup: [REVIVE] Немає героїв для відродження.
 [2026-02-26 19:26:03,680] INFO in cleanup: [REVIVE] Немає героїв для відродження.
 [2026-02-26 19:27:03,724] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-27 18:39:17,834] INFO in _client: HTTP Request: POST http://test/auth/register "HTTP/1.1 200 OK"
+[2026-02-27 18:39:17,836] INFO in auth: [AUTH_TOKENS_GENERATED] user_id=1 family=ce60745c-bc6a-4678-bf83-be6c21698611
+[2026-02-27 18:39:17,837] INFO in auth: [AUTH_LOGIN_SUCCESS] user_id=1 family=ce60745c-bc6a-4678-bf83-be6c21698611
+[2026-02-27 18:39:17,837] INFO in _client: HTTP Request: POST http://test/auth/login "HTTP/1.1 200 OK"
+[2026-02-27 18:39:17,838] WARNING in auth: [AUTH_REFRESH_FAILED] no_refresh_token_in_cookie
+[2026-02-27 18:39:17,838] ERROR in main: HTTP error occurred: Refresh token not found in cookie
+[2026-02-27 18:39:17,839] INFO in _client: HTTP Request: POST http://test/auth/refresh "HTTP/1.1 401 Unauthorized"
+[2026-02-27 18:39:18,043] INFO in auction: [AUCTION_CLOSE_START] auction_id=6
+[2026-02-27 18:39:18,044] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=6 new_status=finished seller_id=9
+[2026-02-27 18:39:18,045] INFO in auction: [AUCTION_NO_BIDS] auction_id=6 seller_id=9 returning_item
+[2026-02-27 18:39:18,045] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=6 seller_id=9 item_id=4 quantity=1
+[2026-02-27 18:39:18,046] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=6 status=finished
+[2026-02-27 18:39:18,062] INFO in auction_lot: [LOT_CLOSE_START] lot_id=2
+[2026-02-27 18:39:18,065] INFO in auction_lot: [LOT_NO_BIDS] lot_id=2 hero_id=2 seller_id=9 returning_hero
+[2026-02-27 18:39:18,065] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=2 hero_id=2 status=closed
+[2026-02-27 18:39:18,076] INFO in auction: [AUCTION_CLOSE_START] auction_id=7
+[2026-02-27 18:39:18,076] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=7 new_status=finished seller_id=10
+[2026-02-27 18:39:18,078] INFO in auction: [AUCTION_NO_BIDS] auction_id=7 seller_id=10 returning_item
+[2026-02-27 18:39:18,078] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=7 seller_id=10 item_id=5 quantity=1
+[2026-02-27 18:39:18,078] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=7 status=finished
+[2026-02-27 18:39:18,089] INFO in auction_lot: [LOT_CLOSE_START] lot_id=3
+[2026-02-27 18:39:18,091] INFO in auction_lot: [LOT_NO_BIDS] lot_id=3 hero_id=3 seller_id=10 returning_hero
+[2026-02-27 18:39:18,091] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=3 hero_id=3 status=closed
+[2026-02-27 18:39:18,160] INFO in auth: [AUTH_TOKENS_GENERATED] user_id=1 family=dd484df2-4071-405a-a07b-bb3a42f8ec4b
+[2026-02-27 18:39:18,160] INFO in auth: [AUTH_TOKEN_REFRESHED] user_id=1 family=dd484df2-4071-405a-a07b-bb3a42f8ec4b
+[2026-02-27 18:40:18,247] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-27 18:41:18,252] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-27 18:42:18,314] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-27 18:43:18,376] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-27 18:43:28,781] INFO in _client: HTTP Request: POST http://test/auth/register "HTTP/1.1 200 OK"
+[2026-02-27 18:43:28,784] INFO in auth: [AUTH_TOKENS_GENERATED] user_id=1 family=b08cdda1-efbe-4bd0-b38f-ede4f5d9e663
+[2026-02-27 18:43:28,784] INFO in auth: [AUTH_LOGIN_SUCCESS] user_id=1 family=b08cdda1-efbe-4bd0-b38f-ede4f5d9e663
+[2026-02-27 18:43:28,784] INFO in _client: HTTP Request: POST http://test/auth/login "HTTP/1.1 200 OK"
+[2026-02-27 18:43:28,785] WARNING in auth: [AUTH_REFRESH_FAILED] no_refresh_token_in_cookie
+[2026-02-27 18:43:28,786] ERROR in main: HTTP error occurred: Refresh token not found in cookie
+[2026-02-27 18:43:28,786] INFO in _client: HTTP Request: POST http://test/auth/refresh "HTTP/1.1 401 Unauthorized"
+[2026-02-27 18:43:37,030] INFO in _client: HTTP Request: POST http://test/auth/register "HTTP/1.1 200 OK"
+[2026-02-27 18:43:37,033] INFO in auth: [AUTH_TOKENS_GENERATED] user_id=1 family=da94278d-a2af-45d1-86ad-e7fd3a50cfaf
+[2026-02-27 18:43:37,033] INFO in auth: [AUTH_LOGIN_SUCCESS] user_id=1 family=da94278d-a2af-45d1-86ad-e7fd3a50cfaf
+[2026-02-27 18:43:37,034] INFO in _client: HTTP Request: POST http://test/auth/login "HTTP/1.1 200 OK"
+[2026-02-27 18:43:37,035] WARNING in auth: [AUTH_REFRESH_FAILED] no_refresh_token_in_cookie
+[2026-02-27 18:43:37,035] ERROR in main: HTTP error occurred: Refresh token not found in cookie
+[2026-02-27 18:43:37,035] INFO in _client: HTTP Request: POST http://test/auth/refresh "HTTP/1.1 401 Unauthorized"
+[2026-02-27 18:43:37,299] INFO in auction: [AUCTION_CLOSE_START] auction_id=6
+[2026-02-27 18:43:37,300] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=6 new_status=finished seller_id=9
+[2026-02-27 18:43:37,302] INFO in auction: [AUCTION_NO_BIDS] auction_id=6 seller_id=9 returning_item
+[2026-02-27 18:43:37,302] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=6 seller_id=9 item_id=4 quantity=1
+[2026-02-27 18:43:37,302] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=6 status=finished
+[2026-02-27 18:43:37,321] INFO in auction_lot: [LOT_CLOSE_START] lot_id=2
+[2026-02-27 18:43:37,323] INFO in auction_lot: [LOT_NO_BIDS] lot_id=2 hero_id=2 seller_id=9 returning_hero
+[2026-02-27 18:43:37,323] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=2 hero_id=2 status=closed
+[2026-02-27 18:43:37,337] INFO in auction: [AUCTION_CLOSE_START] auction_id=7
+[2026-02-27 18:43:37,338] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=7 new_status=finished seller_id=10
+[2026-02-27 18:43:37,339] INFO in auction: [AUCTION_NO_BIDS] auction_id=7 seller_id=10 returning_item
+[2026-02-27 18:43:37,340] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=7 seller_id=10 item_id=5 quantity=1
+[2026-02-27 18:43:37,340] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=7 status=finished
+[2026-02-27 18:43:37,353] INFO in auction_lot: [LOT_CLOSE_START] lot_id=3
+[2026-02-27 18:43:37,355] INFO in auction_lot: [LOT_NO_BIDS] lot_id=3 hero_id=3 seller_id=10 returning_hero
+[2026-02-27 18:43:37,355] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=3 hero_id=3 status=closed
+[2026-02-27 18:43:37,432] INFO in auth: [AUTH_TOKENS_GENERATED] user_id=1 family=53e5ca6c-d128-431e-9528-99d7d85396dd
+[2026-02-27 18:43:37,432] INFO in auth: [AUTH_TOKEN_REFRESHED] user_id=1 family=53e5ca6c-d128-431e-9528-99d7d85396dd
+[2026-02-27 18:44:37,567] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-27 18:45:37,613] INFO in cleanup: [REVIVE] Немає героїв для відродження.
+[2026-02-27 18:46:11,186] INFO in _client: HTTP Request: POST http://test/auth/register "HTTP/1.1 200 OK"
+[2026-02-27 18:46:11,188] INFO in auth: [AUTH_TOKENS_GENERATED] user_id=1 family=cba3683d-0146-4716-8216-59f9f48e91dd
+[2026-02-27 18:46:11,189] INFO in auth: [AUTH_LOGIN_SUCCESS] user_id=1 family=cba3683d-0146-4716-8216-59f9f48e91dd
+[2026-02-27 18:46:11,189] INFO in _client: HTTP Request: POST http://test/auth/login "HTTP/1.1 200 OK"
+[2026-02-27 18:46:11,190] WARNING in auth: [AUTH_REFRESH_FAILED] no_refresh_token_in_cookie
+[2026-02-27 18:46:11,191] ERROR in main: HTTP error occurred: Refresh token not found in cookie
+[2026-02-27 18:46:11,191] INFO in _client: HTTP Request: POST http://test/auth/refresh "HTTP/1.1 401 Unauthorized"
+[2026-02-27 18:46:11,482] INFO in auction: [AUCTION_CLOSE_START] auction_id=6
+[2026-02-27 18:46:11,483] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=6 new_status=finished seller_id=9
+[2026-02-27 18:46:11,484] INFO in auction: [AUCTION_NO_BIDS] auction_id=6 seller_id=9 returning_item
+[2026-02-27 18:46:11,485] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=6 seller_id=9 item_id=4 quantity=1
+[2026-02-27 18:46:11,485] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=6 status=finished
+[2026-02-27 18:46:11,501] INFO in auction_lot: [LOT_CLOSE_START] lot_id=2
+[2026-02-27 18:46:11,503] INFO in auction_lot: [LOT_NO_BIDS] lot_id=2 hero_id=2 seller_id=9 returning_hero
+[2026-02-27 18:46:11,503] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=2 hero_id=2 status=closed
+[2026-02-27 18:46:11,516] INFO in auction: [AUCTION_CLOSE_START] auction_id=7
+[2026-02-27 18:46:11,517] INFO in auction: [AUCTION_STATUS_CHANGED] auction_id=7 new_status=finished seller_id=10
+[2026-02-27 18:46:11,518] INFO in auction: [AUCTION_NO_BIDS] auction_id=7 seller_id=10 returning_item
+[2026-02-27 18:46:11,519] INFO in auction: [AUCTION_ITEM_RETURNED] auction_id=7 seller_id=10 item_id=5 quantity=1
+[2026-02-27 18:46:11,519] INFO in auction: [AUCTION_CLOSE_COMPLETE] auction_id=7 status=finished
+[2026-02-27 18:46:11,529] INFO in auction_lot: [LOT_CLOSE_START] lot_id=3
+[2026-02-27 18:46:11,531] INFO in auction_lot: [LOT_NO_BIDS] lot_id=3 hero_id=3 seller_id=10 returning_hero
+[2026-02-27 18:46:11,531] INFO in auction_lot: [LOT_CLOSE_COMPLETE] lot_id=3 hero_id=3 status=closed
+[2026-02-27 18:46:11,602] INFO in auth: [AUTH_TOKENS_GENERATED] user_id=1 family=557e0576-c6ce-487c-ad31-35de33259c23
+[2026-02-27 18:46:11,603] INFO in auth: [AUTH_TOKEN_REFRESHED] user_id=1 family=557e0576-c6ce-487c-ad31-35de33259c23
