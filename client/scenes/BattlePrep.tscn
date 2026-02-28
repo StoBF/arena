@@ -1,59 +1,61 @@
-[gd_scene load_steps=9 format=3 uid="uid://battle-prep"]
+[gd_scene load_steps=2 format=3 uid="uid://battle-prep"]
 
 [ext_resource type="Script" uid="uid://script" path="res://scripts/ui/BattlePrepPanel.gd" id="1"]
 
 [node name="BattlePrep" type="Control"]
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 script = ExtResource("1")
 
 [node name="VBox" type="VBoxContainer" parent="."]
 
-[node name="VBox/SelectHeroHBox" type="HBoxContainer" parent="VBox"]
+[node name="SelectHeroHBox" type="HBoxContainer" parent="VBox"]
 
-[node name="SelectHeroHBox/Label" type="Label" parent="SelectHeroHBox"]
+[node name="Label" type="Label" parent="VBox/SelectHeroHBox"]
 text = "Select Hero:"
 
-[node name="SelectHeroHBox/HeroList" type="OptionButton" parent="SelectHeroHBox"]
+[node name="HeroList" type="OptionButton" parent="VBox/SelectHeroHBox"]
 
-[node name="VBox/SubmitButton" type="Button" parent="VBox"]
+[node name="SubmitButton" type="Button" parent="VBox"]
 text = "Submit to Queue"
 
-[node name="VBox/QueueStatus" type="Label" parent="VBox"]
+[node name="QueueStatus" type="Label" parent="VBox"]
 text = "Queue status: empty"
 
-[node name="VBox/StatsHBox" type="HBoxContainer" parent="VBox"]
+[node name="StatsHBox" type="HBoxContainer" parent="VBox"]
 
-[node name="StatsHBox/YourStats" type="VBoxContainer" parent="StatsHBox"]
+[node name="YourStats" type="VBoxContainer" parent="VBox/StatsHBox"]
 
-[node name="YourStats/Label" type="Label" parent="YourStats"]
+[node name="Label" type="Label" parent="VBox/StatsHBox/YourStats"]
 text = "Your Hero Stats"
 
-[node name="YourStats/Stats" type="Label" parent="YourStats"]
+[node name="Stats" type="Label" parent="VBox/StatsHBox/YourStats"]
 text = ""
 
-[node name="StatsHBox/OpponentStats" type="VBoxContainer" parent="StatsHBox"]
+[node name="OpponentStats" type="VBoxContainer" parent="VBox/StatsHBox"]
 
-[node name="OpponentStats/Label" type="Label" parent="OpponentStats"]
+[node name="Label" type="Label" parent="VBox/StatsHBox/OpponentStats"]
 text = "Opponent Stats"
 
-[node name="OpponentStats/Stats" type="Label" parent="OpponentStats"]
+[node name="Stats" type="Label" parent="VBox/StatsHBox/OpponentStats"]
 text = ""
 
-[node name="VBox/Prediction" type="Label" parent="VBox"]
+[node name="Prediction" type="Label" parent="VBox"]
 text = ""
 
-[node name="VBox/BetHBox" type="HBoxContainer" parent="VBox"]
+[node name="BetHBox" type="HBoxContainer" parent="VBox"]
 
-[node name="BetHBox/Label" type="Label" parent="BetHBox"]
+[node name="Label" type="Label" parent="VBox/BetHBox"]
 text = "Bet Amount:"
 
-[node name="BetHBox/Amount" type="LineEdit" parent="BetHBox"]
+[node name="Amount" type="LineEdit" parent="VBox/BetHBox"]
 
-[node name="BetHBox/BetButton" type="Button" parent="BetHBox"]
+[node name="BetButton" type="Button" parent="VBox/BetHBox"]
 text = "Place Bet"
 
-[node name="BattlePrep/QueueTimer" type="Timer" parent="."]
+[node name="QueueTimer" type="Timer" parent="."]
 wait_time = 3.0
 one_shot = false
 

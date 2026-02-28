@@ -23,7 +23,10 @@ limiter = Limiter(key_func=get_remote_address)
 async def register(user: UserCreate, request: Request, db: AsyncSession = Depends(get_session)):
     existing = await AuthService(db).get_user_by_email_or_username(user.email)
     if existing:
-        raise HTTPException(status_code=400, detail="User already exists")
+        raise HTTPException(status_code=400, detail="User with this email already exists")
+    existing_username = await AuthService(db).get_user_by_email_or_username(user.username)
+    if existing_username:
+        raise HTTPException(status_code=400, detail="Username already taken")
     new_user = await AuthService(db).create_user(user.email, user.username, user.password)
     return new_user
 
@@ -74,7 +77,9 @@ async def google_login(request: Request, response: Response, google_token: str =
     email = google_token  # In production, parse through Google API
     user = await AuthService(db).get_user_by_email_or_username(email)
     if not user:
-        user = await AuthService(db).create_user(email=email, username=None, password=None, is_google=True)
+        # Generate a username from email prefix for Google accounts
+        base_username = email.split("@")[0]
+        user = await AuthService(db).create_user(email=email, username=base_username, password=None, is_google=True)
     
     tokens = AuthService(db).generate_tokens(user)
     

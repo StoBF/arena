@@ -7,6 +7,10 @@ class_name HeroListPanel
 @onready var generate_dialog = $GenerateDialog
 
 func _ready():
+    # Back to dashboard button
+    var back_btn = BackToDashboardButton.new()
+    add_child(back_btn)
+    move_child(back_btn, 0)
     # Connect signals
     Localization.locale_changed.connect(Callable(self, "_localize_ui"))
     generate_button.pressed.connect(Callable(self, "_on_generate_pressed"))

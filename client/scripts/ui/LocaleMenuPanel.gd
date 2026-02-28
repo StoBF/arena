@@ -25,7 +25,7 @@ func _localize_ui() -> void:
 
 func _on_locale_pressed(locale_code: String) -> void:
 	Localization.load_locale(locale_code)
-	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+	Nav.go_main_menu()
 
 func _on_back_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn") 
+	Nav.go_main_menu()

@@ -42,6 +42,8 @@ static func _load_config() -> void:
 
 	var json_path = "res://config/%s.json" % env
 	var f = FileAccess.open(json_path, FileAccess.READ)
+	if f == null:
+		print("[ServerConfig] WARNING: Could not open %s (FileAccess error %d). Using defaults/fallback." % [json_path, FileAccess.get_open_error()])
 	if f != null:
 		var text = f.get_as_text()
 		var json = JSON.new()
@@ -53,19 +55,27 @@ static func _load_config() -> void:
 			config.ws_port = int(data.get("ws_port", config.ws_port))
 			config.use_https = bool(data.get("use_https", config.use_https))
 			config.status_endpoint = str(data.get("status_endpoint", config.status_endpoint))
+			print("[ServerConfig] Loaded from %s → ip=%s http_port=%d ws_port=%d use_https=%s" % [json_path, config.ip, config.http_port, config.ws_port, config.use_https])
+			print("[ServerConfig] HTTP base URL = %s" % config.get_http_base_url())
 			return
+		else:
+			print("[ServerConfig] JSON parse error for %s" % json_path)
 
 # Fallback: try existing user config (keeps previous behavior)
 	var config_path = "user://server_config.cfg"
 	var file = ConfigFile.new()
 	var load_err = file.load(config_path)
 	if load_err == OK:
+		print("[ServerConfig] Falling back to user config: %s" % config_path)
 		config.ip = file.get_value("server", "ip", config.ip)
 		config.http_port = file.get_value("server", "http_port", config.http_port)
 		config.ws_port = file.get_value("server", "ws_port", config.ws_port)
 		config.use_https = file.get_value("server", "use_https", config.use_https)
 		config.status_endpoint = file.get_value("server", "status_endpoint", config.status_endpoint)
+		print("[ServerConfig] Fallback → ip=%s http_port=%d use_https=%s" % [config.ip, config.http_port, config.use_https])
+		print("[ServerConfig] HTTP base URL = %s" % config.get_http_base_url())
 	else:
+		print("[ServerConfig] No user config found, saving defaults.")
 		_save_config()
 
 static func _save_config() -> void:

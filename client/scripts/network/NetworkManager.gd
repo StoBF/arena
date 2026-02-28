@@ -65,11 +65,13 @@ func request(endpoint: String, method := HTTPClient.METHOD_GET, data := {}, head
 		_on_request_completed(request_id, result, code, hdrs, body)
 	)
 
-	print("[HTTP SEND] %s %s headers=%s" % [method, url, final_headers])
+	print("[HTTP SEND] method=%s url=%s headers=%s timeout=%.1f" % [method, url, final_headers, http_request.timeout])
 	var err = http_request.request(url, final_headers, method, json_data)
 	if err != OK:
-		print("HTTP request failed: ", err)
+		print("[HTTP ERROR] request() returned err=%d for url=%s" % [err, url])
 		_handle_request_error(request_id, err)
+	else:
+		print("[HTTP QUEUED] request() OK for url=%s" % url)
 
 	return http_request
 
@@ -79,6 +81,7 @@ func _on_request_completed(request_id: int, result: int, response_code: int, hea
 	if request_info == null:
 		return
 
+	print("[HTTP RECV] request_id=%d result=%d response_code=%d body_size=%d" % [request_id, result, response_code, body.size()])
 	# Build body text
 	var body_text: String = body.get_string_from_utf8()
 

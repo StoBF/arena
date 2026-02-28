@@ -80,11 +80,12 @@ func _init_ws(channel: String) -> void:
 	var ws = WebSocketPeer.new()
 	var config = ServerConfig.get_instance()
 	var url = config.get_ws_endpoint(channel, token)
+	print("[ChatBox] WS CONNECT channel=%s url=%s" % [channel, url])
 	
 	# Підключення до WebSocket сервера
 	var err = ws.connect_to_url(url)
 	if err != OK:
-		print("[Помилка] Не вдалося підключитись до %s (%s)" % [channel, err])
+		print("[ChatBox] WS CONNECT FAILED channel=%s err=%d" % [channel, err])
 		return
 	
 	ws_clients[channel] = ws
@@ -105,6 +106,7 @@ func _reconnect_ws(channel: String) -> void:
 	)
 
 func _on_ws_connected(channel: String) -> void:
+	print("[ChatBox] WS CONNECTED channel=%s" % channel)
 	AppState.set_chat_connection_state(channel, true)
 	
 	# Скидаємо лічильник спроб при успішному підключенні
@@ -173,6 +175,7 @@ func _flush_message_cache(channel: String) -> void:
 	message_cache[channel].clear()
 
 func _on_ws_closed(channel: String) -> void:
+	print("[ChatBox] WS CLOSED channel=%s" % channel)
 	AppState.set_chat_connection_state(channel, false)
 
 func _on_send_button_pressed() -> void:
@@ -196,8 +199,10 @@ func _on_send_button_pressed() -> void:
 	if ws and ws.get_ready_state() == WebSocketPeer.STATE_OPEN:
 		var error = ws.send_text(text)
 		if error != OK:
+			print("[ChatBox] SEND FAILED channel=%s err=%d" % [channel, error])
 			UIUtils.show_error("Не вдалося надіслати повідомлення: %s" % error)
 		else:
+			print("[ChatBox] SENT channel=%s text=%s" % [channel, text.left(60)])
 			# Показуємо своє повідомлення одразу
 			AppState.push_chat_message(channel, "[Ви] %s" % text)
 	else:

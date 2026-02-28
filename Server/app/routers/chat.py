@@ -51,6 +51,19 @@ async def ws_trade(websocket: WebSocket):
             await db.commit()
     await websocket_loop(websocket, "trade", save)
 
+@router.websocket("/ws/system")
+async def ws_system(websocket: WebSocket):
+    token = websocket.query_params.get("token")
+    user_id = await get_user_id_from_token(token) if token else None
+    if not user_id:
+        await websocket.close(code=1008)
+        return
+    await websocket.accept()
+    async def save(data):
+        # System messages are server-originated; clients rarely send here
+        pass
+    await websocket_loop(websocket, "system", save)
+
 @router.websocket("/ws/private")
 async def ws_private(websocket: WebSocket):
     token = websocket.query_params.get("token")

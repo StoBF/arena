@@ -14,6 +14,10 @@ var hero = {}
 var available_items := []
 
 func _ready():
+    # Back to dashboard button
+    var back_btn = BackToDashboardButton.new()
+    add_child(back_btn)
+    move_child(back_btn, 0)
     # define slots
     slot_nodes = {
         "Helmet": $EquipmentGrid/Slot_Helmet,

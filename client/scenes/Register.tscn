@@ -23,12 +23,20 @@ offset_right = 679.0
 offset_bottom = 264.0
 placeholder_text = "Email"
 
+[node name="Register#Nickname" type="LineEdit" parent="."]
+layout_mode = 0
+offset_left = 413.0
+offset_top = 276.0
+offset_right = 679.0
+offset_bottom = 307.0
+placeholder_text = "Nickname"
+
 [node name="Register#Password" type="LineEdit" parent="."]
 layout_mode = 0
 offset_left = 414.0
-offset_top = 276.0
+offset_top = 319.0
 offset_right = 680.0
-offset_bottom = 307.0
+offset_bottom = 350.0
 placeholder_text = "Password"
 secret = true
 
@@ -56,7 +64,7 @@ popup/item_2/text = "Polish"
 [node name="Register#RegisterButton" type="Button" parent="."]
 layout_mode = 0
 offset_left = 499.0
-offset_top = 323.0
+offset_top = 366.0
 offset_right = 591.0
-offset_bottom = 354.0
+offset_bottom = 397.0
 text = "Register"

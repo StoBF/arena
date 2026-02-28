@@ -7,6 +7,10 @@ class_name InventoryPanel
 @onready var sell_dialog = $SellDialog
 
 func _ready():
+    # Back to dashboard button
+    var back_btn = BackToDashboardButton.new()
+    add_child(back_btn)
+    move_child(back_btn, 0)
     # Connect signals
     sell_dialog.sell_requested.connect(Callable(self, "_on_sell_requested"))
     Localization.locale_changed.connect(Callable(self, "_update_locale"))

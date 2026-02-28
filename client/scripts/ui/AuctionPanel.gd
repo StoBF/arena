@@ -2,12 +2,12 @@ extends Control
 class_name AuctionPanel
 
 # UI Elements
-@onready var auctions_list = $AuctionsList
+@onready var auctions_list = $AuctionScroll/AuctionsList
 @onready var detail_container = $DetailContainer
 @onready var auction_name = $DetailContainer/AuctionName
 @onready var current_bid = $DetailContainer/CurrentBid
-@onready var bid_amount = $BidAmount
-@onready var bid_button = $BidButton
+@onready var bid_amount = $DetailContainer/BidAmount
+@onready var bid_button = $DetailContainer/BidButton
 @onready var items_button = $ButtonContainer/ItemsButton
 @onready var lots_button = $ButtonContainer/LotsButton
 
@@ -16,6 +16,10 @@ var auctions_data: Array = []
 var pending_lot_id: int = -1
 
 func _ready():
+	# Back to dashboard button
+	var back_btn = BackToDashboardButton.new()
+	add_child(back_btn)
+	move_child(back_btn, 0)
 	# Connect signals
 	Localization.locale_changed.connect(Callable(self, "_localize_ui"))
 	auctions_list.item_selected.connect(Callable(self, "_on_item_selected"))

@@ -4,7 +4,7 @@ from decimal import Decimal
 
 class UserCreate(BaseModel):
     email: EmailStr = Field(...)
-    username: Optional[str] = Field(None, min_length=3, max_length=32)
+    username: str = Field(..., min_length=3, max_length=32)
     password: Optional[str] = Field(None, min_length=6, max_length=128)
 
 class UserLogin(BaseModel):

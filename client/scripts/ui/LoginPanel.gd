@@ -124,7 +124,7 @@ func _on_login_pressed():
 	req.request_completed.connect(Callable(self, "_on_request_completed"))
 
 func _on_create_account_pressed():
-	get_tree().change_scene_to_file("res://scenes/Register.tscn")
+	Nav.go("Register")
 
 func _on_request_completed(_result: int, code: int, _headers, body: PackedByteArray):
 	print("Отримано відповідь. Код:", code)
@@ -136,7 +136,7 @@ func _on_request_completed(_result: int, code: int, _headers, body: PackedByteAr
 
 		if typeof(parsed) == TYPE_DICTIONARY and parsed.has("access_token"):
 			var token = parsed["access_token"]
-			AppState.token = token
+			AppState.set_access_token(token)
 			Network.set_auth_header(token)
 			print("Token:", AppState.token)
 			
@@ -147,7 +147,7 @@ func _on_request_completed(_result: int, code: int, _headers, body: PackedByteAr
 			else:
 				ConfigManager.clear_all()
 			
-			get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+			Nav.go("MainMenu")
 			return
 		else:
 			print("⚠️ Відповідь без токена або невірна структура:", parsed)
@@ -160,7 +160,7 @@ func _try_auto_login_with_token(token: String) -> void:
 		return
 	
 	# Валідуємо токен через запит до сервера
-	AppState.token = token
+	AppState.set_access_token(token)
 	Network.set_auth_header(token)
 	
 	# Перевіряємо валідність токену через запит до /user
@@ -170,9 +170,9 @@ func _try_auto_login_with_token(token: String) -> void:
 func _on_token_validation_completed(result: int, code: int, _headers, _body: PackedByteArray) -> void:
 	if result == HTTPRequest.RESULT_SUCCESS and code == 200:
 		# Токен валідний, переходимо до головного меню
-		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+		Nav.go("MainMenu")
 	else:
 		# Токен невалідний, очищаємо його
 		ConfigManager.clear_all()
-		AppState.token = ""
+		AppState.set_access_token("")
 		UIUtils.show_error(Localization.t("session_expired"))

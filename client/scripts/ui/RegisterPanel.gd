@@ -3,6 +3,7 @@ class_name Register
 
 @onready var back_button = $"BackButton"
 @onready var email_field = $"Register#Email"
+@onready var nickname_field = $"Register#Nickname"
 @onready var password_field = $"Register#Password"
 @onready var register_button = $"Register#RegisterButton"
 @onready var language_option = $LanguageContainer/LanguageOption
@@ -36,6 +37,7 @@ func _on_language_selected(index: int) -> void:
 func _localize_ui() -> void:
 	back_button.text = Localization.t("back")
 	email_field.placeholder_text = Localization.t("email")
+	nickname_field.placeholder_text = Localization.t("nickname") if Localization.has_key("nickname") else "Nickname"
 	password_field.placeholder_text = Localization.t("password")
 	register_button.text = Localization.t("register_button")
 	if language_label:
@@ -47,20 +49,26 @@ func _localize_ui() -> void:
 
 func on_back_pressed():
 	print("Натиснуто кнопку 'Назад'")
-	get_tree().change_scene_to_file("res://scenes/login_screen.tscn")
+	Nav.go("Login")
 
 func on_register_pressed():
 	print("Натиснуто кнопку реєстрації")
 
 	var email = email_field.text.strip_edges()
+	var nickname = nickname_field.text.strip_edges()
 	var password = password_field.text.strip_edges()
 
-	if email.is_empty() or password.is_empty():
+	if email.is_empty() or password.is_empty() or nickname.is_empty():
 		UIUtils.show_error(Localization.t("fill_all_fields"))
+		return
+
+	if nickname.length() < 3 or nickname.length() > 32:
+		UIUtils.show_error("Nickname must be 3-32 characters")
 		return
 
 	var data = {
 		"email": email,
+		"username": nickname,
 		"password": password
 	}
 
@@ -76,6 +84,6 @@ func _on_register_response(_result: int, code: int, _headers, body: PackedByteAr
 
 	if code == 200 or code == 201:
 		UIUtils.show_success(Localization.t("register_success"))
-		get_tree().change_scene_to_file("res://scenes/login_screen.tscn")
+		Nav.go("Login")
 	else:
 		UIUtils.show_error(Localization.t("register_failed") + ": " + body_text)

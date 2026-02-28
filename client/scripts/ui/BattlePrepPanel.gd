@@ -20,6 +20,10 @@ var current_hero = null
 var queue := []       # two entries of hero dicts
 
 func _ready():
+    # Back to dashboard button
+    var back_btn = BackToDashboardButton.new()
+    add_child(back_btn)
+    move_child(back_btn, 0)
     submit_btn.pressed.connect(Callable(self, "_on_submit_pressed"))
     bet_btn.pressed.connect(Callable(self, "_on_bet_pressed"))
     queue_timer.timeout.connect(Callable(self, "_poll_queue"))

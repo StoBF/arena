@@ -21,7 +21,7 @@ from app.core.redis_cache import redis_cache
 
 from app.core.config import settings
 from app.database.session import create_db_and_tables, AsyncSessionLocal, engine
-from app.routers import auth, hero, auction, bid, announcement, inventory, equipment, workshop
+from app.routers import auth, hero, auction, bid, announcement, inventory, equipment, workshop, chat
 from app.tasks.cleanup import delete_old_heroes_task
 from app.tasks.auctions import close_expired_auctions_task
 from app.services.auction import AuctionService
@@ -60,6 +60,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Diagnostic middleware: log EVERY incoming request ──
+@app.middleware("http")
+async def log_all_requests(request: Request, call_next):
+    logging.info("[INCOMING] %s %s  client=%s", request.method, request.url, request.client.host if request.client else "?")
+    response = await call_next(request)
+    logging.info("[RESPONSE] %s %s → %d", request.method, request.url.path, response.status_code)
+    return response
 
 # Обробники виключень
 @app.exception_handler(StarletteHTTPException)
@@ -103,6 +111,7 @@ app.include_router(announcement.router)
 app.include_router(inventory.router)
 app.include_router(equipment.router)
 app.include_router(workshop.router)
+app.include_router(chat.router, tags=["Chat"])
 
 # Створення бази, якщо відсутня
 async def create_database_if_not_exists():

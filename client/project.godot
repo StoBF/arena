@@ -22,6 +22,7 @@ Network="*res://scripts/network/NetworkManager.gd"
 Localization="*res://autoload/Localization.gd"
 AppState="*res://autoload/AppState.gd"
 UIUtils="*res://autoload/UIUtils.gd"
+Nav="*res://autoload/NavigationManager.gd"
 
 [dotnet]
 

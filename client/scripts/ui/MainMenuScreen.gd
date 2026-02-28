@@ -168,27 +168,28 @@ func _on_generate_response(result: int, code: int, headers: PackedStringArray, b
 	send_chat_message("system", "[System] Hero generation failed: %s" % msg)
 
 func _on_create_hero_pressed():
-	get_tree().change_scene_to_file("res://scenes/GenerateHeroScene.tscn")
+	Nav.go("GenerateHero")
 
 func _on_auction_pressed():
-	get_tree().change_scene_to_file("res://scenes/Auction.tscn")
+	Nav.go("Auction")
 
 func _on_auction_lot_requested(lot_id: int) -> void:
 	if lot_id <= 0:
 		return
-	get_tree().change_scene_to_file("res://scenes/Auction.tscn")
+	Nav.go("Auction")
 
 func _on_inventory_pressed():
-	get_tree().change_scene_to_file("res://scenes/Inventory.tscn")
+	Nav.go("Inventory")
 
 func _on_settings_pressed():
-	get_tree().change_scene_to_file("res://scenes/LocaleMenu.tscn")
+	Nav.go("Settings")
 
 func _on_battle_pressed():
-	get_tree().change_scene_to_file("res://scenes/Battle.tscn")
+	Nav.go("Battle")
 
 func _on_deleted_pressed():
-	get_tree().change_scene_to_file("res://scenes/DeletedHeroes.tscn")
+	# DeletedHeroes scene not implemented yet
+	UIUtils.show_error("Deleted Heroes is not available yet")
 
 func _on_exit_pressed():
 	get_tree().quit()

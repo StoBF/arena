@@ -97,4 +97,10 @@ static func get_locale_display_name(code: String) -> String:
 		"pl": "polish"
 	}
 	var key = names.get(code, code)
-	return _instance.translations.get(key, code) 
+	return _instance.translations.get(key, code)
+
+## Check whether a translation key exists.
+static func has_key(key: String) -> bool:
+	if _instance == null:
+		return false
+	return _instance.translations.has(key)
