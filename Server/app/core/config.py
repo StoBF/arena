@@ -16,6 +16,7 @@ class Settings:
     TOKEN_ROTATION_ENABLED: bool = True  # Enable token rotation for security
     
     ALLOWED_ORIGINS: str = "*"
+    REDIS_URL: str = os.getenv("REDIS_URL", "")
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", os.getenv("APP_PORT", "8081")))
     EMAIL_HOST: str = "smtp.example.com"
