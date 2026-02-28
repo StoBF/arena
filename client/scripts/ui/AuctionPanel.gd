@@ -159,4 +159,3 @@ func _focus_lot_by_id(lot_id: int) -> void:
 			pending_lot_id = -1
 			AppState.selected_auction_lot_id = -1
 			return
-

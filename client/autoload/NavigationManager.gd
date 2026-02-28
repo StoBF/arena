@@ -92,7 +92,8 @@ func go_main_menu() -> bool:
 
 ## Internal: perform the actual scene change with error checking.
 func _do_change(path: String, tag: String) -> bool:
-	print("[Nav] Changing scene → '%s' (%s)" % [tag, path])
+	var prev_scene = _current_scene_path if not _current_scene_path.is_empty() else "(none)"
+	print("[Nav] Scene change: '%s' → '%s' (%s)" % [prev_scene, tag, path])
 	var err = get_tree().change_scene_to_file(path)
 	if err != OK:
 		push_error("[Nav] change_scene_to_file failed: err=%d path=%s" % [err, path])
@@ -102,4 +103,5 @@ func _do_change(path: String, tag: String) -> bool:
 			get_tree().change_scene_to_file(MAIN_MENU)
 		return false
 	_current_scene_path = path
+	print("[Nav] Scene change OK → '%s'" % tag)
 	return true

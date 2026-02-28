@@ -9,7 +9,7 @@ class_name MainMenuScreen
 @onready var deleted_heroes_button = $CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2/DeletedHeroesButton
 @onready var settings_button       = $CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/SettingsButton
 @onready var exit_button           = $CanvasLayer/MarginContainer/HBoxContainer2/StatsContainer/ExitButton
-@onready var chat_box              = $CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2/ChatBox
+@onready var chat_box              = $CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2/Control/ChatBox
 @onready var nickname_label_title  = $CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/GridContainer/NicknameLabelTitle
 @onready var nickname_label        = $CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/GridContainer/NicknameLabel
 @onready var currency_label_title  = $CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/CurrencyGridContainer/CurrencyLabelTitle
@@ -56,17 +56,20 @@ func _ready():
 	_localize_ui()
 
 	# Fetch heroes list from server
-	var req = Network.request("/heroes", HTTPClient.METHOD_GET)
+	var req = Network.request("/heroes/", HTTPClient.METHOD_GET)
 	req.request_completed.connect(_on_heroes_loaded)
 
 	# Load user data to display nickname and balance
 	_load_user()
 
 	# If returning from hero creation, display the newly created hero
+	# and also refresh the full list from the server
 	if not AppState.last_created_hero.is_empty():
 		_display_hero_info(AppState.last_created_hero)
 		send_chat_message("system", "[System] New hero generated: %s" % AppState.last_created_hero.get("name", "Unknown"))
 		AppState.last_created_hero.clear()
+		# Also trigger a hero list refresh so the server data is in sync
+		_load_heroes()
 
 func _localize_ui():
 	# Titles with fallback translations
@@ -91,12 +94,19 @@ func _localize_ui():
 		exit_button.text           = tr("exit") if tr("exit") != "exit" else "Exit"
 
 func _on_heroes_loaded(result: int, code: int, headers: PackedStringArray, body: PackedByteArray):
+	print("[MainMenu] _on_heroes_loaded result=%d code=%d body_size=%d" % [result, code, body.size()])
 	if result == HTTPRequest.RESULT_SUCCESS and code == 200:
 		var json = JSON.new()
 		var err = json.parse(body.get_string_from_utf8())
 		if err == OK:
 			var parsed = json.data
-			heroes_data = parsed.result if parsed.has("result") else []
+			# Backend returns HeroesPaginatedResponse: { result: [...], total: N }
+			if typeof(parsed) == TYPE_DICTIONARY and parsed.has("result"):
+				heroes_data = parsed.result
+			elif typeof(parsed) == TYPE_ARRAY:
+				heroes_data = parsed
+			else:
+				heroes_data = []
 			# Populate icon container
 			if hero_icons_container:
 				for child in hero_icons_container.get_children():
@@ -113,9 +123,10 @@ func _on_heroes_loaded(result: int, code: int, headers: PackedStringArray, body:
 				_display_hero_info(heroes_data[0])
 				send_chat_message("system", "[System] Loaded %d heroes" % heroes_data.size())
 			return
-		print("JSON parse error: ", err)
+		print("[MainMenu] Heroes JSON parse error: ", err)
+	print("[MainMenu] Failed to load heroes: result=%d code=%d" % [result, code])
 	UIUtils.show_error(tr("load_heroes_failed") if tr("load_heroes_failed") != "load_heroes_failed" else "Failed to load heroes")
-	send_chat_message("system", "[System] Failed to load heroes")
+	send_chat_message("system", "[System] Failed to load heroes (HTTP %d)" % code)
 
 func _on_hero_icon_pressed(hero_id: int) -> void:
 	for hero in heroes_data:
@@ -195,14 +206,15 @@ func _on_exit_pressed():
 	get_tree().quit()
 
 func _load_user():
-	var req = Network.request("/user", HTTPClient.METHOD_GET)
+	var req = Network.request("/auth/me", HTTPClient.METHOD_GET)
 	req.request_completed.connect(_on_user_loaded)
 
 func _load_heroes():
-	var req = Network.request("/heroes", HTTPClient.METHOD_GET)
+	var req = Network.request("/heroes/", HTTPClient.METHOD_GET)
 	req.request_completed.connect(_on_heroes_loaded)
 
 func _on_user_loaded(result: int, code: int, headers: PackedStringArray, body: PackedByteArray):
+	print("[MainMenu] _on_user_loaded result=%d code=%d body_size=%d" % [result, code, body.size()])
 	if result == HTTPRequest.RESULT_SUCCESS and code == 200:
 		var json = JSON.new()
 		var err = json.parse(body.get_string_from_utf8())
@@ -214,9 +226,10 @@ func _on_user_loaded(result: int, code: int, headers: PackedStringArray, body: P
 				currency_label.text = str(user.get("balance", 0))
 			send_chat_message("system", "[System] User loaded: %s" % user.get("username", "Unknown"))
 			return
-		print("JSON parse error: ", err)
+		print("[MainMenu] User JSON parse error: ", err)
+	print("[MainMenu] Failed to load user: result=%d code=%d body=%s" % [result, code, body.get_string_from_utf8().left(200)])
 	UIUtils.show_error(tr("load_user_failed") if tr("load_user_failed") != "load_user_failed" else "Failed to load user data")
-	send_chat_message("system", "[System] Failed to load user data")
+	send_chat_message("system", "[System] Failed to load user data (HTTP %d)" % code)
 
 func send_chat_message(channel: String, message: String):
 	if chat_box and chat_box.has_method("AddLog"):

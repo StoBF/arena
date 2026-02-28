@@ -23,7 +23,7 @@ func _localize_ui():
     generate_button.text = Localization.t("generate")
 
 func _load_heroes():
-    var req = Network.request("/heroes", HTTPClient.METHOD_GET)
+    var req = Network.request("/heroes/", HTTPClient.METHOD_GET)
     req.request_completed.connect(Callable(self, "_on_heroes_response"))
 
 func _on_heroes_response(result: int, code: int, headers, body: PackedByteArray):

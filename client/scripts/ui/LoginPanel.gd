@@ -163,8 +163,8 @@ func _try_auto_login_with_token(token: String) -> void:
 	AppState.set_access_token(token)
 	Network.set_auth_header(token)
 	
-	# Перевіряємо валідність токену через запит до /user
-	var req = Network.request("/user", HTTPClient.METHOD_GET)
+	# Перевіряємо валідність токену через запит до /auth/me
+	var req = Network.request("/auth/me", HTTPClient.METHOD_GET)
 	req.request_completed.connect(Callable(self, "_on_token_validation_completed"))
 
 func _on_token_validation_completed(result: int, code: int, _headers, _body: PackedByteArray) -> void:

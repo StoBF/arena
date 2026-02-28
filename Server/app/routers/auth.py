@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Body, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_session
-from app.schemas.user import UserCreate, UserLogin, UserOut, TokenResponse, TokenRefreshResponse
+from app.schemas.user import UserCreate, UserLogin, UserOut, UserWithBalance, TokenResponse, TokenRefreshResponse
 from app.services.auth import AuthService
+from app.auth import get_current_user
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -141,3 +142,13 @@ async def refresh_token(request: Request, response: Response, db: AsyncSession =
         "access_token": result["access_token"],
         "token_type": "bearer"
     }
+
+
+@router.get(
+    "/me",
+    response_model=UserWithBalance,
+    summary="Get current user profile",
+    description="Returns the authenticated user's profile including username and balance."
+)
+async def get_me(user=Depends(get_current_user)):
+    return user
