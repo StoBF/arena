@@ -1,39 +1,37 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional
 from decimal import Decimal
 
 class UserCreate(BaseModel):
-    email: EmailStr = Field(..., example="user@example.com")
-    username: Optional[str] = Field(None, min_length=3, max_length=32, example="username")
-    password: Optional[str] = Field(None, min_length=6, max_length=128, example="strongpassword")
+    email: EmailStr = Field(...)
+    username: Optional[str] = Field(None, min_length=3, max_length=32)
+    password: Optional[str] = Field(None, min_length=6, max_length=128)
 
 class UserLogin(BaseModel):
-    login: str = Field(..., min_length=3, max_length=128, example="user@example.com або username")
-    password: Optional[str] = Field(None, min_length=6, max_length=128, example="strongpassword")
+    login: str = Field(..., min_length=3, max_length=128)
+    password: Optional[str] = Field(None, min_length=6, max_length=128)
 
 class UserOut(BaseModel):
-    id: int = Field(..., example=1)
-    email: EmailStr = Field(..., example="user@example.com")
-    username: Optional[str] = Field(None, example="username")
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    id: int = Field(...)
+    email: EmailStr = Field(...)
+    username: Optional[str] = Field(None)
 
 class UserWithBalance(BaseModel):
-    id: int = Field(..., example=1)
-    email: EmailStr = Field(..., example="user@example.com")
-    username: Optional[str] = Field(None, example="username")
-    balance: Decimal = Field(..., example="1500.00", decimal_places=2)
-    reserved: Decimal = Field(..., example="500.00", decimal_places=2)
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    id: int = Field(...)
+    email: EmailStr = Field(...)
+    username: Optional[str] = Field(None)
+    balance: Decimal = Field(..., decimal_places=2)
+    reserved: Decimal = Field(..., decimal_places=2)
 
 class TokenResponse(BaseModel):
-    access_token: str = Field(..., example="eyJhbGciOiJIUzI1NiIsInR5cCI6...")
-    refresh_token: str = Field(..., example="eyJhbGciOiJIUzI1NiIsInR5cCI6...")
-    token_type: str = Field(..., example="bearer")
+    access_token: str = Field(...)
+    refresh_token: str = Field(...)
+    token_type: str = Field(...)
 
 class TokenRefreshResponse(BaseModel):
-    access_token: str = Field(..., example="eyJhbGciOiJIUzI1NiIsInR5cCI6...")
-    token_type: str = Field(..., example="bearer")
+    access_token: str = Field(...)
+    token_type: str = Field(...)

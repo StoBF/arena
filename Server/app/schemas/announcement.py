@@ -1,15 +1,14 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 
 class AnnouncementCreate(BaseModel):
-    message: str = Field(..., example="Server maintenance at 10 PM UTC.")
+    message: str = Field(...)
 
 class AnnouncementOut(BaseModel):
-    id: int = Field(..., example=1)
-    message: str = Field(..., example="Server maintenance at 10 PM UTC.")
-    author_id: Optional[int] = Field(None, example=42)
-    created_at: Optional[datetime] = Field(None, example="2024-06-01T09:00:00Z")
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    id: int = Field(...)
+    message: str = Field(...)
+    author_id: Optional[int] = Field(None)
+    created_at: Optional[datetime] = Field(None)

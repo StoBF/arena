@@ -10,6 +10,7 @@ import app.database.models.pve
 import app.database.models.raid_boss
 import app.database.models.tournament
 import app.database.models.event
+import app.database.models.battle
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from enum import Enum
 
@@ -21,23 +21,22 @@ class SlotType(str, Enum):
     utility_belt = "utility_belt"
 
 class ItemCreate(BaseModel):
-    name: str = Field(..., example="Excalibur")
-    description: Optional[str] = Field(None, example="Legendary sword of King Arthur.")
-    type: ItemType = Field(..., example="equipment")
-    slot_type: SlotType = Field(..., example="weapon")
-    bonus_strength: Optional[int] = Field(0, example=10)
-    bonus_agility: Optional[int] = Field(0, example=5)
-    bonus_intelligence: Optional[int] = Field(0, example=2)
+    name: str = Field(...)
+    description: Optional[str] = Field(None)
+    type: ItemType = Field(...)
+    slot_type: SlotType = Field(...)
+    bonus_strength: Optional[int] = Field(0)
+    bonus_agility: Optional[int] = Field(0)
+    bonus_intelligence: Optional[int] = Field(0)
 
 class ItemOut(BaseModel):
-    id: int = Field(..., example=1)
-    name: str = Field(..., example="Excalibur")
-    description: Optional[str] = Field(None, example="Legendary sword of King Arthur.")
-    type: ItemType = Field(..., example="equipment")
-    slot_type: SlotType = Field(..., example="weapon")
-    bonus_strength: int = Field(..., example=10)
-    bonus_agility: int = Field(..., example=5)
-    bonus_intelligence: int = Field(..., example=2)
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    id: int = Field(...)
+    name: str = Field(...)
+    description: Optional[str] = Field(None)
+    type: ItemType = Field(...)
+    slot_type: SlotType = Field(...)
+    bonus_strength: int = Field(...)
+    bonus_agility: int = Field(...)
+    bonus_intelligence: int = Field(...)

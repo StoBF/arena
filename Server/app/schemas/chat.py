@@ -1,25 +1,24 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 
 class ChatMessageOut(BaseModel):
-    id: int = Field(..., example=1)
-    channel: str = Field(..., example="general")
-    sender_id: int = Field(..., example=2)
-    recipient_id: Optional[int] = Field(None, example=None)
-    text: str = Field(..., example="Hello, world!")
-    created_at: datetime = Field(..., example="2024-06-01T14:00:00Z")
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    id: int = Field(...)
+    channel: str = Field(...)
+    sender_id: int = Field(...)
+    recipient_id: Optional[int] = Field(None)
+    text: str = Field(...)
+    created_at: datetime = Field(...)
+
 
 class OfflineMessageOut(BaseModel):
-    id: int = Field(..., example=1)
-    sender_id: int = Field(..., example=2)
-    recipient_id: int = Field(..., example=3)
-    text: str = Field(..., example="You missed this message!")
-    created_at: datetime = Field(..., example="2024-06-01T14:00:00Z")
-    delivered: bool = Field(..., example=False)
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True 
+    id: int = Field(...)
+    sender_id: int = Field(...)
+    recipient_id: int = Field(...)
+    text: str = Field(...)
+    created_at: datetime = Field(...)
+    delivered: bool = Field(...)

@@ -66,7 +66,9 @@ async def generate_hero(
     user=Depends(get_current_user_info)
 ):
     hero = await HeroService(db).generate_and_store(user['user_id'], req)
-    return hero
+    payload = HeroOut.from_orm(hero).dict()
+    payload["perks"] = []
+    return payload
 
 @router.delete(
     "/{hero_id}",

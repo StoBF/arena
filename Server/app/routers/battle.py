@@ -1,8 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
+from decimal import Decimal
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, condecimal
+from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Any, Dict, List
-from datetime import datetime
-from pydantic import BaseModel
+from typing import List
+
+from app.database.models.battle import BattleBet, BattleQueueEntry
+from app.database.models.currency_transaction import CurrencyTransaction
+from app.database.models.hero import Hero
+from app.database.models.user import User
 from app.services.combat import CombatService
 from app.database.session import get_session
 from app.auth import get_current_user_info
@@ -96,52 +104,159 @@ async def raid(
         "team_a_remaining": result.team_a_remaining,
         "team_b_remaining": result.team_b_remaining
     } 
-# ---------- simple queue & betting prototype ----------
-queue: List[Dict[str, Any]] = []  # {hero_id, player_id, timestamp}
-bets: List[Dict[str, Any]] = []   # {player_id, hero_id, amount}
-# placeholder stats
-_hero_stats = {
-    1: {"hero_id":1, "attack":10, "defense":8, "health":50},
-    2: {"hero_id":2, "attack":7, "defense":12, "health":45},
-}
-
 class SubmitIn(BaseModel):
     hero_id: int
 
 class BetIn(BaseModel):
     hero_id: int
-    amount: int
+    amount: condecimal(gt=0, max_digits=12, decimal_places=2)
 
 @router.post("/queue/submit")
-async def submit_queue(data: SubmitIn, current_user=Depends(get_current_user_info)):
-    entry = {"hero_id": data.hero_id, "player_id": current_user["user_id"], "timestamp": datetime.utcnow()}
-    queue.append(entry)
-    return {"status":"ok"}
+async def submit_queue(
+    data: SubmitIn,
+    db: AsyncSession = Depends(get_session),
+    current_user=Depends(get_current_user_info)
+):
+    user_id = current_user["user_id"]
+
+    tx = db.begin_nested() if db.in_transaction() else db.begin()
+    try:
+        async with tx:
+            hero_result = await db.execute(
+                select(Hero).where(Hero.id == data.hero_id, Hero.owner_id == user_id)
+            )
+            hero = hero_result.scalars().first()
+            if not hero:
+                raise HTTPException(status_code=404, detail="Hero not found")
+            if hero.is_dead:
+                raise HTTPException(status_code=400, detail="Hero is dead")
+            if hero.is_training:
+                raise HTTPException(status_code=400, detail="Hero is training")
+
+            queue_entry = BattleQueueEntry(hero_id=data.hero_id, player_id=user_id)
+            db.add(queue_entry)
+            await db.flush()
+
+            payload = {
+                "status": "ok",
+                "queue_id": queue_entry.id,
+                "hero_id": queue_entry.hero_id,
+                "player_id": queue_entry.player_id,
+            }
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Hero already queued or player already has queued hero"
+        )
+    return payload
 
 @router.get("/queue")
-async def get_queue():
-    return queue
+async def get_queue(db: AsyncSession = Depends(get_session)):
+    queue_result = await db.execute(
+        select(BattleQueueEntry).order_by(BattleQueueEntry.created_at.asc(), BattleQueueEntry.id.asc())
+    )
+    queue_entries = queue_result.scalars().all()
+    return [
+        {
+            "id": entry.id,
+            "hero_id": entry.hero_id,
+            "player_id": entry.player_id,
+            "created_at": entry.created_at,
+        }
+        for entry in queue_entries
+    ]
 
 @router.get("/hero/{hero_id}")
-async def get_hero_stats(hero_id: int):
-    stats = _hero_stats.get(hero_id)
-    if not stats:
+async def get_hero_stats(hero_id: int, db: AsyncSession = Depends(get_session)):
+    hero_result = await db.execute(select(Hero).where(Hero.id == hero_id))
+    hero = hero_result.scalars().first()
+    if not hero:
         raise HTTPException(404, "Hero not found")
-    return stats
+    return {
+        "hero_id": hero.id,
+        "attack": hero.strength,
+        "defense": hero.defense,
+        "health": hero.health,
+    }
 
 @router.post("/bet")
-async def post_bet(data: BetIn, current_user=Depends(get_current_user_info)):
-    bets.append({"player_id": current_user["user_id"], "hero_id": data.hero_id, "amount": data.amount})
-    return {"status":"ok"}
+async def post_bet(
+    data: BetIn,
+    db: AsyncSession = Depends(get_session),
+    current_user=Depends(get_current_user_info)
+):
+    bettor_id = current_user["user_id"]
+    amount = Decimal(data.amount)
+
+    tx = db.begin_nested() if db.in_transaction() else db.begin()
+    try:
+        async with tx:
+            queued_result = await db.execute(
+                select(BattleQueueEntry).where(BattleQueueEntry.hero_id == data.hero_id)
+            )
+            queued_hero = queued_result.scalars().first()
+            if not queued_hero:
+                raise HTTPException(status_code=400, detail="Hero is not in battle queue")
+
+            lock_user_result = await db.execute(
+                select(User).where(User.id == bettor_id).with_for_update()
+            )
+            if not lock_user_result.scalars().first():
+                raise HTTPException(status_code=404, detail="User not found")
+
+            reserve_update = await db.execute(
+                update(User)
+                .where(
+                    User.id == bettor_id,
+                    (User.balance - User.reserved) >= amount,
+                )
+                .values(reserved=User.reserved + amount)
+            )
+            if reserve_update.rowcount != 1:
+                raise HTTPException(status_code=400, detail="Insufficient funds")
+
+            db.add(
+                BattleBet(
+                    bettor_id=bettor_id,
+                    hero_id=data.hero_id,
+                    amount=amount,
+                )
+            )
+            db.add(
+                CurrencyTransaction(
+                    user_id=bettor_id,
+                    amount=amount,
+                    type="battle_bet_reserved",
+                    reference_id=data.hero_id,
+                )
+            )
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Bet already placed")
+
+    return {
+        "status": "ok",
+        "hero_id": data.hero_id,
+        "amount": str(amount),
+    }
 
 @router.get("/predict")
-async def predict():
+async def predict(db: AsyncSession = Depends(get_session)):
+    queue_result = await db.execute(
+        select(BattleQueueEntry).order_by(BattleQueueEntry.created_at.asc(), BattleQueueEntry.id.asc()).limit(2)
+    )
+    queue = queue_result.scalars().all()
     if len(queue) < 2:
         raise HTTPException(400, "not enough heroes")
-    h1 = _hero_stats.get(queue[0]["hero_id"])
-    h2 = _hero_stats.get(queue[1]["hero_id"])
-    score1 = h1["attack"] + h1["defense"] + h1["health"]
-    score2 = h2["attack"] + h2["defense"] + h2["health"]
-    winner = queue[0]["hero_id"] if score1 >= score2 else queue[1]["hero_id"]
+    heroes_result = await db.execute(select(Hero).where(Hero.id.in_([queue[0].hero_id, queue[1].hero_id])))
+    heroes = {hero.id: hero for hero in heroes_result.scalars().all()}
+    h1 = heroes.get(queue[0].hero_id)
+    h2 = heroes.get(queue[1].hero_id)
+    if not h1 or not h2:
+        raise HTTPException(400, "hero stats unavailable")
+    score1 = h1.strength + h1.defense + h1.health
+    score2 = h2.strength + h2.defense + h2.health
+    winner = queue[0].hero_id if score1 >= score2 else queue[1].hero_id
     chance = score1/float(score1+score2)
     return {"winner_id": winner, "chance": chance}

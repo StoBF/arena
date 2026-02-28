@@ -147,7 +147,8 @@ class HeroService(BaseService):
         CRITICAL: Combines user balance deduction and hero creation atomically.
         No partial commits: balance deducted AND hero created together, or neither.
         """
-        async with self.session.begin():
+        tx = self._txn()
+        async with tx:
             # Lock user row immediately to prevent concurrent hero creation
             user_result = await self.session.execute(
                 select(User)
@@ -170,7 +171,7 @@ class HeroService(BaseService):
             # Ensure currency is Decimal for safe arithmetic
             currency = Decimal(req.currency)
             # Generate hero data (generates attributes, perks, nickname)
-            hero_data = await generate_hero(
+            new_hero = await generate_hero(
                 self.session,
                 owner_id,
                 req.generation,
@@ -185,27 +186,6 @@ class HeroService(BaseService):
             from app.services.accounting import AccountingService
             # adjust_balance will validate funds and record ledger entry
             await AccountingService(self.session).adjust_balance(owner_id, -cost, "hero_generation", reference_id=None, field="balance")
-            
-            # Create hero record (WITHIN TRANSACTION)
-            new_hero = Hero(
-                name=hero_data.name,
-                owner_id=owner_id,
-                generation=hero_data.generation,
-                nickname=hero_data.nickname,
-                strength=hero_data.strength,
-                agility=hero_data.agility,
-                intelligence=hero_data.intelligence,
-                endurance=hero_data.endurance,
-                speed=hero_data.speed,
-                health=hero_data.health,
-                defense=hero_data.defense,
-                luck=hero_data.luck,
-                field_of_view=hero_data.field_of_view,
-                locale=hero_data.locale,
-                is_deleted=False
-            )
-            self.session.add(new_hero)
-            await self.session.flush()  # Ensure hero gets ID
             # Transaction auto-commits on success
         
         await self.session.refresh(new_hero)

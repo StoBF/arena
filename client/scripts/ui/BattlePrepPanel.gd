@@ -23,6 +23,10 @@ func _ready():
     submit_btn.pressed.connect(Callable(self, "_on_submit_pressed"))
     bet_btn.pressed.connect(Callable(self, "_on_bet_pressed"))
     queue_timer.timeout.connect(Callable(self, "_poll_queue"))
+    AppState.battle_queue_updated.connect(Callable(self, "_on_appstate_queue_updated"))
+    AppState.battle_queue_error.connect(Callable(self, "_on_appstate_queue_error"))
+    AppState.battle_submit_updated.connect(Callable(self, "_on_appstate_submit_updated"))
+    AppState.battle_bet_updated.connect(Callable(self, "_on_appstate_bet_updated"))
     queue_timer.start()
     _load_heroes()
 
@@ -46,14 +50,7 @@ func _on_submit_pressed():
             break
     if current_hero == null:
         return
-    # send to backend
-    var req = Network.request("/battle/submit", NetworkManager.POST, {"hero_id": id})
-    req.request_completed.connect(func(result, code, hdrs, body):
-        if code == 200:
-            queue_status.text = "Waiting for opponent..."
-        else:
-            queue_status.text = "Submission failed"
-    )
+    submit_hero_to_queue(id)
     emit_signal("hero_submitted", id)
     _update_your_stats()
 
@@ -69,7 +66,13 @@ func _update_opponent_stats():
         opp_stats_label.text = ""
         prediction_label.text = ""
         return
-    var opp = queue[0].id == current_hero.id ? queue[1] : queue[0]
+    var queued_heroes = _extract_queued_heroes()
+    if queued_heroes.size() < 2 or not current_hero:
+        opp_stats_label.text = ""
+        prediction_label.text = ""
+        return
+
+    var opp = queued_heroes[0].id == current_hero.id ? queued_heroes[1] : queued_heroes[0]
     opp_stats_label.text = "Attack: %d\nDefense: %d\nHealth: %d" % [
         opp.attack, opp.defense, opp.health]
     _compute_prediction(current_hero, opp)
@@ -82,35 +85,85 @@ func _compute_prediction(h1, h2):
     prediction_label.text = "Win chance: %.1f%%" % p1
 
 func _poll_queue():
-    # fetch queue state from server
-    var req = Network.request("/battle/queue", NetworkManager.GET)
-    req.request_completed.connect(func(result, code, hdrs, body):
-        if code == 200:
-            var resp = JSON.parse_string(body.get_string_from_utf8())
-            if resp.error == OK:
-                queue = resp.result
-                if queue.size() >= 2:
-                    queue_status.text = "Ready to battle"
-                    _update_opponent_stats()
-                else:
-                    queue_status.text = "Waiting for opponent..."
-        else:
-            queue_status.text = "Queue error"
-    )
+    fetch_battle_queue()
 
 func _on_bet_pressed():
+    if not current_hero:
+        return
     var amt = bet_amount.text.to_int()
     if amt <= 0:
         return
-    # send bet to backend
-    var req = Network.request("/battle/bet", NetworkManager.POST, {"amount": amt})
-    req.request_completed.connect(func(result, code, hdrs, body):
-        if code == 200:
-            UIUtils.show_success("Bet placed")
-        else:
-            UIUtils.show_error("Bet failed")
-    )
+    place_bet(current_hero.id, amt)
     emit_signal("bet_placed", amt)
+
+func _on_appstate_queue_updated(queue_data):
+    queue = queue_data
+    if queue.size() >= 2:
+        queue_status.text = "Ready to battle"
+    else:
+        queue_status.text = "Waiting for opponent..."
+    _update_opponent_stats()
+
+func _on_appstate_queue_error(message: String):
+    queue_status.text = message
+
+func _on_appstate_submit_updated(success: bool, detail: String):
+    queue_status.text = detail
+
+func _on_appstate_bet_updated(success: bool, detail: String):
+    if success:
+        UIUtils.show_success(detail)
+    else:
+        UIUtils.show_error(detail)
+
+func submit_hero_to_queue(hero_id):
+    var req = Network.request("/battle/queue/submit", NetworkManager.POST, {"hero_id": hero_id})
+    req.request_completed.connect(func(result, code, _hdrs, _body):
+        if result == HTTPRequest.RESULT_SUCCESS and code == 200:
+            AppState.set_battle_submit_result(true, "Waiting for opponent...")
+        else:
+            AppState.set_battle_submit_result(false, "Submission failed")
+    )
+
+func fetch_battle_queue():
+    var req = Network.request("/battle/queue", NetworkManager.GET)
+    req.request_completed.connect(func(result, code, _hdrs, body):
+        if result != HTTPRequest.RESULT_SUCCESS or code != 200:
+            AppState.set_battle_queue_error("Queue error")
+            return
+
+        var json = JSON.new()
+        var err = json.parse(body.get_string_from_utf8())
+        if err != OK or typeof(json.data) != TYPE_ARRAY:
+            AppState.set_battle_queue_error("Queue response error")
+            return
+
+        AppState.update_battle_queue(json.data)
+    )
+
+func place_bet(hero_id, amount):
+    var req = Network.request("/battle/bet", NetworkManager.POST, {"hero_id": hero_id, "amount": amount})
+    req.request_completed.connect(func(result, code, _hdrs, _body):
+        if result == HTTPRequest.RESULT_SUCCESS and code == 200:
+            AppState.set_battle_bet_result(true, "Bet placed")
+        else:
+            AppState.set_battle_bet_result(false, "Bet failed")
+    )
+
+func _find_hero_by_id(hero_id):
+    for hero in heroes:
+        if hero.id == hero_id:
+            return hero
+    return null
+
+func _extract_queued_heroes() -> Array:
+    var extracted: Array = []
+    for entry in queue:
+        var queued_id = entry.get("hero_id", -1) if typeof(entry) == TYPE_DICTIONARY else -1
+        var hero = _find_hero_by_id(queued_id)
+        if hero:
+            extracted.append(hero)
+    return extracted
 
 # modular hooks
 func set_heroes(list):

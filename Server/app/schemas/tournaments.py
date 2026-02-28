@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -7,6 +7,8 @@ class TournamentCreateIn(BaseModel):
     user_ids: List[int]
 
 class TournamentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     template_id: int
     participants: List[int]
@@ -15,8 +17,6 @@ class TournamentOut(BaseModel):
     created_at: datetime
     completed_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
 
 class MatchAdvanceIn(BaseModel):
     round_no: int

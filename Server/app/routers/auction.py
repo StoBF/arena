@@ -49,21 +49,17 @@ async def list_auctions(
         "limit": result["limit"],
         "offset": result["offset"]
     }
-    await redis_cache.set(cache_key, [a.dict() for a in response["items"]], expire=30)
+    await redis_cache.set(
+        cache_key,
+        {
+            "items": [a.dict() for a in response["items"]],
+            "total": response["total"],
+            "limit": response["limit"],
+            "offset": response["offset"],
+        },
+        expire=30,
+    )
     return response
-
-@router.get(
-    "/{auction_id}",
-    response_model=AuctionOut,
-    summary="Get auction by ID",
-    description="Returns detailed information about a specific auction by its ID."
-)
-async def get_auction(auction_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
-    service = AuctionService(db)
-    auction = await service.get_auction(auction_id)
-    if not auction:
-        raise HTTPException(404, "Auction not found")
-    return AuctionOut.from_orm(auction)
 
 @router.post(
     "/{auction_id}/cancel",
@@ -123,8 +119,30 @@ async def list_auction_lots(
         "limit": result["limit"],
         "offset": result["offset"]
     }
-    await redis_cache.set(cache_key, [l.dict() for l in response["items"]], expire=30)
+    await redis_cache.set(
+        cache_key,
+        {
+            "items": [l.dict() for l in response["items"]],
+            "total": response["total"],
+            "limit": response["limit"],
+            "offset": response["offset"],
+        },
+        expire=30,
+    )
     return response
+
+@router.get(
+    "/{auction_id}",
+    response_model=AuctionOut,
+    summary="Get auction by ID",
+    description="Returns detailed information about a specific auction by its ID."
+)
+async def get_auction(auction_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
+    service = AuctionService(db)
+    auction = await service.get_auction(auction_id)
+    if not auction:
+        raise HTTPException(404, "Auction not found")
+    return AuctionOut.from_orm(auction)
 
 @router.post(
     "/lots/{lot_id}/close",

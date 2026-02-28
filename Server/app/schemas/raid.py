@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List
 from typing import Any, Optional
 from datetime import datetime
@@ -12,6 +12,8 @@ class RecipeDropOut(BaseModel):
     chance: float
 
 class RaidBossOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     gen_min: int
@@ -19,10 +21,10 @@ class RaidBossOut(BaseModel):
     loot_table: List[RaidDropItemOut]
     drop_recipes: List[RecipeDropOut] = []
 
-    class Config:
-        orm_mode = True
 
 class ArenaInstanceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     user_id: int
     boss_id: Optional[int]
@@ -31,18 +33,16 @@ class ArenaInstanceOut(BaseModel):
     created_at: datetime
     is_active: bool
 
-    class Config:
-        orm_mode = True
 
 class PvEBattleLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     instance_id: int
     events: List[Any]
     outcome: str
     created_at: datetime
 
-    class Config:
-        orm_mode = True
 
 class RewardOut(BaseModel):
     type: str

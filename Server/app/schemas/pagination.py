@@ -1,6 +1,6 @@
 """Pagination schemas for list endpoints."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Generic, TypeVar, List
 
 T = TypeVar('T')
@@ -13,6 +13,8 @@ class PaginationParams(BaseModel):
 
 
 class PaginatedResponse(BaseModel, Generic[T]):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     """Generic paginated response schema.
     
     Usage:
@@ -24,9 +26,6 @@ class PaginatedResponse(BaseModel, Generic[T]):
     limit: int = Field(..., description="Items per page")
     offset: int = Field(..., description="Number of items skipped")
     
-    class Config:
-        arbitrary_types_allowed = True
-
 
 # Concrete paginated response schemas for each endpoint
 

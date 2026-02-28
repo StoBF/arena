@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from enum import Enum
 
 class ResourceType(str, Enum):
@@ -6,11 +6,10 @@ class ResourceType(str, Enum):
     PvP = "PvP"
 
 class GameResourceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     type: ResourceType
     source: str
     description: str
-
-    class Config:
-        orm_mode = True 

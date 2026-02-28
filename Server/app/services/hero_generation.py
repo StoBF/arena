@@ -83,6 +83,5 @@ async def generate_hero(session, owner_id, target_gen, currency, locale="en", ma
         await session.flush()
         for perk_id, perk_level in perks:
             session.add(HeroPerk(hero_id=new_hero.id, perk_id=perk_id, perk_level=perk_level))
-        await session.commit()
-        await session.refresh(new_hero)
+        await session.flush()
         return new_hero

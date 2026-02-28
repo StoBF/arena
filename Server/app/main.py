@@ -96,7 +96,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 # Підключення маршрутів
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
-app.include_router(hero.router, prefix="/heroes", tags=["Heroes"])
+app.include_router(hero.router)
 app.include_router(auction.router)
 app.include_router(bid.router)
 app.include_router(announcement.router)

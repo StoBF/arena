@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -14,20 +14,19 @@ class PvPBattleEvent(BaseModel):
     context: Any
 
 class PvPBattleLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     match_id: int
     events: List[PvPBattleEvent]
     outcome: str
     created_at: datetime
 
-    class Config:
-        orm_mode = True
 
 class LeaderboardEntryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     user_id: int
     rating: float
     wins: int
     losses: int
-
-    class Config:
-        orm_mode = True 

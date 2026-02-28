@@ -1,14 +1,13 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class StashCreate(BaseModel):
-    item_id: int = Field(..., example=101)
-    quantity: int = Field(1, example=1)
+    item_id: int = Field(...)
+    quantity: int = Field(1)
 
 class StashOut(BaseModel):
-    id: int = Field(..., example=1)
-    user_id: int = Field(..., example=5)
-    item_id: int = Field(..., example=101)
-    quantity: int = Field(..., example=1)
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    id: int = Field(...)
+    user_id: int = Field(...)
+    item_id: int = Field(...)
+    quantity: int = Field(...)
