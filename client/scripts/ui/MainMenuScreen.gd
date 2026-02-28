@@ -49,6 +49,8 @@ func _ready():
 		inventory_button.pressed.connect(_on_inventory_pressed)
 	if settings_button:
 		settings_button.pressed.connect(_on_settings_pressed)
+	if not AppState.auction_lot_requested.is_connected(Callable(self, "_on_auction_lot_requested")):
+		AppState.auction_lot_requested.connect(Callable(self, "_on_auction_lot_requested"))
 
 	# Localize UI texts
 	_localize_ui()
@@ -169,6 +171,11 @@ func _on_create_hero_pressed():
 	get_tree().change_scene_to_file("res://scenes/GenerateHeroScene.tscn")
 
 func _on_auction_pressed():
+	get_tree().change_scene_to_file("res://scenes/Auction.tscn")
+
+func _on_auction_lot_requested(lot_id: int) -> void:
+	if lot_id <= 0:
+		return
 	get_tree().change_scene_to_file("res://scenes/Auction.tscn")
 
 func _on_inventory_pressed():

@@ -13,6 +13,7 @@ class_name AuctionPanel
 
 # Properties
 var auctions_data: Array = []
+var pending_lot_id: int = -1
 
 func _ready():
 	# Connect signals
@@ -21,11 +22,16 @@ func _ready():
 	bid_button.pressed.connect(Callable(self, "_on_bid_button_pressed"))
 	items_button.pressed.connect(Callable(self, "_on_items_button_pressed"))
 	lots_button.pressed.connect(Callable(self, "_on_lots_button_pressed"))
+	if not AppState.auction_lot_requested.is_connected(Callable(self, "_on_auction_lot_requested")):
+		AppState.auction_lot_requested.connect(Callable(self, "_on_auction_lot_requested"))
+	pending_lot_id = AppState.selected_auction_lot_id
 	
 	# Initialize UI
 	_localize_ui()
-	# default to items view
-	_set_mode("items")
+	if pending_lot_id > 0:
+		_set_mode("lots")
+	else:
+		_set_mode("items")
 
 var mode = "items"  # "items" or "lots"
 
@@ -46,10 +52,22 @@ func _load_auctions():
 func _on_auctions_response(result: int, code: int, headers, body: PackedByteArray):
 	if code == 200:
 		var parsed = JSON.parse_string(body.get_string_from_utf8())
-		if parsed.error == OK:
-			auctions_data = parsed.result
-			_populate_auctions_list()
-			return
+		if typeof(parsed) == TYPE_DICTIONARY:
+			if parsed.has("result") and typeof(parsed.get("result")) == TYPE_ARRAY:
+				auctions_data = parsed.get("result")
+			elif parsed.has("items") and typeof(parsed.get("items")) == TYPE_ARRAY:
+				auctions_data = parsed.get("items")
+			else:
+				auctions_data = []
+		elif typeof(parsed) == TYPE_ARRAY:
+			auctions_data = parsed
+		else:
+			auctions_data = []
+
+		_populate_auctions_list()
+		if pending_lot_id > 0 and mode == "lots":
+			_focus_lot_by_id(pending_lot_id)
+		return
 	UIUtils.show_error(Localization.t("load_auctions_failed"))
 
 func _on_items_button_pressed():
@@ -106,9 +124,35 @@ func _on_bid_response(result: int, code: int, headers, body: PackedByteArray):
 	else:
 		UIUtils.show_error(Localization.t("bid_failed"))
 
+func _localize_ui() -> void:
 	bid_amount.placeholder_text = Localization.t("amount")
 	bid_button.text = Localization.t("bid")
 	items_button.text = Localization.t("items")
 	lots_button.text = Localization.t("lots")
+
+	var selected = auctions_list.get_selected_items()
 	if selected.size() > 0:
-		_on_item_selected(selected[0]) 
+		_on_item_selected(selected[0])
+
+func _on_auction_lot_requested(lot_id: int) -> void:
+	if lot_id <= 0:
+		return
+	pending_lot_id = lot_id
+	if mode != "lots":
+		_set_mode("lots")
+		return
+	if auctions_data.is_empty():
+		_load_auctions()
+		return
+	_focus_lot_by_id(lot_id)
+
+func _focus_lot_by_id(lot_id: int) -> void:
+	for i in range(auctions_data.size()):
+		var lot = auctions_data[i]
+		if int(lot.get("id", -1)) == lot_id:
+			auctions_list.select(i)
+			_on_item_selected(i)
+			pending_lot_id = -1
+			AppState.selected_auction_lot_id = -1
+			return
+

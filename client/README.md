@@ -32,6 +32,10 @@ Translations are stored in `locales/{code}.json`. To add or change a locale:
 1. Edit or create a new JSON file in `locales/`.
 2. Use the `Localization.t(key)` method in scripts to retrieve translated text.
 
+## Integration Checklists
+
+- Chat → Auction deep-link flow: `docs/ChatAuctionDeepLinkChecklist.md`
+
 ## Exporting
 
 Use the `export_presets.cfg` file to export builds for Desktop and Android.
