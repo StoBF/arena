@@ -41,14 +41,13 @@ static func _load_config() -> void:
 		env = "dev"
 
 	var json_path = "res://config/%s.json" % env
-	var f = File.new()
-	var err = f.open(json_path, File.READ)
-	if err == OK:
+	var f = FileAccess.open(json_path, FileAccess.READ)
+	if f != null:
 		var text = f.get_as_text()
-		f.close()
-		var parsed = JSON.parse(text)
-		if parsed.error == OK:
-			var data = parsed.result
+		var json = JSON.new()
+		var err = json.parse(text)
+		if err == OK:
+			var data = json.data
 			config.ip = str(data.get("ip", config.ip))
 			config.http_port = int(data.get("http_port", config.http_port))
 			config.ws_port = int(data.get("ws_port", config.ws_port))

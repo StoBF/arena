@@ -145,6 +145,7 @@
 - Authentication flow
 - Network integration
 - UI patterns
+- Integration checklist: [client/docs/ChatAuctionDeepLinkChecklist.md](/client/docs/ChatAuctionDeepLinkChecklist.md)
 
 ### For Server Architecture
 **Read**: [README_server.md](/README_server.md)
@@ -271,6 +272,7 @@
 - [TRANSACTIONAL_AUDIT.md](/TRANSACTIONAL_AUDIT.md) - Reference for issues fixed
 - [TRANSACTIONAL_FIXES_SUMMARY.md](/TRANSACTIONAL_FIXES_SUMMARY.md) - Implementation details
 - [README_client.md](/README_client.md) - Client architecture
+- [client/docs/ChatAuctionDeepLinkChecklist.md](/client/docs/ChatAuctionDeepLinkChecklist.md) - Chat deep-link manual QA flow
 - [README_server.md](/README_server.md) - Server architecture
 
 **Code Files Modified:**
