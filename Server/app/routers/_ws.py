@@ -6,8 +6,12 @@ incoming messages; the helper deals with task lifecycle and cancellation.
 """
 import asyncio
 import json
+import logging
 from fastapi import WebSocket, WebSocketDisconnect
 from app.core.redis_pubsub import publish_message, subscribe_channel
+
+
+logger = logging.getLogger(__name__)
 
 
 async def websocket_loop(websocket: WebSocket, channel: str, save_callback):
@@ -29,5 +33,13 @@ async def websocket_loop(websocket: WebSocket, channel: str, save_callback):
             await save_callback(data)
             await publish_message(channel, data)
     except WebSocketDisconnect:
-        if send_task:
-            send_task.cancel()
+      logger.info("[WS_DISCONNECT] channel=%s", channel)
+    except Exception as exc:
+      logger.exception("[WS_ERROR] channel=%s error=%s", channel, exc)
+      try:
+        await websocket.close(code=1011)
+      except Exception:
+        pass
+    finally:
+      if send_task:
+        send_task.cancel()

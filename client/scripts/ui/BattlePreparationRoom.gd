@@ -15,9 +15,9 @@ signal queue_updated(queue)
 @onready var bet_btn = $VBox/BetContainer/PlaceBet
 @onready var queue_timer = $QueueTimer
 
-var heroes := []        # list of hero dicts from inventory
+var heroes: Array = []        # list of hero dicts from inventory
 var current_hero = null
-var battle_queue := []  # list of hero dicts currently queued
+var battle_queue: Array = []  # list of hero dicts currently queued
 
 func _ready():
     TopBar.add_to(self, true, true)
@@ -67,23 +67,34 @@ func _on_submit_pressed():
 
 func _update_your_stats():
     if current_hero:
-        your_stats.text = "Atk: %d\nDef: %d\nHP: %d" % [current_hero.attack, current_hero.defense, current_hero.health]
+        your_stats.text = "Atk: %d\nDef: %d\nHP: %d" % [
+            int(current_hero.get("attack", current_hero.get("strength", 0))),
+            int(current_hero.get("defense", 0)),
+            int(current_hero.get("health", 0))
+        ]
 
 func _update_opponent_stats():
     var queued_heroes = _extract_queued_heroes()
     if queued_heroes.size() >= 2 and current_hero:
-        var opp = queued_heroes[0].id == current_hero.id ? queued_heroes[1] : queued_heroes[0]
-        opp_stats.text = "Atk: %d\nDef: %d\nHP: %d" % [opp.attack, opp.defense, opp.health]
+        var opp = queued_heroes[1] if queued_heroes[0].get("id", -1) == current_hero.get("id", -1) else queued_heroes[0]
+        opp_stats.text = "Atk: %d\nDef: %d\nHP: %d" % [
+            int(opp.get("attack", opp.get("strength", 0))),
+            int(opp.get("defense", 0)),
+            int(opp.get("health", 0))
+        ]
         _predict_winner(current_hero, opp)
     else:
         opp_stats.text = ""
         prediction.text = "Prediction: N/A"
 
 func _predict_winner(h1, h2):
-    var score1 = h1.attack + h1.defense + h1.health
-    var score2 = h2.attack + h2.defense + h2.health
+    var score1 = int(h1.get("attack", h1.get("strength", 0))) + int(h1.get("defense", 0)) + int(h1.get("health", 0))
+    var score2 = int(h2.get("attack", h2.get("strength", 0))) + int(h2.get("defense", 0)) + int(h2.get("health", 0))
+    if score1 + score2 <= 0:
+        prediction.text = "Prediction: N/A"
+        return
     var chance = score1/(score1+score2) * 100
-    prediction.text = "Prediction: %s likely (%.1f%%)" % [h1.name, chance]
+    prediction.text = "Prediction: %s likely (%.1f%%)" % [h1.get("name", "Hero"), chance]
 
 # ---------- polling ----------
 func _poll_queue():
@@ -114,8 +125,8 @@ func _on_bet_pressed():
     var amt = bet_amount.text.to_int()
     if amt <= 0:
         return
-    place_bet(current_hero.id, amt)
-    emit_signal("bet_placed", current_hero.id, amt)
+    place_bet(int(current_hero.get("id", -1)), amt)
+    emit_signal("bet_placed", int(current_hero.get("id", -1)), amt)
 
 # ---------- placeholder backend calls ----------
 func submit_hero_to_queue(hero_id):
@@ -157,7 +168,7 @@ func fetch_hero_stats(hero_id):
 
 func _find_hero_by_id(hero_id):
     for hero in heroes:
-        if hero.id == hero_id:
+        if hero.get("id", -1) == hero_id:
             return hero
     return null
 
@@ -175,7 +186,7 @@ func set_hero_list(list_of_heroes):
     heroes = list_of_heroes
     hero_list.clear()
     for h in heroes:
-        hero_list.add_item(h.name, h.id)
+        hero_list.add_item(h.get("name", "?"), h.get("id", 0))
 
 func start_polling(interval=2.0):
     queue_timer.wait_time = interval

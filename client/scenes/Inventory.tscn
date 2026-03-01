@@ -25,7 +25,7 @@ text = "Craft"
 
 [node name="Tooltip" type="PopupPanel" parent="."]
 
-[node name="Tooltip/Label" type="Label" parent="Tooltip"]
+[node name="Label" type="Label" parent="Tooltip"]
 offset_left = 4.0
 offset_top = 4.0
 offset_right = 96.0

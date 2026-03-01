@@ -16,6 +16,15 @@ else:
         async def publish(self, *args, **kwargs):
             return 0
 
+        async def sadd(self, *args, **kwargs):
+            return 0
+
+        async def sismember(self, *args, **kwargs):
+            return False
+
+        async def srem(self, *args, **kwargs):
+            return 0
+
         def pubsub(self):
             return self
 

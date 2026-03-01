@@ -8,6 +8,7 @@ from app.core.redis_cache import redis_cache
 
 router = APIRouter(prefix="/health", tags=["Health"])
 
+@router.get("", summary="Readiness & Liveness check")
 @router.get("/", summary="Readiness & Liveness check")
 async def healthz(db: AsyncSession = Depends(get_session)):
     db_ok = False

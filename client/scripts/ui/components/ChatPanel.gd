@@ -12,7 +12,8 @@ func _ready():
         var send_button: Button = page.get_node("InputHBox/Send")
         var line_edit: LineEdit = page.get_node("InputHBox/LineEdit")
         var channel_name := tabs.get_tab_title(i)
-        send_button.pressed.connect(func(): _on_send_pressed(line_edit, channel_name))
+        if not send_button.pressed.is_connected(_on_send_pressed.bind(line_edit, channel_name)):
+            send_button.pressed.connect(_on_send_pressed.bind(line_edit, channel_name))
 
 func _on_send_pressed(line_edit: LineEdit, channel: String):
     var text := line_edit.text.strip_edges()

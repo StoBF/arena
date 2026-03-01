@@ -19,6 +19,16 @@ class Settings:
     REDIS_URL: str = os.getenv("REDIS_URL", "")
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", os.getenv("APP_PORT", "8081")))
+    APP_ENV: str = os.getenv("APP_ENV", "development")
+
+    # Cookie/auth behavior
+    COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "false").lower() in ("1", "true", "yes")
+    COOKIE_SAMESITE: str = os.getenv("COOKIE_SAMESITE", "lax")
+
+    # Startup DB readiness retries (helps when PostgreSQL is recovering after unclean shutdown)
+    DB_CONNECT_RETRIES: int = int(os.getenv("DB_CONNECT_RETRIES", "30"))
+    DB_CONNECT_RETRY_DELAY_SECONDS: float = float(os.getenv("DB_CONNECT_RETRY_DELAY_SECONDS", "2"))
+
     EMAIL_HOST: str = "smtp.example.com"
     EMAIL_PORT: int = 587
     EMAIL_FROM: str = "noreply@example.com"

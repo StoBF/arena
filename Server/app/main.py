@@ -24,8 +24,7 @@ from app.core.config import settings
 from app.database.session import create_db_and_tables, AsyncSessionLocal, engine
 from app.routers import auth, hero, auction, bid, announcement, inventory, equipment, workshop, chat
 from app.tasks.cleanup import delete_old_heroes_task
-from app.tasks.auctions import close_expired_auctions_task
-from app.services.auction import AuctionService
+from app.tasks.auctions import close_expired_auctions_task, run_auction_sweep_once
 from app.routers.health import router as health_router
 from app.routers.battle import router as battle_router
 from app.routers.raid import router as raid_router
@@ -48,6 +47,7 @@ tags_metadata = [
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await wait_for_postgres_ready()
     await create_database_if_not_exists()
     await create_db_and_tables()
 
@@ -55,7 +55,8 @@ async def lifespan(app: FastAPI):
         await redis_cache.connect()
 
     async with AsyncSessionLocal() as session:
-        await AuctionService(session).close_expired_auctions()
+        async with session.begin():
+            await run_auction_sweep_once(session)
 
     cleanup_task = asyncio.create_task(delete_old_heroes_task())
     auctions_task = asyncio.create_task(close_expired_auctions_task())
@@ -97,7 +98,8 @@ app.add_middleware(
 async def log_all_requests(request: Request, call_next):
     logging.info("[INCOMING] %s %s  client=%s", request.method, request.url, request.client.host if request.client else "?")
     response = await call_next(request)
-    logging.info("[RESPONSE] %s %s → %d", request.method, request.url.path, response.status_code)
+    # Keep ASCII-only marker to avoid cp1251 console encoding crashes on Windows.
+    logging.info("[RESPONSE] %s %s -> %d", request.method, request.url.path, response.status_code)
     return response
 
 # Обробники виключень
@@ -171,6 +173,52 @@ async def create_database_if_not_exists():
     if not exists:
         await conn.execute(f'CREATE DATABASE "{db_name}"')
     await conn.close()
+
+
+async def wait_for_postgres_ready() -> None:
+    """
+    Wait until PostgreSQL is ready to accept connections.
+    This handles crash-recovery windows after unclean shutdowns.
+    """
+    if settings.DATABASE_URL.startswith("sqlite"):
+        return
+
+    url = settings.DATABASE_URL
+    if url.startswith("postgresql+asyncpg://"):
+        check_url = url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    else:
+        check_url = url
+
+    parsed = urllib.parse.urlparse(check_url)
+    # Probe maintenance DB so readiness succeeds even before app DB is created.
+    probe_db = "postgres"
+
+    last_error: Exception | None = None
+    for attempt in range(1, settings.DB_CONNECT_RETRIES + 1):
+        try:
+            conn = await asyncpg.connect(
+                user=parsed.username,
+                password=parsed.password,
+                host=parsed.hostname,
+                port=parsed.port or 5432,
+                database=probe_db,
+                timeout=5,
+            )
+            await conn.fetchval("SELECT 1")
+            await conn.close()
+            logging.info("[DB] PostgreSQL is ready (attempt %d)", attempt)
+            return
+        except Exception as exc:
+            last_error = exc
+            logging.warning(
+                "[DB] PostgreSQL not ready yet (attempt %d/%d): %s",
+                attempt,
+                settings.DB_CONNECT_RETRIES,
+                exc,
+            )
+            await asyncio.sleep(settings.DB_CONNECT_RETRY_DELAY_SECONDS)
+
+    raise RuntimeError(f"PostgreSQL did not become ready in time: {last_error}")
 
 # Add health router
 app.include_router(health_router)

@@ -17,6 +17,7 @@ var _status_request_start_time: float = 0.0
 # Active requests cache
 var active_requests: Dictionary = {}
 var _responses: Dictionary = {}
+var _single_flight_requests: Dictionary = {}
 
 # Token refresh protection (prevent infinite loops)
 var _token_refresh_in_progress: bool = false
@@ -38,6 +39,14 @@ func _update_default_headers() -> void:
 func request(endpoint: String, method := HTTPClient.METHOD_GET, data := {}, headers := [], retry_count := 0) -> HTTPRequest:
 	var config = ServerConfig.get_instance()
 	var url = config.get_http_endpoint(endpoint)
+	var single_flight_key := _build_single_flight_key(endpoint, method, data)
+	if _should_single_flight(endpoint, method) and _single_flight_requests.has(single_flight_key):
+		var existing_id: int = _single_flight_requests[single_flight_key]
+		var existing_info = active_requests.get(existing_id, null)
+		if existing_info != null and existing_info.has("http_request") and is_instance_valid(existing_info["http_request"]):
+			print("[HTTP BUSY] reusing in-flight request method=%s endpoint=%s" % [method, endpoint])
+			return existing_info["http_request"]
+		_single_flight_requests.erase(single_flight_key)
 	
 	var http_request := HTTPRequest.new()
 	add_child(http_request)
@@ -45,12 +54,17 @@ func request(endpoint: String, method := HTTPClient.METHOD_GET, data := {}, head
 	var request_id = http_request.get_instance_id()
 	active_requests[request_id] = {
 		"endpoint": endpoint,
+		"url": url,
 		"method": method,
 		"data": data,
 		"headers": headers,
 		"retry_count": retry_count,
-		"http_request": http_request
+		"http_request": http_request,
+		"single_flight_key": single_flight_key,
+		"is_retry_after_refresh": false
 	}
+	if _should_single_flight(endpoint, method):
+		_single_flight_requests[single_flight_key] = request_id
 
 	var final_headers := default_headers.duplicate()
 	final_headers.append_array(headers)
@@ -118,41 +132,83 @@ func _on_request_completed(request_id: int, result: int, response_code: int, hea
 
 	# CRITICAL: Handle 401 Unauthorized - token may have expired
 	# Try to refresh and retry request ONCE
-	if response_code == 401 and not request_info.get("is_retry_after_refresh", false):
-		print("[AUTH_REFRESH_NEEDED] endpoint=%s (401 response)" % request_info.endpoint)
+	if response_code == 401 and _should_attempt_refresh(request_info.get("endpoint", "")) and not request_info.get("is_retry_after_refresh", false):
+		print("[AUTH_REFRESH_NEEDED] endpoint=%s (401 response)" % request_info.get("endpoint", "?"))
 		if await _handle_token_expiration(request_info):
 			# Token refresh succeeded - don't emit signal, just clean up
-			if request_info.http_request:
-				request_info.http_request.queue_free()
-			active_requests.erase(request_id)
+			_cleanup_request(request_id)
 			return
 		# Token refresh failed - treat as normal 401
 	
 	# Retry if failed or server error (but not 401 - those are auth failures)
-	if result != HTTPRequest.RESULT_SUCCESS or (response_code >= 500 and response_code != 401 and request_info.retry_count < max_retries):
-		_retry_request(request_info)
+	if result != HTTPRequest.RESULT_SUCCESS or (response_code >= 500 and response_code != 401 and int(request_info.get("retry_count", 0)) < max_retries):
+		await _retry_request(request_id, request_info)
+		return
 	else:
 		# Emit success or final failure
 		emit_signal("request_completed", request_id, result, response_code, headers, body_text)
 
 	# Cleanup
-	if request_info.http_request:
-		request_info.http_request.queue_free()
+	_cleanup_request(request_id)
+
+func _retry_request(request_id: int, request_info: Dictionary) -> void:
+	var next_retry: int = int(request_info.get("retry_count", 0)) + 1
+	request_info["retry_count"] = next_retry
+	print("Retrying request (attempt %d/%d): %s" % [next_retry, max_retries, request_info.get("endpoint", "?")])
+
+	await get_tree().create_timer(retry_delay * next_retry).timeout
+
+	if not active_requests.has(request_id):
+		return
+	if not request_info.has("http_request") or not is_instance_valid(request_info["http_request"]):
+		return
+
+	var final_headers := default_headers.duplicate()
+	final_headers.append_array(request_info.get("headers", []))
+	var json_data: String = ""
+	if int(request_info.get("method", HTTPClient.METHOD_GET)) != HTTPClient.METHOD_GET:
+		json_data = JSON.stringify(request_info.get("data", {}))
+		if not final_headers.has("Content-Type: application/json"):
+			final_headers.append("Content-Type: application/json")
+
+	var err = request_info["http_request"].request(
+		request_info.get("url", ""),
+		final_headers,
+		int(request_info.get("method", HTTPClient.METHOD_GET)),
+		json_data
+	)
+	if err != OK:
+		print("[HTTP RETRY ERROR] request() returned err=%d for endpoint=%s" % [err, request_info.get("endpoint", "?")])
+		_handle_request_error(request_id, err)
+		return
+	print("[HTTP RETRY QUEUED] endpoint=%s attempt=%d" % [request_info.get("endpoint", "?"), next_retry])
+
+func _cleanup_request(request_id: int, free_node: bool = true) -> void:
+	var request_info = active_requests.get(request_id, null)
+	if request_info != null:
+		var flight_key: String = request_info.get("single_flight_key", "")
+		if not flight_key.is_empty() and _single_flight_requests.get(flight_key, -1) == request_id:
+			_single_flight_requests.erase(flight_key)
+		if free_node and request_info.has("http_request") and is_instance_valid(request_info["http_request"]):
+			request_info["http_request"].queue_free()
 	active_requests.erase(request_id)
 
-func _retry_request(request_info: Dictionary) -> void:
-	request_info.retry_count += 1
-	print("Retrying request (attempt %d/%d): %s" % [request_info.retry_count, max_retries, request_info.endpoint])
+func _should_attempt_refresh(endpoint: String) -> bool:
+	return not endpoint.begins_with("/auth/login") \
+		and not endpoint.begins_with("/auth/register") \
+		and not endpoint.begins_with("/auth/google-login") \
+		and not endpoint.begins_with("/auth/refresh")
 
-	await get_tree().create_timer(retry_delay * request_info.retry_count).timeout
-
-	request(
-		request_info.endpoint,
-		request_info.method,
-		request_info.data,
-		request_info.headers,
-		request_info.retry_count
+func _should_single_flight(endpoint: String, method: int) -> bool:
+	return method == HTTPClient.METHOD_POST and (
+		endpoint.begins_with("/auth/login")
+		or endpoint.begins_with("/auth/register")
+		or endpoint.begins_with("/auth/google-login")
+		or endpoint.begins_with("/auth/refresh")
 	)
+
+func _build_single_flight_key(endpoint: String, method: int, data: Dictionary) -> String:
+	return "%s|%s|%s" % [str(method), endpoint, JSON.stringify(data)]
 
 # ====== Token Refresh Logic ======
 func _handle_token_expiration(original_request: Dictionary) -> bool:
@@ -187,14 +243,14 @@ func _handle_token_expiration(original_request: Dictionary) -> bool:
 	
 	# Mark request as retry-after-refresh to prevent another refresh attempt
 	original_request["is_retry_after_refresh"] = true
-	original_request.retry_count = 0  # Reset retry count for the retry
+	original_request["retry_count"] = 0  # Reset retry count for the retry
 	
 	# Retry original request with new token
 	request(
-		original_request.endpoint,
-		original_request.method,
-		original_request.data,
-		original_request.headers,
+		original_request.get("endpoint", ""),
+		original_request.get("method", HTTPClient.METHOD_GET),
+		original_request.get("data", {}),
+		original_request.get("headers", []),
 		0  # Reset retry count
 	)
 	
@@ -267,8 +323,8 @@ func _handle_request_error(request_id: int, error: int) -> void:
 	if request_info == null:
 		return
 
-	if request_info.retry_count < max_retries:
-		_retry_request(request_info)
+	if int(request_info.get("retry_count", 0)) < max_retries:
+		_retry_request(request_id, request_info)
 	else:
 		# Populate response for waiting callers
 		_responses[request_id] = {
@@ -279,9 +335,7 @@ func _handle_request_error(request_id: int, error: int) -> void:
 		}
 		emit_signal("request_completed", request_id, HTTPRequest.RESULT_CANT_CONNECT, 0, PackedStringArray(), PackedByteArray())
 
-	if request_info.http_request:
-		request_info.http_request.queue_free()
-	active_requests.erase(request_id)
+	_cleanup_request(request_id)
 
 # ====== Server status check ======
 func check_server_status() -> void:

@@ -4,6 +4,7 @@ from app.database.session import get_session
 from app.schemas.user import UserCreate, UserLogin, UserOut, UserWithBalance, TokenResponse, TokenRefreshResponse
 from app.services.auth import AuthService
 from app.auth import get_current_user
+from app.core.config import settings
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -13,6 +14,43 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 limiter = Limiter(key_func=get_remote_address)
+
+
+def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
+    """
+    Centralized refresh cookie configuration.
+    Uses environment-driven flags so local HTTP development works on Windows,
+    while production can enforce secure cookies.
+    """
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        max_age=7 * 24 * 60 * 60,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+    )
+
+
+def _extract_refresh_token(request: Request, body_token: str | None) -> str | None:
+    """
+    Refresh token lookup order:
+    1) HTTP-only cookie (preferred)
+    2) JSON body token (for native clients)
+    3) Authorization: Bearer <refresh_token>
+    """
+    token = request.cookies.get("refresh_token")
+    if token:
+        return token
+
+    if body_token:
+        return body_token
+
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.lower().startswith("bearer "):
+        return auth_header.split(" ", 1)[1].strip() or None
+
+    return None
 
 @router.post(
     "/register",
@@ -49,14 +87,7 @@ async def login(login_data: UserLogin, request: Request, response: Response, db:
     # HttpOnly prevents JavaScript from accessing it
     # Secure only sends over HTTPS
     # SameSite=Strict prevents CSRF attacks
-    response.set_cookie(
-        key="refresh_token",
-        value=tokens["refresh_token"],
-        max_age=7 * 24 * 60 * 60,  # 7 days
-        httponly=True,              # Prevent JavaScript access
-        secure=True,                # Only send over HTTPS in production
-        samesite="strict"           # CSRF protection
-    )
+    _set_refresh_cookie(response, tokens["refresh_token"])
     
     logger.info(f"[AUTH_LOGIN_SUCCESS] user_id={user.id} family={tokens.get('family')}")
     
@@ -85,14 +116,7 @@ async def google_login(request: Request, response: Response, google_token: str =
     tokens = AuthService(db).generate_tokens(user)
     
     # Set refresh token in HTTP-only secure cookie
-    response.set_cookie(
-        key="refresh_token",
-        value=tokens["refresh_token"],
-        max_age=7 * 24 * 60 * 60,  # 7 days
-        httponly=True,
-        secure=True,
-        samesite="strict"
-    )
+    _set_refresh_cookie(response, tokens["refresh_token"])
     
     logger.info(f"[AUTH_GOOGLE_LOGIN_SUCCESS] user_id={user.id} family={tokens.get('family')}")
     
@@ -110,30 +134,32 @@ async def google_login(request: Request, response: Response, google_token: str =
 )
 @limiter.limit("5/minute")
 async def refresh_token(request: Request, response: Response, db: AsyncSession = Depends(get_session)):
-    # Read refresh token from HTTP-only cookie
-    refresh_token_cookie = request.cookies.get("refresh_token")
+    # Accept token from cookie (preferred), request body, or Authorization header.
+    body: dict | None = None
+    if request.headers.get("content-type", "").startswith("application/json"):
+        try:
+            parsed = await request.json()
+            if isinstance(parsed, dict):
+                body = parsed
+        except Exception:
+            body = None
+    body_token = body.get("refresh_token") if isinstance(body, dict) else None
+    refresh_token_cookie = _extract_refresh_token(request, body_token)
     
     if not refresh_token_cookie:
-        logger.warning(f"[AUTH_REFRESH_FAILED] no_refresh_token_in_cookie")
-        raise HTTPException(status_code=401, detail="Refresh token not found in cookie")
+        logger.warning(f"[AUTH_REFRESH_FAILED] no_refresh_token_provided")
+        raise HTTPException(status_code=401, detail="Refresh token not provided")
     
     # Validate and create new tokens (with token rotation)
     result = AuthService(db).refresh_access_token(refresh_token_cookie)
     
     if not result:
         logger.warning(f"[AUTH_REFRESH_FAILED] invalid_refresh_token")
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
+        raise HTTPException(status_code=401, detail="Refresh token invalid or expired")
     
     # Set NEW refresh token in HTTP-only cookie (token rotation)
     # This invalidates the old cookie and provides a new one
-    response.set_cookie(
-        key="refresh_token",
-        value=result["refresh_token"],
-        max_age=7 * 24 * 60 * 60,  # 7 days
-        httponly=True,              # Prevent JavaScript access
-        secure=True,                # Only send over HTTPS in production
-        samesite="strict"           # CSRF protection
-    )
+    _set_refresh_cookie(response, result["refresh_token"])
     
     logger.info(f"[AUTH_REFRESH_SUCCESS] user_id={result.get('user_id')} family={result.get('family')}")
     

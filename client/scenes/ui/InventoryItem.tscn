@@ -6,13 +6,13 @@ offset_top = 226.0
 offset_right = 493.0
 offset_bottom = 322.0
 
-[node name="InventoryItem/Icon" type="TextureRect" parent="."]
+[node name="Icon" type="TextureRect" parent="."]
 layout_mode = 2
 
-[node name="InventoryItem/Name" type="Label" parent="."]
+[node name="Name" type="Label" parent="."]
 layout_mode = 2
 text = "Item"
 
-[node name="InventoryItem/Quantity" type="Label" parent="."]
+[node name="Quantity" type="Label" parent="."]
 layout_mode = 2
 text = "x0"

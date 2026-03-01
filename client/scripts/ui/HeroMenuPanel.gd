@@ -93,7 +93,7 @@ func _on_item_gui_input(event, item):
             return
         var drag = {"item": item}
         var preview = TextureRect.new()
-        preview.texture = load(item.icon_path) if item.has("icon_path") else null
+        preview.texture = load(item.get("icon_path", "")) if item.has("icon_path") else null
         items_grid.start_drag(drag, preview)
 
 func _on_slot_gui_input(event, slot_name):
@@ -107,9 +107,9 @@ func _on_slot_gui_input(event, slot_name):
 
 func _on_slot_drop(position, data, slot_name):
     if data.has("item"):
-        var item = data.item
+        var item = data["item"]
         # slot mismatch check
-        if item.slot != slot_name:
+        if item.get("slot", "") != slot_name:
             return
         # skill requirement check
         if hero.quantum_crafting_skill < item.get("required_skill", 0):
@@ -128,17 +128,17 @@ func _on_slot_drop(position, data, slot_name):
         # remove the item from available list if it came from inventory
         if not data.has("origin_slot"):
             for i in range(available_items.size()):
-                if available_items[i].id == item.id:
+                if available_items[i].get("id", -1) == item.get("id", -1):
                     available_items.remove_at(i)
                     break
             _populate_items()
         # if the drag originated from another slot (swap scenario), notify
         if data.has("origin_slot"):
-            emit_signal("item_unequipped", data.origin_slot, item.id)
+            emit_signal("item_unequipped", data["origin_slot"], item.get("id", -1))
 
 func _on_items_drop(position, data):
     if data.has("origin_slot") and data.has("item"):
-        var slotname = data.origin_slot
+        var slotname = data["origin_slot"]
         var old = slot_nodes[slotname].get_meta("equipped_item")
         _unequip(slotname)
         # returned item should be added back to inventory
@@ -148,20 +148,20 @@ func _on_items_drop(position, data):
 
 func _equip(item, slot_name):
     var slot = slot_nodes[slot_name]
-    slot.texture = load(item.icon_path) if item.has("icon_path") else null
+    slot.texture = load(item.get("icon_path", "")) if item.has("icon_path") else null
     slot.set_meta("equipped_item", item)
-    emit_signal("item_equipped", slot_name, item.id)
+    emit_signal("item_equipped", slot_name, item.get("id", -1))
 
 func _unequip(slot_name):
     var slot = slot_nodes[slot_name]
     var item = slot.get_meta("equipped_item")
     slot.texture = null
     slot.set_meta("equipped_item", null)
-    emit_signal("item_unequipped", slot_name, item.id)
+    emit_signal("item_unequipped", slot_name, item.get("id", -1) if item else -1)
 
 func _on_item_hover(item):
     var text = "%s\nStability: %d\nEnergy: %d\nDurability: %d\nMutation: %.2f" % [
-        item.name, item.stability, item.energy, item.durability, item.mutation_chance]
+        item.get("name", "?"), item.get("stability", 0), item.get("energy", 0), item.get("durability", 0), item.get("mutation_chance", 0.0)]
     tooltip.get_node("Label").text = text
     tooltip.popup()
 
@@ -169,5 +169,5 @@ func _on_tooltip_hide():
     tooltip.hide()
 
 func _on_hero_icon_pressed():
-    # when placed in other UI, pressing icon should open this panel
-    popup_centered()
+    # when pressed inside this panel, keep behavior deterministic in Godot 4
+    Nav.go("HeroMenu")

@@ -1,6 +1,8 @@
-[gd_scene load_steps=12 format=3 uid="uid://account-ui"]
+[gd_scene load_steps=4 format=3 uid="uid://account-ui"]
 
-[ext_resource type="Script" uid="uid://script" path="res://scripts/ui/AccountUI.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/ui/AccountUI.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/StatPanel.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ChatPanel.tscn" id="3"]
 
 [node name="AccountUI" type="Control"]
 layout_mode = 3
@@ -9,46 +11,46 @@ script = ExtResource("1")
 
 [node name="TopBar" type="HBoxContainer" parent="."]
 
-[node name="TopBar/Nickname" type="Label" parent="TopBar"]
+[node name="Nickname" type="Label" parent="TopBar"]
 text = "PlayerName"
 
-[node name="TopBar/Spacer" type="Control" parent="TopBar"]
+[node name="Spacer" type="Control" parent="TopBar"]
 size_flags_horizontal = 3
 
-[node name="TopBar/Currency" type="Label" parent="TopBar"]
+[node name="Currency" type="Label" parent="TopBar"]
 text = "Currency: 0"
 
 [node name="MainHBox" type="HBoxContainer" parent="."]
 
-[node name="MainHBox/Sidebar" type="VBoxContainer" parent="MainHBox"]
+[node name="Sidebar" type="VBoxContainer" parent="MainHBox"]
 
-[node name="Sidebar/CreateHero" type="Button" parent="Sidebar"]
+[node name="CreateHero" type="Button" parent="MainHBox/Sidebar"]
 text = "Create Hero"
-[node name="Sidebar/TrainHero" type="Button" parent="Sidebar"]
+[node name="TrainHero" type="Button" parent="MainHBox/Sidebar"]
 text = "Train Hero"
-[node name="Sidebar/Auction" type="Button" parent="Sidebar"]
+[node name="Auction" type="Button" parent="MainHBox/Sidebar"]
 text = "Auction"
-[node name="Sidebar/Battle" type="Button" parent="Sidebar"]
+[node name="Battle" type="Button" parent="MainHBox/Sidebar"]
 text = "To Battle"
-[node name="Sidebar/Inventory" type="Button" parent="Sidebar"]
+[node name="Inventory" type="Button" parent="MainHBox/Sidebar"]
 text = "Inventory"
-[node name="Sidebar/Deleted" type="Button" parent="Sidebar"]
+[node name="Deleted" type="Button" parent="MainHBox/Sidebar"]
 text = "Deleted Heroes"
 
-[node name="MainHBox/ContentStack" type="StackContainer" parent="MainHBox"]
+[node name="ContentStack" type="StackContainer" parent="MainHBox"]
 # each window will be a child of this stack
 
-[node name="MainHBox/StatsPanel" type="VBoxContainer" parent="MainHBox"]
+[node name="StatsPanel" type="VBoxContainer" parent="MainHBox"]
 
-[node name="StatsPanel/StatPanelInstance" instance=ExtResource("uid://statpanel" )]
+[node name="StatPanelInstance" parent="MainHBox/StatsPanel" instance=ExtResource("2")]
 
 [node name="ChatSection" type="VBoxContainer" parent="."]
 
-[node name="ChatSection/Chat" instance=ExtResource("uid://chatpanel")]
+[node name="Chat" parent="ChatSection" instance=ExtResource("3")]
 
 [node name="BottomBar" type="HBoxContainer" parent="."]
 
-[node name="BottomBar/Settings" type="Button" parent="BottomBar"]
+[node name="Settings" type="Button" parent="BottomBar"]
 text = "Settings"
-[node name="BottomBar/Logout" type="Button" parent="BottomBar"]
+[node name="Logout" type="Button" parent="BottomBar"]
 text = "Logout"

@@ -12,107 +12,63 @@ layout_mode = 0
 offset_right = 672.0
 offset_bottom = 379.0
 
-[node name="VBox/Header" type="Label" parent="VBox"]
+[node name="Header" type="Label" parent="VBox"]
 layout_mode = 2
 text = "Battle Preparation Room"
 
-[node name="VBox/HeroSelectHBox" type="HBoxContainer" parent="VBox"]
+[node name="HeroSelectHBox" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
 
-[node name="VBox_SubmitHBox" type="HBoxContainer" parent="VBox"]
+[node name="HeroList" type="OptionButton" parent="VBox/HeroSelectHBox"]
 layout_mode = 2
 
-[node name="VBox/StatsContainer" type="HBoxContainer" parent="VBox"]
+[node name="SubmitHBox" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
 
-[node name="VBox/Prediction" type="Label" parent="VBox"]
+[node name="SubmitButton" type="Button" parent="VBox/SubmitHBox"]
+layout_mode = 2
+text = "Submit to Queue"
+
+[node name="QueueDisplay" type="Label" parent="VBox/SubmitHBox"]
+layout_mode = 2
+text = "Queue: empty"
+
+[node name="StatsContainer" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="YourStats" type="VBoxContainer" parent="VBox/StatsContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBox/StatsContainer/YourStats"]
+layout_mode = 2
+text = "Your Hero"
+
+[node name="Stats" type="Label" parent="VBox/StatsContainer/YourStats"]
+layout_mode = 2
+
+[node name="OpponentStats" type="VBoxContainer" parent="VBox/StatsContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBox/StatsContainer/OpponentStats"]
+layout_mode = 2
+text = "Opponent"
+
+[node name="Stats" type="Label" parent="VBox/StatsContainer/OpponentStats"]
+layout_mode = 2
+
+[node name="Prediction" type="Label" parent="VBox"]
 layout_mode = 2
 text = "Prediction: N/A"
 
-[node name="VBox/BetContainer" type="HBoxContainer" parent="VBox"]
+[node name="BetContainer" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
 
-[node name="HeroSelectHBox#HeroSelectHBox_Label" type="Label" parent="."]
-layout_mode = 0
-offset_left = 306.0
-offset_top = 321.0
-offset_right = 408.0
-offset_bottom = 344.0
-text = "Choose hero:"
+[node name="Amount" type="LineEdit" parent="VBox/BetContainer"]
+layout_mode = 2
 
-[node name="HeroSelectHBox#HeroSelectHBox_HeroList" type="OptionButton" parent="."]
-layout_mode = 0
-offset_left = 152.0
-offset_top = 94.0
-offset_right = 317.0
-offset_bottom = 171.0
-
-[node name="SubmitHBox#SubmitHBox_SubmitButton" type="Button" parent="."]
-layout_mode = 0
-offset_left = 400.0
-offset_top = 250.0
-offset_right = 539.0
-offset_bottom = 281.0
-text = "Submit to Queue"
-
-[node name="SubmitHBox#SubmitHBox_QueueDisplay" type="Label" parent="."]
-layout_mode = 0
-offset_left = 316.0
-offset_top = 137.0
-offset_right = 426.0
-offset_bottom = 160.0
-text = "Queue: empty"
-
-[node name="StatsContainer#StatsContainer_YourStats" type="VBoxContainer" parent="."]
-layout_mode = 0
-
-[node name="YourStats#YourStats_Label" type="Label" parent="."]
-layout_mode = 0
-offset_left = 181.0
-offset_top = 116.0
-offset_right = 260.0
-offset_bottom = 139.0
-text = "Your Hero"
-
-[node name="YourStats#YourStats_Stats" type="Label" parent="."]
-layout_mode = 0
-
-[node name="StatsContainer#StatsContainer_OpponentStats" type="VBoxContainer" parent="."]
-layout_mode = 0
-
-[node name="OpponentStats#OpponentStats_Label" type="Label" parent="."]
-layout_mode = 0
-offset_left = 419.0
-offset_top = 29.0
-offset_right = 498.0
-offset_bottom = 52.0
-text = "Opponent"
-
-[node name="OpponentStats#OpponentStats_Stats" type="Label" parent="."]
-layout_mode = 0
-
-[node name="BetContainer#BetContainer_Label" type="Label" parent="."]
-layout_mode = 0
-offset_left = 360.0
-offset_top = 70.0
-offset_right = 391.0
-offset_bottom = 93.0
-text = "Bet:"
-
-[node name="BetContainer#BetContainer_Amount" type="LineEdit" parent="."]
-layout_mode = 0
-offset_left = 341.0
-offset_top = 64.0
-offset_right = 409.5625
-offset_bottom = 95.0
-
-[node name="BetContainer#BetContainer_PlaceBet" type="Button" parent="."]
-layout_mode = 0
-offset_left = 43.0
-offset_top = 216.0
-offset_right = 122.0
-offset_bottom = 247.0
+[node name="PlaceBet" type="Button" parent="VBox/BetContainer"]
+layout_mode = 2
 text = "Place Bet"
 
-[node name="BattlePreparationRoom/QueueTimer" type="Timer" parent="."]
+[node name="QueueTimer" type="Timer" parent="."]
 wait_time = 2.0

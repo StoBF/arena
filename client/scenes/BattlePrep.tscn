@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://battle-prep"]
 
-[ext_resource type="Script" uid="uid://script" path="res://scripts/ui/BattlePrepPanel.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/ui/BattlePrepPanel.gd" id="1"]
 
 [node name="BattlePrep" type="Control"]
 layout_mode = 3

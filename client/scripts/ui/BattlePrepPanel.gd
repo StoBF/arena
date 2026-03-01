@@ -15,9 +15,9 @@ signal bet_placed(amount)
 @onready var queue_timer = $QueueTimer
 
 # local state
-var heroes := []      # {id, name, attack, defense, health}
+var heroes: Array = []      # {id, name, attack, defense, health}
 var current_hero = null
-var queue := []       # two entries of hero dicts
+var queue: Array = []       # two entries of hero dicts
 
 func _ready():
 	# TopBar replaces the old BackToDashboardButton
@@ -61,7 +61,7 @@ func _on_submit_pressed():
 	var id = hero_list.get_selected_id()
 	current_hero = null
 	for h in heroes:
-		if h.id == id:
+		if h.get("id", -1) == id:
 			current_hero = h
 			break
 	if current_hero == null:
@@ -75,7 +75,9 @@ func _update_your_stats():
 		your_stats_label.text = ""
 		return
 	your_stats_label.text = "Attack: %d\nDefense: %d\nHealth: %d" % [
-		current_hero.attack, current_hero.defense, current_hero.health]
+		int(current_hero.get("attack", current_hero.get("strength", 0))),
+		int(current_hero.get("defense", 0)),
+		int(current_hero.get("health", 0))]
 
 func _update_opponent_stats():
 	if queue.size() < 2:
@@ -88,15 +90,20 @@ func _update_opponent_stats():
 		prediction_label.text = ""
 		return
 
-	var opp = queued_heroes[0].id == current_hero.id ? queued_heroes[1] : queued_heroes[0]
+	var opp = queued_heroes[1] if queued_heroes[0].get("id", -1) == current_hero.get("id", -1) else queued_heroes[0]
 	opp_stats_label.text = "Attack: %d\nDefense: %d\nHealth: %d" % [
-		opp.attack, opp.defense, opp.health]
+		int(opp.get("attack", opp.get("strength", 0))),
+		int(opp.get("defense", 0)),
+		int(opp.get("health", 0))]
 	_compute_prediction(current_hero, opp)
 
 func _compute_prediction(h1, h2):
 	# simple sum-based prediction
-	var score1 = h1.attack + h1.defense + h1.health
-	var score2 = h2.attack + h2.defense + h2.health
+	var score1 = int(h1.get("attack", h1.get("strength", 0))) + int(h1.get("defense", 0)) + int(h1.get("health", 0))
+	var score2 = int(h2.get("attack", h2.get("strength", 0))) + int(h2.get("defense", 0)) + int(h2.get("health", 0))
+	if score1 + score2 <= 0:
+		prediction_label.text = "Win chance: N/A"
+		return
 	var p1 = score1 / float(score1 + score2) * 100
 	prediction_label.text = "Win chance: %.1f%%" % p1
 
@@ -109,7 +116,7 @@ func _on_bet_pressed():
 	var amt = bet_amount.text.to_int()
 	if amt <= 0:
 		return
-	place_bet(current_hero.id, amt)
+	place_bet(int(current_hero.get("id", -1)), amt)
 	emit_signal("bet_placed", amt)
 
 func _on_appstate_queue_updated(queue_data):
@@ -168,7 +175,7 @@ func place_bet(hero_id, amount):
 
 func _find_hero_by_id(hero_id):
 	for hero in heroes:
-		if hero.id == hero_id:
+		if hero.get("id", -1) == hero_id:
 			return hero
 	return null
 
@@ -186,7 +193,7 @@ func set_heroes(list):
 	heroes = list
 	hero_list.clear()
 	for h in heroes:
-		hero_list.add_item(h.name, h.id)
+		hero_list.add_item(h.get("name", "?"), h.get("id", 0))
 
 func start_polling(interval=3.0):
 	queue_timer.wait_time = interval

@@ -74,7 +74,10 @@ func _populate_inventory(items: Array):
 func _on_sell_button_pressed(item_id: int):
     if sell_dialog and sell_dialog.has_method("set_item"):
         sell_dialog.set_item(item_id)
-        sell_dialog.popup_centered()
+        if sell_dialog.has_method("popup_centered"):
+            sell_dialog.popup_centered()
+        elif sell_dialog.has_method("popup"):
+            sell_dialog.popup()
     else:
         print("[Inventory] WARN: sell_dialog missing or has no set_item method")
 

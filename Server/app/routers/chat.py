@@ -12,9 +12,11 @@ from app.schemas.user import UserOut
 from app.schemas.chat import ChatMessageOut
 from app.core.redis_pubsub import redis_pubsub, publish_message, subscribe_channel
 import asyncio
+import logging
 from app.services.notification import NotificationService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # WebSocket authentication uses JWT access tokens; helper provided by utils/jwt
 from app.utils.jwt import get_user_id_from_token  # replaces previous local impl
@@ -28,13 +30,17 @@ async def ws_general(websocket: WebSocket):
         await websocket.close(code=1008)
         return
     await websocket.accept()
-    # define persistence callback
-    async def save(data):
-        async with AsyncSessionLocal() as db:
-            msg = ChatMessage(sender_id=user_id, text=data, channel="general")
-            db.add(msg)
-            await db.commit()
-    await websocket_loop(websocket, "general", save)
+    try:
+        # define persistence callback
+        async def save(data):
+            async with AsyncSessionLocal() as db:
+                msg = ChatMessage(sender_id=user_id, text=data, channel="general")
+                db.add(msg)
+                await db.commit()
+        await websocket_loop(websocket, "general", save)
+    except Exception as exc:
+        logger.exception("[WS_GENERAL_ERROR] user_id=%s error=%s", user_id, exc)
+        await websocket.close(code=1011)
 
 @router.websocket("/ws/trade")
 async def ws_trade(websocket: WebSocket):
@@ -44,12 +50,16 @@ async def ws_trade(websocket: WebSocket):
         await websocket.close(code=1008)
         return
     await websocket.accept()
-    async def save(data):
-        async with AsyncSessionLocal() as db:
-            msg = ChatMessage(sender_id=user_id, text=data, channel="trade")
-            db.add(msg)
-            await db.commit()
-    await websocket_loop(websocket, "trade", save)
+    try:
+        async def save(data):
+            async with AsyncSessionLocal() as db:
+                msg = ChatMessage(sender_id=user_id, text=data, channel="trade")
+                db.add(msg)
+                await db.commit()
+        await websocket_loop(websocket, "trade", save)
+    except Exception as exc:
+        logger.exception("[WS_TRADE_ERROR] user_id=%s error=%s", user_id, exc)
+        await websocket.close(code=1011)
 
 @router.websocket("/ws/system")
 async def ws_system(websocket: WebSocket):
@@ -59,10 +69,14 @@ async def ws_system(websocket: WebSocket):
         await websocket.close(code=1008)
         return
     await websocket.accept()
-    async def save(data):
-        # System messages are server-originated; clients rarely send here
-        pass
-    await websocket_loop(websocket, "system", save)
+    try:
+        async def save(data):
+            # System messages are server-originated; clients rarely send here
+            pass
+        await websocket_loop(websocket, "system", save)
+    except Exception as exc:
+        logger.exception("[WS_SYSTEM_ERROR] user_id=%s error=%s", user_id, exc)
+        await websocket.close(code=1011)
 
 @router.websocket("/ws/private")
 async def ws_private(websocket: WebSocket):
@@ -71,36 +85,51 @@ async def ws_private(websocket: WebSocket):
     if not user_id:
         await websocket.close(code=1008)
         return
-    # Додаємо користувача до онлайн-сету
-    await redis_pubsub.sadd("online_users", user_id)
     await websocket.accept()
-    # Доставляємо офлайн-повідомлення при підключенні
-    async with AsyncSessionLocal() as db:
-        await NotificationService.send_offline_messages(user_id, db)
+    try:
+        # Додаємо користувача до онлайн-сету
+        if hasattr(redis_pubsub, "sadd"):
+            await redis_pubsub.sadd("online_users", user_id)
+        # Доставляємо офлайн-повідомлення при підключенні
+        async with AsyncSessionLocal() as db:
+            await NotificationService.send_offline_messages(user_id, db)
 
-    async def save(data):
-        # data is raw string containing json with to/text
-        obj = json.loads(data)
-        tgt = obj.get("to")
-        txt = obj.get("text")
-        if tgt:
-            async with AsyncSessionLocal() as db:
-                msg = ChatMessage(sender_id=user_id, text=txt, channel="private", recipient_id=tgt)
-                db.add(msg)
-                await db.commit()
-            is_online = await redis_pubsub.sismember("online_users", tgt)
-            if is_online:
-                await publish_message("private", {"type": "private", "from": user_id, "text": txt}, user_id=tgt)
-            else:
+        async def save(data):
+            # data is raw string containing json with to/text
+            try:
+                obj = json.loads(data)
+            except json.JSONDecodeError:
+                await websocket.send_text(json.dumps({"type": "error", "text": "Invalid JSON payload"}))
+                return
+
+            tgt = obj.get("to")
+            txt = obj.get("text")
+            if tgt:
                 async with AsyncSessionLocal() as db:
-                    offline = OfflineMessage(sender_id=user_id, recipient_id=tgt, text=txt)
-                    db.add(offline)
+                    msg = ChatMessage(sender_id=user_id, text=txt, channel="private", recipient_id=tgt)
+                    db.add(msg)
                     await db.commit()
-            await websocket.send_text(json.dumps({"type": "private", "to": tgt, "text": txt}))
-        else:
-            await websocket.send_text(json.dumps({"type": "system", "text": f"User {tgt} is offline."}))
+                is_online = False
+                if hasattr(redis_pubsub, "sismember"):
+                    is_online = await redis_pubsub.sismember("online_users", tgt)
+                if is_online:
+                    await publish_message("private", {"type": "private", "from": user_id, "text": txt}, user_id=tgt)
+                else:
+                    async with AsyncSessionLocal() as db:
+                        offline = OfflineMessage(sender_id=user_id, recipient_id=tgt, text=txt)
+                        db.add(offline)
+                        await db.commit()
+                await websocket.send_text(json.dumps({"type": "private", "to": tgt, "text": txt}))
+            else:
+                await websocket.send_text(json.dumps({"type": "system", "text": f"User {tgt} is offline."}))
 
-    await websocket_loop(websocket, "private", save)
+        await websocket_loop(websocket, "private", save)
+    except Exception as exc:
+        logger.exception("[WS_PRIVATE_ERROR] user_id=%s error=%s", user_id, exc)
+        await websocket.close(code=1011)
+    finally:
+        if hasattr(redis_pubsub, "srem"):
+            await redis_pubsub.srem("online_users", user_id)
 
 # Для системних повідомлень з інших частин коду:
 def send_system_message(user_id: int, text: str):

@@ -41,8 +41,8 @@ var mode = "items"  # "items" or "lots"
 func _set_mode(new_mode: String):
 	mode = new_mode
 	# update button styles
-	items_button.pressed = (mode == "items")
-	lots_button.pressed = (mode == "lots")
+	items_button.button_pressed = (mode == "items")
+	lots_button.button_pressed = (mode == "lots")
 	_load_auctions()
 
 func _load_auctions():
@@ -88,7 +88,8 @@ func _populate_auctions_list():
 			label = "%s (%.2f)" % [auction.get("name", ""), auction.get("current_price", 0.0)]
 		else:
 			label = "Hero %s (%.2f)" % [str(auction.get("hero_id", "")), auction.get("current_price", 0.0)]
-		var idx = auctions_list.add_item(label)
+		auctions_list.add_item(label)
+		var idx = auctions_list.get_item_count() - 1
 		auctions_list.set_item_metadata(idx, auction.get("id"))
 
 func _on_item_selected(index: int):
