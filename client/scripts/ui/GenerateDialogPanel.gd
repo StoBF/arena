@@ -1,4 +1,4 @@
-extends WindowDialog
+extends Window
 class_name GenerateDialogPanel
 
 # UI Elements

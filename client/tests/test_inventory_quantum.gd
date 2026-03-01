@@ -31,7 +31,7 @@ func test_craft_button_disables_by_default():
     assert_true(panel.craft_button.disabled)
 
 func test_selecting_recipe_updates_button():
-    panel._on_recipe_gui_input(InputEventMouseButton.new().set_button_index(BUTTON_LEFT).set_pressed(true), panel.recipes[0])
+    panel._on_recipe_gui_input(InputEventMouseButton.new().set_button_index(MOUSE_BUTTON_LEFT).set_pressed(true), panel.recipes[0])
     assert_false(panel.craft_button.disabled, "Should enable craft button when resources are sufficient")
 
 func test_craft_deducts_resources_and_adds_equipment():

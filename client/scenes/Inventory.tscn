@@ -1,6 +1,6 @@
-[gd_scene load_steps=5 format=3 uid="uid://new-inventory-scene"]
+[gd_scene load_steps=2 format=3 uid="uid://cj8fyl3k4i0lp"]
 
-[ext_resource type="Script" uid="uid://script" path="res://scripts/ui/InventoryQuantum.gd" id="1"]
+[ext_resource type="Script" uid="uid://b0snb5gcfma0e" path="res://scripts/ui/InventoryQuantum.gd" id="1"]
 
 [node name="Inventory" type="Control"]
 layout_mode = 3
@@ -8,15 +8,25 @@ anchors_preset = 0
 script = ExtResource("1")
 
 [node name="ResourcesGrid" type="GridContainer" parent="."]
+layout_mode = 0
 columns = 4
 
 [node name="RecipesGrid" type="GridContainer" parent="."]
+layout_mode = 0
 columns = 2
 
 [node name="CraftButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 209.0
+offset_top = 160.0
+offset_right = 256.0
+offset_bottom = 191.0
 text = "Craft"
 
 [node name="Tooltip" type="PopupPanel" parent="."]
 
 [node name="Tooltip/Label" type="Label" parent="Tooltip"]
-text = ""
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 96.0
+offset_bottom = 96.0

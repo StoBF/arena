@@ -7,65 +7,65 @@ class_name HeroListPanel
 @onready var generate_dialog = $GenerateDialog
 
 func _ready():
-    # Back to dashboard button
-    var back_btn = BackToDashboardButton.new()
-    add_child(back_btn)
-    move_child(back_btn, 0)
+    # TopBar replaces the old BackToDashboardButton
+    TopBar.add_to(self, true, true)
+    print("[HeroList] _ready() START")
     # Connect signals
     Localization.locale_changed.connect(Callable(self, "_localize_ui"))
-    generate_button.pressed.connect(Callable(self, "_on_generate_pressed"))
-    
+    if generate_button:
+        generate_button.pressed.connect(Callable(self, "_on_generate_pressed"))
+    else:
+        print("[HeroList] WARN: GenerateButton is NULL")
+
     # Load initial data
     _load_heroes()
     _localize_ui()
 
 func _localize_ui():
-    generate_button.text = Localization.t("generate")
+    if generate_button:
+        generate_button.text = Localization.t("generate") if Localization.has_key("generate") else "Generate"
 
 func _load_heroes():
+    print("[HeroList] Loading heroes from server")
     var req = Network.request("/heroes/", HTTPClient.METHOD_GET)
     req.request_completed.connect(Callable(self, "_on_heroes_response"))
 
 func _on_heroes_response(result: int, code: int, headers, body: PackedByteArray):
-    if code == 200:
-        var parsed = JSON.parse_string(body.get_string_from_utf8())
-        if parsed.error == OK:
-            _populate_heroes(parsed.result)
+    print("[HeroList] _on_heroes_response code=%d" % code)
+    if result == HTTPRequest.RESULT_SUCCESS and code == 200:
+        var json = JSON.new()
+        var err = json.parse(body.get_string_from_utf8())
+        if err == OK:
+            var parsed = json.data
+            var heroes_arr: Array = []
+            if typeof(parsed) == TYPE_DICTIONARY and parsed.has("result"):
+                heroes_arr = parsed["result"]
+            elif typeof(parsed) == TYPE_ARRAY:
+                heroes_arr = parsed
+            _populate_heroes(heroes_arr)
             return
-    UIUtils.show_error(Localization.t("load_heroes_failed"))
+        print("[HeroList] JSON parse error: %d" % err)
+    UIUtils.show_error(Localization.t("load_heroes_failed") if Localization.has_key("load_heroes_failed") else "Failed to load heroes")
 
 func _populate_heroes(heroes: Array):
+    if not list_container:
+        print("[HeroList] WARN: list_container is NULL")
+        return
     # Clear existing heroes
     for child in list_container.get_children():
         child.queue_free()
-    
-    # Add new heroes
+
+    # Add clickable hero cards
+    var card_scene = preload("res://scenes/ui/HeroCard.tscn")
     for hero in heroes:
-        var hbox = HBoxContainer.new()
-        
-        # Add hero info
-        var label = Label.new()
-        label.text = "%s (Lvl %d)" % [hero.get("name", ""), hero.get("level", 0)]
-        hbox.add_child(label)
-        
-        list_container.add_child(hbox)
+        var card = card_scene.instantiate() as HeroCard
+        card.set_data(hero)
+        card.hero_selected.connect(func(data):
+            AppState.current_hero_id = data.get("id", -1)
+            print("[HeroList] Selected hero: %s (id=%s)" % [data.get("name", "?"), str(data.get("id", "?"))])
+        )
+        list_container.add_child(card)
+    print("[HeroList] Populated %d hero cards" % heroes.size())
 
 func _on_generate_pressed():
-    generate_dialog.popup_centered()
-    generate_dialog.generate_requested.connect(Callable(self, "_on_generate_request"), CONNECT_ONE_SHOT)
-
-func _on_generate_request(generation: int, currency: int):
-    var data = {
-        "generation": generation,
-        "currency": currency
-    }
-    
-    var req = Network.request("/heroes/generate", HTTPClient.METHOD_POST, data)
-    req.request_completed.connect(Callable(self, "_on_generate_response"))
-
-func _on_generate_response(result: int, code: int, headers, body: PackedByteArray):
-    if code == 200:
-        UIUtils.show_success(Localization.t("generate_success"))
-        _load_heroes()  # Refresh hero list
-    else:
-        UIUtils.show_error(Localization.t("generate_hero_failed")) 
+    Nav.go("GenerateHero")

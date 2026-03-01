@@ -14,21 +14,22 @@ var hero = {}
 var available_items := []
 
 func _ready():
-    # Back to dashboard button
-    var back_btn = BackToDashboardButton.new()
-    add_child(back_btn)
-    move_child(back_btn, 0)
-    # define slots
-    slot_nodes = {
-        "Helmet": $EquipmentGrid/Slot_Helmet,
-        "Armor": $EquipmentGrid/Slot_Armor,
-        "Gloves": $EquipmentGrid/Slot_Gloves,
-        "Boots": $EquipmentGrid/Slot_Boots,
-        "Quantum Module": $EquipmentGrid/Slot_QuantumModule,
-    }
+    # TopBar
+    TopBar.add_to(self, true, true)
+    print("[HeroMenu] _ready() START")
+    # define slots (with null safety)
+    slot_nodes = {}
+    if equipment_grid:
+        for sn in ["Helmet", "Armor", "Gloves", "Boots", "Quantum Module"]:
+            var node_name = "Slot_%s" % sn.replace(" ", "")
+            var slot = equipment_grid.get_node_or_null(node_name)
+            if slot:
+                slot_nodes[sn] = slot
+            else:
+                print("[HeroMenu] WARN: slot '%s' not found" % node_name)
 
-    _setup_drag_and_drop()
-    hero_icon.pressed.connect(Callable(self, "_on_hero_icon_pressed"))
+    if hero_icon and hero_icon.has_signal("pressed"):
+        hero_icon.pressed.connect(Callable(self, "_on_hero_icon_pressed"))
 
     _load_hero()
     _load_items()
@@ -42,43 +43,42 @@ func _setup_drag_and_drop():
     items_grid.drop_data.connect(Callable(self, "_on_items_drop"))
 
 func _load_hero():
-    # placeholder; should request hero data from server
-    hero = {"id": -1, "level": 1, "quantum_crafting_skill": 0}
-    # set icon if available
-    hero_icon.texture = preload("res://assets/icons/hero_placeholder.png")
+    # Load hero data from server if available
+    var hero_id = AppState.current_hero_id
+    if hero_id > 0:
+        print("[HeroMenu] Loading hero %d" % hero_id)
+        var req = Network.request("/heroes/%d" % hero_id, HTTPClient.METHOD_GET)
+        req.request_completed.connect(func(result, code, _hdrs, body):
+            if result == HTTPRequest.RESULT_SUCCESS and code == 200:
+                var json = JSON.new()
+                if json.parse(body.get_string_from_utf8()) == OK and typeof(json.data) == TYPE_DICTIONARY:
+                    hero = json.data
+                    print("[HeroMenu] Hero loaded: %s" % hero.get("name", "?"))
+        )
+    else:
+        hero = {"id": -1, "level": 1, "quantum_crafting_skill": 0}
+        print("[HeroMenu] No hero selected — using placeholder")
 
 func _load_items():
-    # placeholder items list
-    available_items = [
-        {"id": 101, "name": "Photon Helmet", "slot": "Helmet", "required_level": 2, "required_skill": 1,
-         "stability": 5, "energy": 10, "durability": 3, "mutation_chance": 0.1,
-         "icon_path": "res://assets/icons/helmet.png"},
-        {"id": 102, "name": "Quantum Boots", "slot": "Boots", "required_level": 1, "required_skill": 0,
-         "stability": 2, "energy": 0, "durability": 5, "mutation_chance": 0.0,
-         "icon_path": "res://assets/icons/boots.png"},
-    ]
+    # TODO: Load items from server when API is available
+    available_items = []
+    print("[HeroMenu] Items list cleared (server API pending)")
     _populate_items()
 
 func _populate_items():
-    items_grid.clear()
+    if not items_grid:
+        print("[HeroMenu] WARN: items_grid is NULL")
+        return
+    for child in items_grid.get_children():
+        child.queue_free()
     for item in available_items:
-        var icon = preload("res://scenes/InventoryItemIcon.tscn").instantiate()
-        icon.item_data = item
-        # display texture or placeholder for 3D model
-        if item.has("icon_path"):
-            icon.texture = load(item.icon_path)
-        else:
-            icon.texture = preload("res://assets/icons/item_placeholder.png")
-        # requirements check
-        if not _meets_requirements(item):
-            icon.modulate = Color(1,1,1,0.4)
-            icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-        else:
-            icon.mouse_filter = Control.MOUSE_FILTER_PASS
-            icon.gui_input.connect(Callable(self, "_on_item_gui_input")).bind(item)
-        icon.connect("mouse_entered", Callable(self, "_on_item_hover")).bind(item)
-        icon.connect("mouse_exited", Callable(self, "_on_tooltip_hide"))
-        items_grid.add_child(icon)
+        var label = Button.new()
+        label.text = item.get("name", "?")
+        label.pressed.connect(func():
+            print("[HeroMenu] Item selected: %s" % item.get("name", "?"))
+        )
+        items_grid.add_child(label)
+    print("[HeroMenu] Populated %d items" % available_items.size())
 
 func _meets_requirements(item):
     if hero.level < item.get("required_level", 0):
@@ -88,7 +88,7 @@ func _meets_requirements(item):
     return true
 
 func _on_item_gui_input(event, item):
-    if event is InputEventMouseButton and event.pressed and event.button_index == BUTTON_LEFT:
+    if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
         if not _meets_requirements(item):
             return
         var drag = {"item": item}
@@ -97,7 +97,7 @@ func _on_item_gui_input(event, item):
         items_grid.start_drag(drag, preview)
 
 func _on_slot_gui_input(event, slot_name):
-    if event is InputEventMouseButton and event.pressed and event.button_index == BUTTON_LEFT:
+    if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
         var slot = slot_nodes[slot_name]
         if slot.has_meta("equipped_item"):
             var data = {"item": slot.get_meta("equipped_item"), "origin_slot": slot_name}

@@ -8,14 +8,17 @@ signal battle_bet_updated(success, detail)
 signal chat_message_received(channel, message)
 signal chat_connection_changed(channel, connected)
 signal auction_lot_requested(lot_id)
+signal user_data_updated
 
 # Authentication tokens
 var access_token: String = ""
 var refresh_token: String = ""
 var token: String = ""
 
-# User data
+# User data (cached after /auth/me)
 var user_id: int = -1
+var username: String = ""
+var balance: float = 0.0
 var current_hero_id: int = -1
 var last_created_hero: Dictionary = {}
 
@@ -34,6 +37,15 @@ var token_refresh_attempted: bool = false
 func set_access_token(value: String) -> void:
 	access_token = value
 	token = value
+
+
+## Cache user profile received from /auth/me. Emits user_data_updated.
+func set_user_data(data: Dictionary) -> void:
+	user_id = data.get("id", user_id)
+	username = data.get("username", username)
+	balance = float(data.get("balance", balance))
+	print("[AppState] User data cached: username=%s balance=%.2f" % [username, balance])
+	user_data_updated.emit()
 
 
 func update_battle_queue(queue_data: Array) -> void:

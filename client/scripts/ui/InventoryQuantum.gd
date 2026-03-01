@@ -17,10 +17,9 @@ var selected_recipe = null
 var crafted_equipment := []     # list of generated equipment dictionaries
 
 func _ready():
-    # Back to dashboard button
-    var back_btn = BackToDashboardButton.new()
-    add_child(back_btn)
-    move_child(back_btn, 0)
+    # TopBar replaces the old BackToDashboardButton
+    TopBar.add_to(self, true, true)
+    print("[InventoryQuantum] _ready() START")
 
     craft_button.disabled = true
     craft_button.pressed.connect(Callable(self, "_on_craft_pressed"))

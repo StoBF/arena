@@ -18,19 +18,25 @@ class_name MainMenuScreen
 
 # Data storage for heroes
 var heroes_data: Array = []
+var _top_bar: TopBar = null
 
 func _ready():
+	print("[MainMenu] _ready() START")
+
+	# --- TopBar (no back button on MainMenu, but show nav) ---
+	_top_bar = TopBar.add_to(self, false, true)
+
 	# Debug log to verify initialization
-	print("MainMenuScreen initialized")
-	print("ChatBox node: ", chat_box)
-	print("Heroes button: ", heroes_button)
-	print("Nickname label title: ", nickname_label_title)
-	print("Currency label title: ", currency_label_title)
+	_log_node("ChatBox", chat_box)
+	_log_node("HeroesButton", heroes_button)
+	_log_node("NicknameLabelTitle", nickname_label_title)
+	_log_node("CurrencyLabelTitle", currency_label_title)
+	_log_node("HeroIconsContainer", hero_icons_container)
 
 	# Setup client locale with fallback to English
 	var lang = OS.get_locale_language()
 	if not ["en", "pl", "uk"].has(lang):
-		lang = "en"  # Fallback to English
+		lang = "en"
 	TranslationServer.set_locale(lang)
 	Localization.connect("locale_changed", Callable(self, "_localize_ui"))
 
@@ -52,24 +58,33 @@ func _ready():
 	if not AppState.auction_lot_requested.is_connected(Callable(self, "_on_auction_lot_requested")):
 		AppState.auction_lot_requested.connect(Callable(self, "_on_auction_lot_requested"))
 
+	# Listen for cached user data updates (TopBar also listens)
+	AppState.user_data_updated.connect(_on_user_data_updated)
+
 	# Localize UI texts
 	_localize_ui()
 
 	# Fetch heroes list from server
-	var req = Network.request("/heroes/", HTTPClient.METHOD_GET)
-	req.request_completed.connect(_on_heroes_loaded)
+	_load_heroes()
 
 	# Load user data to display nickname and balance
 	_load_user()
 
 	# If returning from hero creation, display the newly created hero
-	# and also refresh the full list from the server
 	if not AppState.last_created_hero.is_empty():
 		_display_hero_info(AppState.last_created_hero)
 		send_chat_message("system", "[System] New hero generated: %s" % AppState.last_created_hero.get("name", "Unknown"))
 		AppState.last_created_hero.clear()
-		# Also trigger a hero list refresh so the server data is in sync
-		_load_heroes()
+
+	print("[MainMenu] _ready() DONE")
+
+
+## Helper: log whether a node was found
+func _log_node(label: String, node) -> void:
+	if node:
+		print("[MainMenu] ✓ %s found" % label)
+	else:
+		print("[MainMenu] ✗ %s is NULL — check NodePath" % label)
 
 func _localize_ui():
 	# Titles with fallback translations
@@ -102,25 +117,30 @@ func _on_heroes_loaded(result: int, code: int, headers: PackedStringArray, body:
 			var parsed = json.data
 			# Backend returns HeroesPaginatedResponse: { result: [...], total: N }
 			if typeof(parsed) == TYPE_DICTIONARY and parsed.has("result"):
-				heroes_data = parsed.result
+				heroes_data = parsed["result"]
 			elif typeof(parsed) == TYPE_ARRAY:
 				heroes_data = parsed
 			else:
 				heroes_data = []
+			print("[MainMenu] Parsed %d heroes" % heroes_data.size())
 			# Populate icon container
 			if hero_icons_container:
 				for child in hero_icons_container.get_children():
-					child.queue_free()  # Clear existing icons
-			if hero_icons_container:
+					child.queue_free()
 				var scene = preload("res://scenes/HeroIcon.tscn")
 				for hero in heroes_data:
 					var icon = scene.instantiate() as HeroIcon
 					icon.set_hero_data(hero)
-					icon.pressed.connect(_on_hero_icon_pressed.bind(hero.id))
+					# Connect the custom signal (hero_selected) for click handling
+					icon.hero_selected.connect(_on_hero_icon_pressed)
 					hero_icons_container.add_child(icon)
-			# Display first hero info
+				print("[MainMenu] Added %d hero icons to grid" % heroes_data.size())
+			else:
+				print("[MainMenu] ERROR hero_icons_container is NULL")
+			# Display first hero info & select it
 			if heroes_data.size() > 0:
 				_display_hero_info(heroes_data[0])
+				AppState.current_hero_id = heroes_data[0].get("id", -1)
 				send_chat_message("system", "[System] Loaded %d heroes" % heroes_data.size())
 			return
 		print("[MainMenu] Heroes JSON parse error: ", err)
@@ -128,13 +148,15 @@ func _on_heroes_loaded(result: int, code: int, headers: PackedStringArray, body:
 	UIUtils.show_error(tr("load_heroes_failed") if tr("load_heroes_failed") != "load_heroes_failed" else "Failed to load heroes")
 	send_chat_message("system", "[System] Failed to load heroes (HTTP %d)" % code)
 
-func _on_hero_icon_pressed(hero_id: int) -> void:
+func _on_hero_icon_pressed(hero_id) -> void:
+	print("[MainMenu] Hero icon pressed: id=%s" % str(hero_id))
+	AppState.current_hero_id = hero_id
 	for hero in heroes_data:
-		if hero.id == hero_id:
+		if hero.get("id") == hero_id:
 			_display_hero_info(hero)
-			send_chat_message("system", "[System] Selected hero: %s" % hero.name)
+			send_chat_message("system", "[System] Selected hero: %s" % hero.get("name", "?"))
 			return
-	print("Hero with ID %d not found" % hero_id)
+	print("[MainMenu] Hero with ID %s not found in heroes_data" % str(hero_id))
 
 func _display_hero_info(hero: Dictionary) -> void:
 	# Cache stats grid for performance
@@ -220,16 +242,28 @@ func _on_user_loaded(result: int, code: int, headers: PackedStringArray, body: P
 		var err = json.parse(body.get_string_from_utf8())
 		if err == OK:
 			var user = json.data
-			if nickname_label:
-				nickname_label.text = user.get("username", "Unknown")
-			if currency_label:
-				currency_label.text = str(user.get("balance", 0))
+			# Cache in AppState so TopBar (and any scene) can display it
+			AppState.set_user_data(user)
+			# Also update local labels
+			_on_user_data_updated()
 			send_chat_message("system", "[System] User loaded: %s" % user.get("username", "Unknown"))
 			return
 		print("[MainMenu] User JSON parse error: ", err)
 	print("[MainMenu] Failed to load user: result=%d code=%d body=%s" % [result, code, body.get_string_from_utf8().left(200)])
 	UIUtils.show_error(tr("load_user_failed") if tr("load_user_failed") != "load_user_failed" else "Failed to load user data")
 	send_chat_message("system", "[System] Failed to load user data (HTTP %d)" % code)
+
+
+## Called when AppState.user_data_updated fires (or directly after /auth/me success)
+func _on_user_data_updated() -> void:
+	if nickname_label:
+		nickname_label.text = AppState.username if not AppState.username.is_empty() else "Unknown"
+	else:
+		print("[MainMenu] WARN nickname_label is NULL")
+	if currency_label:
+		currency_label.text = str(AppState.balance)
+	else:
+		print("[MainMenu] WARN currency_label is NULL")
 
 func send_chat_message(channel: String, message: String):
 	if chat_box and chat_box.has_method("AddLog"):

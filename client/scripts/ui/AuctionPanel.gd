@@ -16,10 +16,9 @@ var auctions_data: Array = []
 var pending_lot_id: int = -1
 
 func _ready():
-	# Back to dashboard button
-	var back_btn = BackToDashboardButton.new()
-	add_child(back_btn)
-	move_child(back_btn, 0)
+	# TopBar replaces the old BackToDashboardButton
+	TopBar.add_to(self, true, true)
+	print("[Auction] _ready() START")
 	# Connect signals
 	Localization.locale_changed.connect(Callable(self, "_localize_ui"))
 	auctions_list.item_selected.connect(Callable(self, "_on_item_selected"))

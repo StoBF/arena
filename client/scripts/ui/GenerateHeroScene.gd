@@ -6,12 +6,17 @@ extends Control
 @onready var error_label = $VBoxContainer/ErrorLabel
 
 func _ready():
-	# Back to dashboard button
-	var back_btn = BackToDashboardButton.new()
-	add_child(back_btn)
-	move_child(back_btn, 0)
+	print("[HeroGen] _ready() START")
+	# TopBar with back button and full navigation
+	TopBar.add_to(self, true, true)
+
 	# Connect the create button signal
-	create_button.pressed.connect(Callable(self, "_on_create_pressed"))
+	if create_button:
+		create_button.pressed.connect(Callable(self, "_on_create_pressed"))
+	else:
+		print("[HeroGen] ERROR: CreateButton not found")
+
+	print("[HeroGen] _ready() DONE")
 
 func _on_create_pressed():
 	var hero_name = name_input.text.strip_edges()
