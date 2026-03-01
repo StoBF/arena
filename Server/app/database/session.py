@@ -1,18 +1,6 @@
 # app/database/session.py
 from app.database.base import Base
-import app.database.models.hero
-import app.database.models.user
-import app.database.models.models
-import app.database.models.perk
-import app.database.models.craft
-import app.database.models.resource
-import app.database.models.pve
-import app.database.models.raid_boss
-import app.database.models.tournament
-import app.database.models.event
-import app.database.models.battle
-import app.database.models.currency_transaction
-import app.database.models.quantum_models
+import app.database.models  # noqa: F401 - imports all model modules and registers metadata
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker

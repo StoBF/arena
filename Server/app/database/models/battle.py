@@ -14,7 +14,7 @@ class BattleQueueEntry(Base):
     player_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
-    hero = relationship("Hero")
+    hero = relationship("app.database.models.hero.Hero")
     player = relationship("User")
 
 
@@ -28,7 +28,7 @@ class BattleBet(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     bettor = relationship("User")
-    hero = relationship("Hero")
+    hero = relationship("app.database.models.hero.Hero")
 
     __table_args__ = (
         UniqueConstraint("bettor_id", "hero_id", name="uq_battle_bet_bettor_hero"),

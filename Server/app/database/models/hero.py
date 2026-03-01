@@ -45,6 +45,6 @@ class HeroPerk(Base):
     perk_id = Column(Integer, ForeignKey("perks.id"), nullable=True)
     perk_name = Column(String, nullable=True)
     perk_level = Column(Integer, nullable=False)
-    hero = relationship("Hero", back_populates="perks")
+    hero = relationship("app.database.models.hero.Hero", back_populates="perks")
     perk = relationship("Perk")
     __table_args__ = (UniqueConstraint('hero_id', 'perk_id', name='_hero_perk_uc'),) 

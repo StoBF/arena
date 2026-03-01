@@ -21,5 +21,5 @@ class User(Base):
         CheckConstraint('reserved >= 0', name='ck_user_reserved_non_negative'),
     )
 
-    heroes = relationship("Hero", back_populates="owner")
+    heroes = relationship("app.database.models.hero.Hero", back_populates="owner")
     items = relationship("Stash", back_populates="owner")

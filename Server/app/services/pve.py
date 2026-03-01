@@ -1,5 +1,4 @@
 from app.database.models.pve import MobTemplate, RaidArenaInstance
-from app.database.models.models import Base
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 from typing import List

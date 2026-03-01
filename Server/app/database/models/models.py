@@ -126,7 +126,7 @@ class Equipment(Base):
     slot   = Column(String, nullable=False)
     __table_args__ = (UniqueConstraint('hero_id', 'slot', name='_hero_slot_uc'),)
 
-    hero = relationship("Hero", back_populates="equipment_items")
+    hero = relationship("app.database.models.hero.Hero", back_populates="equipment_items")
     item = relationship("Item", back_populates="equipped_in")
 
 class AuctionLot(Base):
@@ -148,7 +148,7 @@ class AuctionLot(Base):
         CheckConstraint('buyout_price IS NULL OR buyout_price > 0', name='ck_lot_buyout_price_positive'),
     )
 
-    hero = relationship("Hero")
+    hero = relationship("app.database.models.hero.Hero")
     seller = relationship("User", foreign_keys=[seller_id])
     winner = relationship("User", foreign_keys=[winner_id])
     bids = relationship("Bid", back_populates="auction_lot")

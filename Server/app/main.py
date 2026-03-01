@@ -5,6 +5,7 @@ import logging
 import urllib.parse
 import asyncpg
 import asyncio
+from contextlib import asynccontextmanager, suppress
 from app.core.log_config import setup_logging
 
 from fastapi import FastAPI, Request
@@ -45,7 +46,37 @@ tags_metadata = [
     {"name": "Health", "description": "Healthcheck and monitoring."},
 ]
 
-app = FastAPI(title="Hero Manager API", openapi_tags=tags_metadata)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await create_database_if_not_exists()
+    await create_db_and_tables()
+
+    if settings.REDIS_URL:
+        await redis_cache.connect()
+
+    async with AsyncSessionLocal() as session:
+        await AuctionService(session).close_expired_auctions()
+
+    cleanup_task = asyncio.create_task(delete_old_heroes_task())
+    auctions_task = asyncio.create_task(close_expired_auctions_task())
+    app.state.cleanup_task = cleanup_task
+    app.state.auctions_task = auctions_task
+
+    try:
+        yield
+    finally:
+        for task in (cleanup_task, auctions_task):
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+
+        await engine.dispose()
+
+        if settings.REDIS_URL:
+            await redis_cache.close()
+
+
+app = FastAPI(title="Hero Manager API", openapi_tags=tags_metadata, lifespan=lifespan)
 
 # Rate limiter
 limiter = Limiter(key_func=get_remote_address, default_limits=["10/second"])
@@ -140,29 +171,6 @@ async def create_database_if_not_exists():
     if not exists:
         await conn.execute(f'CREATE DATABASE "{db_name}"')
     await conn.close()
-
-# Події при старті додатку
-@app.on_event("startup")
-async def on_startup():
-    await create_database_if_not_exists()
-    await create_db_and_tables()
-    # connect to Redis if configured (cache & pub/sub)
-    if settings.REDIS_URL:
-        await redis_cache.connect()
-    # immediate sweep of expired auctions/lots before background loops
-    async with AsyncSessionLocal() as session:
-        await AuctionService(session).close_expired_auctions()
-    asyncio.create_task(delete_old_heroes_task())
-    asyncio.create_task(close_expired_auctions_task())
-
-# Clean up database connections on shutdown
-@app.on_event("shutdown")
-async def on_shutdown():
-    # clean up database engine
-    await engine.dispose()
-    # close redis if opened
-    if settings.REDIS_URL:
-        await redis_cache.close()
 
 # Add health router
 app.include_router(health_router)

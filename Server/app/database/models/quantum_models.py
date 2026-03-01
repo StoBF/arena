@@ -14,7 +14,7 @@ from app.database.base import Base
 import random
 
 
-class Hero(Base):
+class QuantumHero(Base):
     __tablename__ = "quantum_heroes"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
@@ -22,7 +22,8 @@ class Hero(Base):
     quantum_crafting_skill = Column(Integer, nullable=False, default=0)
 
     # relationships
-    crafted_items = relationship("CraftedItem", back_populates="hero", cascade="all, delete-orphan")
+    crafted_items = relationship("QuantumCraftedItem", back_populates="hero", cascade="all, delete-orphan")
+    quantum_equipment_items = relationship("QuantumEquipment", back_populates="hero", cascade="all, delete-orphan")
 
     def has_resources(self, resources_needed: dict, available_resources: dict) -> bool:
         """Return True if available_resources contains at least the amounts specified in resources_needed."""
@@ -32,7 +33,7 @@ class Hero(Base):
         return True
 
 
-class Equipment(Base):
+class QuantumEquipment(Base):
     __tablename__ = "quantum_equipment"
     id = Column(Integer, primary_key=True, index=True)
     hero_id = Column(Integer, ForeignKey("quantum_heroes.id"), nullable=False)
@@ -42,7 +43,7 @@ class Equipment(Base):
     durability = Column(Integer, nullable=False, default=0)
     mutation_chance = Column(Float, nullable=False, default=0.0)
 
-    hero = relationship("Hero", back_populates="equipment_items")
+    hero = relationship("QuantumHero", back_populates="quantum_equipment_items")
 
     def apply_quantum_effect(self, effect: "QuantumEffect"):
         """Apply an instance of a quantum effect to this equipment."""
@@ -93,15 +94,15 @@ class Recipe(Base):
         return True
 
 
-class CraftedItem(Base):
+class QuantumCraftedItem(Base):
     __tablename__ = "quantum_crafted_items"
     id = Column(Integer, primary_key=True, index=True)
     hero_id = Column(Integer, ForeignKey("quantum_heroes.id"), nullable=False)
     equipment_id = Column(Integer, ForeignKey("quantum_equipment.id"), nullable=False)
     created_at = Column(DateTime, default=func.now())
 
-    hero = relationship("Hero", back_populates="crafted_items")
-    equipment = relationship("Equipment")
+    hero = relationship("QuantumHero", back_populates="crafted_items")
+    equipment = relationship("QuantumEquipment")
 
 
 class QuantumEffect:
@@ -122,7 +123,7 @@ class QuantumEffect:
         else:
             raise ValueError(f"Unknown effect: {name}")
 
-    def apply(self, equipment: Equipment):
+    def apply(self, equipment: "QuantumEquipment"):
         """Modify equipment attributes based on the effect."""
         if self.name == "Photon Surge":
             equipment.energy += self.strength
@@ -141,7 +142,7 @@ class QuantumEffect:
         }
 
 
-def craft_item(session: Session, hero: Hero, recipe: Recipe, resources: dict) -> Equipment:
+def craft_item(session: Session, hero: QuantumHero, recipe: Recipe, resources: dict) -> QuantumEquipment:
     """Attempt to craft an item for *hero* using *recipe*.
 
     *session* is an active SQLAlchemy Session that will be used to persist
@@ -178,7 +179,7 @@ def craft_item(session: Session, hero: Hero, recipe: Recipe, resources: dict) ->
         session.add(res)
 
     # create the equipment record
-    eq = Equipment(
+    eq = QuantumEquipment(
         hero_id=hero.id,
         slot=recipe.output_slot,
         stability=0,
@@ -196,7 +197,7 @@ def craft_item(session: Session, hero: Hero, recipe: Recipe, resources: dict) ->
         eq.apply_quantum_effect(effect)
 
     # record the crafting transaction
-    ci = CraftedItem(hero_id=hero.id, equipment_id=eq.id)
+    ci = QuantumCraftedItem(hero_id=hero.id, equipment_id=eq.id)
     session.add(ci)
 
     session.commit()

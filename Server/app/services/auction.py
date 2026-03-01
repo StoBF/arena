@@ -6,7 +6,6 @@ from fastapi import HTTPException
 import logging
 from app.database.models.models import Auction, Bid, Stash, AuctionLot, AutoBid
 from app.core.enums import AuctionStatus
-from app.database.models.hero import Hero
 from app.database.models.user import User
 from app.services.base_service import BaseService
 from app.core.events import emit
