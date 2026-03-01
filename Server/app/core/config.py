@@ -2,8 +2,8 @@ from typing import List
 import os
 
 class Settings:
-    # Use in-memory SQLite by default for testing and development
-    DATABASE_URL: str = "sqlite+aiosqlite:///:memory:"
+    # Reads DATABASE_URL from environment; falls back to in-memory SQLite for testing
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
     JWT_SECRET_KEY: str = "supersecretkey"
     JWT_ALGORITHM: str = "HS256"
     

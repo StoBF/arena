@@ -12,8 +12,8 @@ class_name MainMenuScreen
 @onready var chat_box              = $CanvasLayer/MarginContainer/HBoxContainer2/VBoxContainer2/Control/ChatBox
 @onready var nickname_label_title  = $CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/GridContainer/NicknameLabelTitle
 @onready var nickname_label        = $CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/GridContainer/NicknameLabel
-@onready var currency_label_title  = $CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/CurrencyGridContainer/CurrencyLabelTitle
-@onready var currency_label        = $CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/CurrencyGridContainer/CurrencyLabel
+@onready var currency_label_title  = $CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/GridContainer/CurrencyGridContainer/CurrencyLabelTitle
+@onready var currency_label        = $CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/GridContainer/CurrencyGridContainer/CurrencyLabel
 @onready var hero_icons_container  = $CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer
 
 # Data storage for heroes

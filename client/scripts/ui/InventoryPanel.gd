@@ -63,7 +63,7 @@ func _on_sell_requested(item_id: int, price: float):
         "price": price
     }
     
-    var req = Network.request("/auctions", HTTPClient.METHOD_POST, data)
+    var req = Network.request("/auctions/", HTTPClient.METHOD_POST, data)
     req.request_completed.connect(Callable(self, "_on_sell_response"))
 
 func _on_sell_response(result: int, code: int, headers, body: PackedByteArray):

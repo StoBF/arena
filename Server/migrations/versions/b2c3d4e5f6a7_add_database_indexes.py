@@ -20,33 +20,33 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema - Add indexes for foreign keys and query-critical columns."""
-    
-    # Hero.owner_id - Foreign key index for "get all heroes by user" queries
-    op.create_index('ix_heroes_owner_id', 'heroes', ['owner_id'])
-    
-    # Auction.seller_id - Foreign key index for "get all auctions by seller" queries
-    op.create_index('ix_auctions_seller_id', 'auctions', ['seller_id'])
-    
-    # Auction.end_time - Index for active auctions queries (WHERE end_time > NOW())
-    op.create_index('ix_auctions_end_time', 'auctions', ['end_time'])
-    
-    # Auction.status - Index for status filtering (WHERE status = 'active')
-    op.create_index('ix_auctions_status', 'auctions', ['status'])
-    
-    # AuctionLot.seller_id - Foreign key index for "get all lots by seller" queries
-    op.create_index('ix_auction_lots_seller_id', 'auction_lots', ['seller_id'])
-    
-    # AuctionLot.end_time - Index for active lot queries (WHERE end_time > NOW())
-    op.create_index('ix_auction_lots_end_time', 'auction_lots', ['end_time'])
-    
-    # Bid.auction_id - Foreign key index for "get all bids for auction" queries
-    op.create_index('ix_bids_auction_id', 'bids', ['auction_id'])
-    
-    # Bid.lot_id - Foreign key index for "get all bids for lot" queries
-    op.create_index('ix_bids_lot_id', 'bids', ['lot_id'])
-    
-    # Bid.bidder_id - Foreign key index for "get all bids by user" queries
-    op.create_index('ix_bids_bidder_id', 'bids', ['bidder_id'])
+    # Idempotency: skip indexes that were already created by initial_tables
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+
+    def _index_exists(table: str, index_name: str) -> bool:
+        if not inspector.has_table(table):
+            return True  # table doesn't exist yet; index comes with table
+        return any(i["name"] == index_name for i in inspector.get_indexes(table))
+
+    if not _index_exists("heroes", "ix_heroes_owner_id"):
+        op.create_index('ix_heroes_owner_id', 'heroes', ['owner_id'])
+    if not _index_exists("auctions", "ix_auctions_seller_id"):
+        op.create_index('ix_auctions_seller_id', 'auctions', ['seller_id'])
+    if not _index_exists("auctions", "ix_auctions_end_time"):
+        op.create_index('ix_auctions_end_time', 'auctions', ['end_time'])
+    if not _index_exists("auctions", "ix_auctions_status"):
+        op.create_index('ix_auctions_status', 'auctions', ['status'])
+    if not _index_exists("auction_lots", "ix_auction_lots_seller_id"):
+        op.create_index('ix_auction_lots_seller_id', 'auction_lots', ['seller_id'])
+    if not _index_exists("auction_lots", "ix_auction_lots_end_time"):
+        op.create_index('ix_auction_lots_end_time', 'auction_lots', ['end_time'])
+    if not _index_exists("bids", "ix_bids_auction_id"):
+        op.create_index('ix_bids_auction_id', 'bids', ['auction_id'])
+    if not _index_exists("bids", "ix_bids_lot_id"):
+        op.create_index('ix_bids_lot_id', 'bids', ['lot_id'])
+    if not _index_exists("bids", "ix_bids_bidder_id"):
+        op.create_index('ix_bids_bidder_id', 'bids', ['bidder_id'])
 
 
 def downgrade() -> None:

@@ -14,6 +14,8 @@ from .event import EventDefinition, EventInstance
 from .currency_transaction import CurrencyTransaction
 from .battle import BattleQueueEntry, BattleBet
 from .models import (
-    Auction, AuctionLot, Bid, AuctionLot, ChatMessage, OfflineMessage,
-    Equipment, Stash, PvPMatch, PvPBattleLog, LeaderboardEntry
-) 
+    Item, Auction, AuctionLot, AutoBid, Bid, Announcement,
+    ChatMessage, OfflineMessage, Equipment, Stash,
+    PvPMatch, PvPBattleLog, LeaderboardEntry,
+)
+from . import quantum_models  # noqa: F401 – registers quantum_* tables 

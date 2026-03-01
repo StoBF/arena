@@ -20,6 +20,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
+    # Idempotency: skip if column was already created by the initial migration
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if not inspector.has_table("bids"):
+        return  # Table will be/was created by initial_tables
+    columns = [c["name"] for c in inspector.get_columns("bids")]
+    if "request_id" in columns:
+        return  # Column already exists
+
     # Add request_id column to bids table
     op.add_column(
         'bids',
@@ -31,7 +40,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    # Drop the unique index on request_id
     op.drop_index('ix_bids_request_id', table_name='bids')
-    # Remove request_id column
     op.drop_column('bids', 'request_id')

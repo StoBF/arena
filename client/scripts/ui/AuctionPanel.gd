@@ -47,7 +47,7 @@ func _set_mode(new_mode: String):
 	_load_auctions()
 
 func _load_auctions():
-	var path = "/auctions"
+	var path = "/auctions/"
 	if mode == "lots":
 		path = "/auctions/lots"
 	var req = Network.request(path, HTTPClient.METHOD_GET)

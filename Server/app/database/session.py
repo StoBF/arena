@@ -11,6 +11,8 @@ import app.database.models.raid_boss
 import app.database.models.tournament
 import app.database.models.event
 import app.database.models.battle
+import app.database.models.currency_transaction
+import app.database.models.quantum_models
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
@@ -18,14 +20,18 @@ from app.core.config import settings
 from typing import AsyncGenerator
 
 DATABASE_URL = settings.DATABASE_URL
-# Always use in-memory SQLite engine for app sessions to avoid external DB connections
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=False,
-    future=True,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool
-)
+
+# Build engine kwargs — SQLite needs special connect_args;
+# PostgreSQL / other databases use connection-pool defaults.
+_engine_kwargs: dict = {
+    "echo": False,
+    "future": True,
+}
+if DATABASE_URL.startswith("sqlite"):
+    _engine_kwargs["connect_args"] = {"check_same_thread": False}
+    _engine_kwargs["poolclass"] = StaticPool
+
+engine = create_async_engine(DATABASE_URL, **_engine_kwargs)
 
 AsyncSessionLocal = sessionmaker(
     bind=engine,

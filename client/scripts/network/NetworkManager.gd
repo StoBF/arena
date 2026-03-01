@@ -94,7 +94,7 @@ func _on_request_completed(request_id: int, result: int, response_code: int, hea
 		if lower_h.begins_with("location:") or lower_h.begins_with("content-type:"):
 			print("[HTTP HEADER] %s" % h)
 
-	# ── Handle 307/308 redirects ──
+	# ── Detect redirects — log clearly so developer can fix the endpoint path ──
 	if response_code in [301, 302, 307, 308]:
 		var location := ""
 		for h in headers:
@@ -102,12 +102,11 @@ func _on_request_completed(request_id: int, result: int, response_code: int, hea
 				location = h.substr(h.find(":") + 1).strip_edges()
 				break
 		if not location.is_empty():
-			print("[HTTP REDIRECT] %d → %s (from %s)" % [response_code, location, request_info.get("endpoint", "?")])
-			# Follow the redirect: create a new request to the absolute URL
-			_follow_redirect(request_id, request_info, location)
-			return
+			push_warning("[HTTP REDIRECT] %d from '%s' → '%s'. Fix the client endpoint path to match the backend route exactly (check trailing slash)." % [response_code, request_info.get("endpoint", "?"), location])
+			print("[HTTP REDIRECT] %d '%s' → Location: %s  ** FIX CLIENT PATH **" % [response_code, request_info.get("endpoint", "?"), location])
 		else:
 			print("[HTTP REDIRECT] %d but no Location header!" % response_code)
+		# Fall through — let caller see the redirect code so errors are visible
 
 	# Store response for awaiting callers
 	_responses[request_id] = {
@@ -140,52 +139,6 @@ func _on_request_completed(request_id: int, result: int, response_code: int, hea
 	if request_info.http_request:
 		request_info.http_request.queue_free()
 	active_requests.erase(request_id)
-
-## Follow a redirect by making a new request to the Location URL
-func _follow_redirect(original_id: int, original_info: Dictionary, redirect_url: String) -> void:
-	# Cleanup old request node
-	if original_info.http_request:
-		original_info.http_request.queue_free()
-	active_requests.erase(original_id)
-
-	# If it's a relative URL, resolve it against the base
-	if redirect_url.begins_with("/"):
-		var config = ServerConfig.get_instance()
-		redirect_url = config.get_http_base_url() + redirect_url
-
-	# Create new HTTPRequest for the redirect
-	var http_request := HTTPRequest.new()
-	add_child(http_request)
-	var new_id = http_request.get_instance_id()
-
-	active_requests[new_id] = {
-		"endpoint": redirect_url,
-		"method": original_info.method,
-		"data": original_info.data,
-		"headers": original_info.headers,
-		"retry_count": original_info.retry_count,
-		"http_request": http_request,
-		"is_retry_after_refresh": original_info.get("is_retry_after_refresh", false),
-	}
-
-	var final_headers := default_headers.duplicate()
-	final_headers.append_array(original_info.headers)
-
-	var json_data: String = ""
-	if original_info.method != HTTPClient.METHOD_GET:
-		json_data = JSON.stringify(original_info.data)
-		final_headers.append("Content-Type: application/json")
-
-	http_request.timeout = 10.0
-	http_request.request_completed.connect(func(r, c, h, b):
-		_on_request_completed(new_id, r, c, h, b)
-	)
-
-	print("[HTTP REDIRECT-FOLLOW] %s" % redirect_url)
-	var err = http_request.request(redirect_url, final_headers, original_info.method, json_data)
-	if err != OK:
-		print("[HTTP ERROR] redirect request() returned err=%d for url=%s" % [err, redirect_url])
-		_handle_request_error(new_id, err)
 
 func _retry_request(request_info: Dictionary) -> void:
 	request_info.retry_count += 1

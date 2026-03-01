@@ -27,12 +27,12 @@ func get_ws_base_url() -> String:
 	return "%s%s:%d" % [protocol, ip, ws_port]
 
 func get_http_endpoint(path: String) -> String:
-	# Normalize: ensure path starts with / and ends with /
-	# FastAPI redirects /path → /path/ with 307; Godot doesn't follow redirects.
+	# Normalize: ensure path starts with /
+	# Do NOT auto-append trailing slash — FastAPI routes like /auth/me, /heroes/generate
+	# are defined WITHOUT trailing slash; appending one causes 307 redirects that
+	# Godot HTTPRequest cannot follow transparently.
 	if not path.begins_with("/"):
 		path = "/" + path
-	if not path.ends_with("/") and "?" not in path:
-		path = path + "/"
 	return get_http_base_url() + path
 
 func get_ws_endpoint(channel: String, token: String) -> String:
