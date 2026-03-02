@@ -1,56 +1,69 @@
-[gd_scene load_steps=4 format=3 uid="uid://account-ui"]
+[gd_scene load_steps=2 format=3 uid="uid://vnj67fp4nep8"]
 
 [ext_resource type="Script" path="res://scripts/ui/AccountUI.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/ui/StatPanel.tscn" id="2"]
-[ext_resource type="PackedScene" path="res://scenes/ui/ChatPanel.tscn" id="3"]
 
 [node name="AccountUI" type="Control"]
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 script = ExtResource("1")
 
-[node name="TopBar" type="HBoxContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+theme_override_constants/separation = 12
 
-[node name="Nickname" type="Label" parent="TopBar"]
-text = "PlayerName"
+[node name="Title" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "My Heroes"
 
-[node name="Spacer" type="Control" parent="TopBar"]
+[node name="HeroScroll" type="ScrollContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HeroGrid" type="GridContainer" parent="VBoxContainer/HeroScroll"]
+layout_mode = 2
 size_flags_horizontal = 3
+columns = 4
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
 
-[node name="Currency" type="Label" parent="TopBar"]
-text = "Currency: 0"
+[node name="HeroDetailsDialog" type="AcceptDialog" parent="."]
+title = "Hero Details"
 
-[node name="MainHBox" type="HBoxContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="HeroDetailsDialog"]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 296.0
+offset_bottom = 276.0
+theme_override_constants/separation = 8
 
-[node name="Sidebar" type="VBoxContainer" parent="MainHBox"]
+[node name="Avatar" type="TextureRect" parent="HeroDetailsDialog/VBoxContainer"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+stretch_mode = 5
 
-[node name="CreateHero" type="Button" parent="MainHBox/Sidebar"]
-text = "Create Hero"
-[node name="TrainHero" type="Button" parent="MainHBox/Sidebar"]
-text = "Train Hero"
-[node name="Auction" type="Button" parent="MainHBox/Sidebar"]
-text = "Auction"
-[node name="Battle" type="Button" parent="MainHBox/Sidebar"]
-text = "To Battle"
-[node name="Inventory" type="Button" parent="MainHBox/Sidebar"]
-text = "Inventory"
-[node name="Deleted" type="Button" parent="MainHBox/Sidebar"]
-text = "Deleted Heroes"
+[node name="Name" type="Label" parent="HeroDetailsDialog/VBoxContainer"]
+layout_mode = 2
+text = "Name: -"
 
-[node name="ContentStack" type="StackContainer" parent="MainHBox"]
-# each window will be a child of this stack
+[node name="Level" type="Label" parent="HeroDetailsDialog/VBoxContainer"]
+layout_mode = 2
+text = "Level: -"
 
-[node name="StatsPanel" type="VBoxContainer" parent="MainHBox"]
+[node name="Class" type="Label" parent="HeroDetailsDialog/VBoxContainer"]
+layout_mode = 2
+text = "Class: -"
 
-[node name="StatPanelInstance" parent="MainHBox/StatsPanel" instance=ExtResource("2")]
-
-[node name="ChatSection" type="VBoxContainer" parent="."]
-
-[node name="Chat" parent="ChatSection" instance=ExtResource("3")]
-
-[node name="BottomBar" type="HBoxContainer" parent="."]
-
-[node name="Settings" type="Button" parent="BottomBar"]
-text = "Settings"
-[node name="Logout" type="Button" parent="BottomBar"]
-text = "Logout"
+[node name="Power" type="Label" parent="HeroDetailsDialog/VBoxContainer"]
+layout_mode = 2
+text = "Power: -"

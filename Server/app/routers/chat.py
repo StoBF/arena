@@ -25,7 +25,7 @@ from app.routers._ws import websocket_loop
 @router.websocket("/ws/general")
 async def ws_general(websocket: WebSocket):
     token = websocket.query_params.get("token")
-    user_id = await get_user_id_from_token(token) if token else None
+    user_id = get_user_id_from_token(token) if token else None
     if not user_id:
         await websocket.close(code=1008)
         return
@@ -45,7 +45,7 @@ async def ws_general(websocket: WebSocket):
 @router.websocket("/ws/trade")
 async def ws_trade(websocket: WebSocket):
     token = websocket.query_params.get("token")
-    user_id = await get_user_id_from_token(token) if token else None
+    user_id = get_user_id_from_token(token) if token else None
     if not user_id:
         await websocket.close(code=1008)
         return
@@ -64,7 +64,7 @@ async def ws_trade(websocket: WebSocket):
 @router.websocket("/ws/system")
 async def ws_system(websocket: WebSocket):
     token = websocket.query_params.get("token")
-    user_id = await get_user_id_from_token(token) if token else None
+    user_id = get_user_id_from_token(token) if token else None
     if not user_id:
         await websocket.close(code=1008)
         return
@@ -81,7 +81,7 @@ async def ws_system(websocket: WebSocket):
 @router.websocket("/ws/private")
 async def ws_private(websocket: WebSocket):
     token = websocket.query_params.get("token")
-    user_id = await get_user_id_from_token(token) if token else None
+    user_id = get_user_id_from_token(token) if token else None
     if not user_id:
         await websocket.close(code=1008)
         return
@@ -142,7 +142,7 @@ def send_system_message(user_id: int, text: str):
     description="Returns a list of chat messages for the specified channel (general, trade, or private). Optionally filter by user_id."
 )
 async def chat_history(
-    channel: str = Query(..., regex="^(general|trade|private)$"),
+    channel: str = Query(..., pattern="^(general|trade|private)$"),
     user_id: Optional[int] = None,
     limit: int = 50,
     db=Depends(get_session),
