@@ -1,0 +1,200 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/InventoryUI.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/ui/components/EquipmentSlot.gd" id="2"]
+
+[node name="InventoryUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="MainLayout" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="LeftPanel" type="VBoxContainer" parent="MainLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.7
+
+[node name="HeroTitle" type="Label" parent="MainLayout/LeftPanel"]
+layout_mode = 2
+text = "Heroes"
+
+[node name="HeroSelector" type="VBoxContainer" parent="MainLayout/LeftPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="CenterPanel" type="VBoxContainer" parent="MainLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 1.1
+theme_override_constants/separation = 12
+
+[node name="EquipmentTitle" type="Label" parent="MainLayout/CenterPanel"]
+layout_mode = 2
+text = "Equipment"
+
+[node name="EquipmentPanel" type="GridContainer" parent="MainLayout/CenterPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 3
+
+[node name="SlotHelmet" type="Button" parent="MainLayout/CenterPanel/EquipmentPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 80)
+text = "Helmet\nEmpty"
+script = ExtResource("2")
+slot_type = "Helmet"
+
+[node name="SlotArmor" type="Button" parent="MainLayout/CenterPanel/EquipmentPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 80)
+text = "Armor\nEmpty"
+script = ExtResource("2")
+slot_type = "Armor"
+
+[node name="SlotWeapon" type="Button" parent="MainLayout/CenterPanel/EquipmentPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 80)
+text = "Weapon\nEmpty"
+script = ExtResource("2")
+slot_type = "Weapon"
+
+[node name="SlotBoots" type="Button" parent="MainLayout/CenterPanel/EquipmentPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 80)
+text = "Boots\nEmpty"
+script = ExtResource("2")
+slot_type = "Boots"
+
+[node name="SlotRing" type="Button" parent="MainLayout/CenterPanel/EquipmentPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 80)
+text = "Ring\nEmpty"
+script = ExtResource("2")
+slot_type = "Ring"
+
+[node name="SlotAmulet" type="Button" parent="MainLayout/CenterPanel/EquipmentPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 80)
+text = "Amulet\nEmpty"
+script = ExtResource("2")
+slot_type = "Amulet"
+
+[node name="EmptyCell1" type="Control" parent="MainLayout/CenterPanel/EquipmentPanel"]
+custom_minimum_size = Vector2(140, 80)
+layout_mode = 2
+
+[node name="EmptyCell2" type="Control" parent="MainLayout/CenterPanel/EquipmentPanel"]
+custom_minimum_size = Vector2(140, 80)
+layout_mode = 2
+
+[node name="EmptyCell3" type="Control" parent="MainLayout/CenterPanel/EquipmentPanel"]
+custom_minimum_size = Vector2(140, 80)
+layout_mode = 2
+
+[node name="HeroStatsPreview" type="VBoxContainer" parent="MainLayout/CenterPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="StatsTitle" type="Label" parent="MainLayout/CenterPanel/HeroStatsPreview"]
+layout_mode = 2
+text = "Hero Stats Preview"
+
+[node name="StatsName" type="Label" parent="MainLayout/CenterPanel/HeroStatsPreview"]
+layout_mode = 2
+text = "Hero: -"
+
+[node name="StatsLevel" type="Label" parent="MainLayout/CenterPanel/HeroStatsPreview"]
+layout_mode = 2
+text = "Level: 0"
+
+[node name="StatsPower" type="Label" parent="MainLayout/CenterPanel/HeroStatsPreview"]
+layout_mode = 2
+text = "Power: 0"
+
+[node name="StatsStrength" type="Label" parent="MainLayout/CenterPanel/HeroStatsPreview"]
+layout_mode = 2
+text = "Strength: 0"
+
+[node name="StatsAgility" type="Label" parent="MainLayout/CenterPanel/HeroStatsPreview"]
+layout_mode = 2
+text = "Agility: 0"
+
+[node name="StatsHealth" type="Label" parent="MainLayout/CenterPanel/HeroStatsPreview"]
+layout_mode = 2
+text = "Health: 0"
+
+[node name="RightPanel" type="VBoxContainer" parent="MainLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 1.6
+theme_override_constants/separation = 10
+
+[node name="FiltersBar" type="HBoxContainer" parent="MainLayout/RightPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="TypeDropdown" type="OptionButton" parent="MainLayout/RightPanel/FiltersBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RarityDropdown" type="OptionButton" parent="MainLayout/RightPanel/FiltersBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SearchLineEdit" type="LineEdit" parent="MainLayout/RightPanel/FiltersBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Search"
+
+[node name="SortDropdown" type="OptionButton" parent="MainLayout/RightPanel/FiltersBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ItemsScroll" type="ScrollContainer" parent="MainLayout/RightPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ItemsGrid" type="GridContainer" parent="MainLayout/RightPanel/ItemsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+
+[node name="StatDeltaTooltip" type="PopupPanel" parent="."]
+visible = false
+
+[node name="Margin" type="MarginContainer" parent="StatDeltaTooltip"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="DeltaLabel" type="Label" parent="StatDeltaTooltip/Margin"]
+layout_mode = 2
+text = ""

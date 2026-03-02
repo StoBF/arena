@@ -1,0 +1,154 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/AuctionUI.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/LotDetailsModal.tscn" id="2"]
+
+[node name="AuctionUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 56.0
+offset_right = -12.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="Top" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+
+[node name="FiltersBar" type="HBoxContainer" parent="Root/Top"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TypeDropdown" type="OptionButton" parent="Root/Top/FiltersBar"]
+layout_mode = 2
+custom_minimum_size = Vector2(110, 0)
+
+[node name="RarityDropdown" type="OptionButton" parent="Root/Top/FiltersBar"]
+layout_mode = 2
+custom_minimum_size = Vector2(110, 0)
+
+[node name="PriceMinSpin" type="SpinBox" parent="Root/Top/FiltersBar"]
+layout_mode = 2
+custom_minimum_size = Vector2(90, 0)
+prefix = "Min "
+
+[node name="PriceMaxSpin" type="SpinBox" parent="Root/Top/FiltersBar"]
+layout_mode = 2
+custom_minimum_size = Vector2(90, 0)
+prefix = "Max "
+
+[node name="SellerLineEdit" type="LineEdit" parent="Root/Top/FiltersBar"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 0)
+placeholder_text = "Seller"
+
+[node name="SortDropdown" type="OptionButton" parent="Root/Top/FiltersBar"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 0)
+
+[node name="SearchLineEdit" type="LineEdit" parent="Root/Top/FiltersBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Search"
+
+[node name="Center" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LotsScroll" type="ScrollContainer" parent="Root/Center"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LotsTable" type="VBoxContainer" parent="Root/Center/LotsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="HeaderRow" type="HBoxContainer" parent="Root/Center/LotsScroll/LotsTable"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Icon" type="Label" parent="Root/Center/LotsScroll/LotsTable/HeaderRow"]
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+text = "Icon"
+
+[node name="Name" type="Label" parent="Root/Center/LotsScroll/LotsTable/HeaderRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Name"
+
+[node name="Stats" type="Label" parent="Root/Center/LotsScroll/LotsTable/HeaderRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+text = "Stats"
+
+[node name="MinPrice" type="Label" parent="Root/Center/LotsScroll/LotsTable/HeaderRow"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Min Price"
+
+[node name="CurrentBid" type="Label" parent="Root/Center/LotsScroll/LotsTable/HeaderRow"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Current Bid"
+
+[node name="BidStep" type="Label" parent="Root/Center/LotsScroll/LotsTable/HeaderRow"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Bid Step"
+
+[node name="BuyNow" type="Label" parent="Root/Center/LotsScroll/LotsTable/HeaderRow"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Buy Now"
+
+[node name="TimeLeft" type="Label" parent="Root/Center/LotsScroll/LotsTable/HeaderRow"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+text = "Time Left"
+
+[node name="Seller" type="Label" parent="Root/Center/LotsScroll/LotsTable/HeaderRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Seller"
+
+[node name="Actions" type="Label" parent="Root/Center/LotsScroll/LotsTable/HeaderRow"]
+layout_mode = 2
+text = "Actions"
+
+[node name="Bottom" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+alignment = 2
+
+[node name="Pagination" type="HBoxContainer" parent="Root/Bottom"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PrevButton" type="Button" parent="Root/Bottom/Pagination"]
+layout_mode = 2
+text = "Prev"
+
+[node name="PageLabel" type="Label" parent="Root/Bottom/Pagination"]
+layout_mode = 2
+text = "Page 1"
+
+[node name="NextButton" type="Button" parent="Root/Bottom/Pagination"]
+layout_mode = 2
+text = "Next"
+
+[node name="LotDetailsModal" parent="." instance=ExtResource("2")]

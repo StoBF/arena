@@ -1,11 +1,13 @@
-[gd_scene load_steps=2 format=3 uid="uid://topbar_component"]
+[gd_scene load_steps=2 format=3 uid="uid://bpd8y7vj243m7"]
 
-[ext_resource type="Script" path="res://scripts/ui/components/TopBar.gd" id="1"]
+[ext_resource type="Script" uid="uid://qw4dnhopbhye" path="res://scripts/ui/components/TopBar.gd" id="1"]
 
 [node name="TopBar" type="PanelContainer"]
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 44.0
+offset_left = 263.0
+offset_top = 602.0
+offset_bottom = 645.0
 grow_horizontal = 2
 size_flags_horizontal = 3
 script = ExtResource("1")

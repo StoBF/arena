@@ -23,6 +23,10 @@ Localization="*res://autoload/Localization.gd"
 AppState="*res://autoload/AppState.gd"
 UIUtils="*res://autoload/UIUtils.gd"
 Nav="*res://autoload/NavigationManager.gd"
+HeroManager="*res://autoload/HeroManager.gd"
+InventoryManager="*res://autoload/InventoryManager.gd"
+AuctionManager="*res://autoload/AuctionManager.gd"
+WebSocketManager="*res://autoload/WebSocketManager.gd"
 
 [dotnet]
 
