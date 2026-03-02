@@ -1,5 +1,4 @@
 extends Node
-class_name WebSocketManager
 
 signal auction_bid_update(event_data: Dictionary)
 signal auction_lot_closed(event_data: Dictionary)
@@ -39,25 +38,25 @@ func _process(_delta: float) -> void:
 		return
 
 	_auction_ws.poll()
-	var state := _auction_ws.get_ready_state()
+	var state: int = _auction_ws.get_ready_state()
 	if state == WebSocketPeer.STATE_OPEN:
 		if not _auction_connected:
 			_auction_connected = true
 			_auction_reconnect_attempts = 0
 			auction_socket_state_changed.emit(true)
 		while _auction_ws.get_available_packet_count() > 0:
-			var packet := _auction_ws.get_packet().get_string_from_utf8()
+			var packet: String = _auction_ws.get_packet().get_string_from_utf8()
 			_handle_auction_packet(packet)
 	elif state == WebSocketPeer.STATE_CLOSED:
 		_handle_auction_closed()
 
 func _connect_auction_socket() -> void:
-	var token := AppState.access_token if not AppState.access_token.is_empty() else AppState.token
+	var token: String = AppState.access_token if not AppState.access_token.is_empty() else AppState.token
 	if token.is_empty():
 		return
-	var ws_url := "%s%s?token=%s" % [ServerConfig.get_instance().get_ws_base_url(), AUCTIONS_CHANNEL_PATH, token.uri_encode()]
+	var ws_url: String = "%s%s?token=%s" % [ServerConfig.get_instance().get_ws_base_url(), AUCTIONS_CHANNEL_PATH, token.uri_encode()]
 	_auction_ws = WebSocketPeer.new()
-	var err := _auction_ws.connect_to_url(ws_url)
+	var err: int = _auction_ws.connect_to_url(ws_url)
 	if err != OK:
 		_auction_ws = null
 		_schedule_auction_reconnect()
@@ -71,20 +70,20 @@ func _handle_auction_closed() -> void:
 		_schedule_auction_reconnect()
 
 func _schedule_auction_reconnect() -> void:
-	var delay := min(RECONNECT_MAX_DELAY, RECONNECT_BASE_DELAY * pow(2.0, _auction_reconnect_attempts))
+	var delay: float = minf(RECONNECT_MAX_DELAY, RECONNECT_BASE_DELAY * pow(2.0, _auction_reconnect_attempts))
 	_auction_reconnect_attempts += 1
-	var timer := get_tree().create_timer(delay)
+	var timer: SceneTreeTimer = get_tree().create_timer(delay)
 	timer.timeout.connect(func():
 		if _auction_should_run and _auction_ws == null:
 			_connect_auction_socket()
 	)
 
 func _handle_auction_packet(raw_packet: String) -> void:
-	var parsed := JSON.parse_string(raw_packet)
+	var parsed: Variant = JSON.parse_string(raw_packet)
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return
 	var packet: Dictionary = parsed
-	var event_name := str(packet.get("event", packet.get("type", ""))).strip_edges().to_lower()
+	var event_name: String = str(packet.get("event", packet.get("type", ""))).strip_edges().to_lower()
 	var payload: Dictionary = {}
 	if packet.has("data") and packet["data"] is Dictionary:
 		payload = (packet["data"] as Dictionary).duplicate(true)

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://ib5swbnbulvr" path="res://scripts/ui/GenerateDialogPanel.gd" id="1"]
 
-[node name="GenerateDialog" type="WindowDialog"]
+[node name="GenerateDialog" type="Window"]
 _import_path = NodePath("")
 unique_name_in_owner = false
 process_mode = 0

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://duluy528go2ev" path="res://scripts/ui/SellDialogPanel.gd" id="1"]
 
-[node name="SellDialog" type="WindowDialog"]
+[node name="SellDialog" type="Window"]
 _import_path = NodePath("")
 unique_name_in_owner = false
 process_mode = 0
