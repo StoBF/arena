@@ -16,14 +16,21 @@ signal back_pressed
 @onready var settings_btn: Button = $HBox/NavButtons/SettingsBtn
 
 # Whether the Back button should be visible (hide on MainMenu itself)
-var show_back := true : set = _set_show_back
+var show_back: bool = true : set = _set_show_back
 # Whether quick-nav buttons should be visible
-var show_nav := true : set = _set_show_nav
+var show_nav: bool = true : set = _set_show_nav
 
 ## Static factory: adds a TopBar to the given parent at the top.
 ## Returns the TopBar instance for optional customization.
-static func add_to(parent: Node, p_show_back := true, p_show_nav := true) -> TopBar:
-	var bar: TopBar = preload("res://scenes/ui/TopBar.tscn").instantiate()
+static func add_to(parent: Node, p_show_back: bool = true, p_show_nav: bool = true) -> TopBar:
+	var top_bar_scene: PackedScene = load("res://scenes/ui/TopBar.tscn") as PackedScene
+	if top_bar_scene == null:
+		push_error("[TopBar] Failed to load TopBar scene")
+		return null
+	var bar: TopBar = top_bar_scene.instantiate() as TopBar
+	if bar == null:
+		push_error("[TopBar] Failed to instantiate TopBar")
+		return null
 	bar.show_back = p_show_back
 	bar.show_nav = p_show_nav
 	parent.add_child(bar)

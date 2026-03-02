@@ -90,7 +90,7 @@ func _on_next_page() -> void:
 	_load_lots()
 
 func _load_lots() -> void:
-	var filters := {
+	var filters: Dictionary = {
 		"type": type_dropdown.get_item_text(type_dropdown.selected),
 		"rarity": rarity_dropdown.get_item_text(rarity_dropdown.selected),
 		"price_min": price_min.value,
@@ -112,22 +112,22 @@ func _rebuild_lots_table() -> void:
 			child.queue_free()
 
 	_lot_rows_by_id.clear()
-	for lot in _current_items:
+	for lot: Dictionary in _current_items:
 		var row: LotRow = _lot_row_scene.instantiate()
 		row.set_lot_data(lot)
 		row.bid_requested.connect(_on_row_bid_requested)
 		row.buy_now_requested.connect(_on_row_buy_now_requested)
 		row.details_requested.connect(_on_row_details_requested)
 		lots_table.add_child(row)
-		var lot_id := int(lot.get("id", -1))
+		var lot_id: int = int(lot.get("id", -1))
 		if lot_id > 0:
 			_lot_rows_by_id[lot_id] = row
 
 func _refresh_pagination() -> void:
-	var total := int(_current_pagination.get("total", _current_items.size()))
-	var page := int(_current_pagination.get("page", _current_page))
-	var has_prev := bool(_current_pagination.get("has_prev", page > 1))
-	var has_next := bool(_current_pagination.get("has_next", false))
+	var total: int = int(_current_pagination.get("total", _current_items.size()))
+	var page: int = int(_current_pagination.get("page", _current_page))
+	var has_prev: bool = bool(_current_pagination.get("has_prev", page > 1))
+	var has_next: bool = bool(_current_pagination.get("has_next", false))
 	page_label.text = "Page %d | Total %d" % [page, total]
 	prev_button.disabled = not has_prev
 	next_button.disabled = not has_next
@@ -154,7 +154,7 @@ func _on_modal_action_succeeded(_lot_id: int) -> void:
 	_load_lots()
 
 func _on_ws_bid_update(event_data: Dictionary) -> void:
-	var lot_id := int(event_data.get("lot_id", event_data.get("id", -1)))
+	var lot_id: int = int(event_data.get("lot_id", event_data.get("id", -1)))
 	if lot_id <= 0:
 		return
 	if _lot_rows_by_id.has(lot_id):
@@ -164,7 +164,7 @@ func _on_ws_bid_update(event_data: Dictionary) -> void:
 	lot_details_modal.apply_live_bid_update(event_data)
 
 func _on_ws_lot_closed(event_data: Dictionary) -> void:
-	var lot_id := int(event_data.get("lot_id", event_data.get("id", -1)))
+	var lot_id: int = int(event_data.get("lot_id", event_data.get("id", -1)))
 	if lot_id <= 0:
 		return
 	if _lot_rows_by_id.has(lot_id):
@@ -177,7 +177,7 @@ func _on_ws_lot_created(event_data: Dictionary) -> void:
 	var lot: Dictionary = event_data.duplicate(true)
 	if lot.is_empty() and event_data.has("lot") and event_data["lot"] is Dictionary:
 		lot = (event_data["lot"] as Dictionary).duplicate(true)
-	var lot_id := int(lot.get("id", lot.get("lot_id", -1)))
+	var lot_id: int = int(lot.get("id", lot.get("lot_id", -1)))
 	if lot_id <= 0:
 		return
 	if _lot_rows_by_id.has(lot_id):

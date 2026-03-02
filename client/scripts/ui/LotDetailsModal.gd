@@ -36,7 +36,7 @@ func open_for_lot(lot_data: Dictionary) -> void:
 	_lot_id = int(_lot_data.get("id", -1))
 	if _lot_id <= 0:
 		return
-	var fetched := await AuctionManager.fetch_lot_details(_lot_id, _lot_data)
+	var fetched: Dictionary = await AuctionManager.fetch_lot_details(_lot_id, _lot_data)
 	if not fetched.is_empty():
 		_lot_data = fetched
 	_refresh_ui()
@@ -48,8 +48,8 @@ func _refresh_ui() -> void:
 	seller_label.text = "Seller: %s" % str(_lot_data.get("seller", _lot_data.get("seller_name", "Unknown")))
 	reputation_label.text = "Reputation: %s" % str(_lot_data.get("seller_reputation", _lot_data.get("reputation", "N/A")))
 
-	var current_bid := float(_lot_data.get("current_price", _lot_data.get("current_bid", 0.0)))
-	var bid_step := maxf(0.01, float(_lot_data.get("bid_step", 1.0)))
+	var current_bid: float = float(_lot_data.get("current_price", _lot_data.get("current_bid", 0.0)))
+	var bid_step: float = maxf(0.01, float(_lot_data.get("bid_step", 1.0)))
 	current_bid_label.text = "Current Bid: %.2f" % current_bid
 	bid_step_label.text = "Bid Step: %.2f" % bid_step
 
@@ -57,7 +57,7 @@ func _refresh_ui() -> void:
 	bid_amount_spin.step = bid_step
 	bid_amount_spin.value = current_bid + bid_step
 
-	var buy_now_value := float(_lot_data.get("buy_now", _lot_data.get("buy_now_price", 0.0)))
+	var buy_now_value: float = float(_lot_data.get("buy_now", _lot_data.get("buy_now_price", 0.0)))
 	buy_now_button.visible = buy_now_value > 0.0
 	if buy_now_value > 0.0:
 		buy_now_button.text = "Buy Now (%.2f)" % buy_now_value
@@ -86,10 +86,10 @@ func _refresh_bid_history(data: Dictionary) -> void:
 		bid_history_list.add_item("No bids yet")
 		return
 
-	for bid in history:
-		var bidder := str(bid.get("bidder", bid.get("username", "unknown")))
-		var amount := float(bid.get("amount", 0.0))
-		var time_text := str(bid.get("time", bid.get("created_at", "")))
+	for bid: Dictionary in history:
+		var bidder: String = str(bid.get("bidder", bid.get("username", "unknown")))
+		var amount: float = float(bid.get("amount", 0.0))
+		var time_text: String = str(bid.get("time", bid.get("created_at", "")))
 		bid_history_list.add_item("%s | %.2f | %s" % [bidder, amount, time_text])
 
 func _build_stats_block(data: Dictionary) -> String:
@@ -115,7 +115,7 @@ func _on_auto_bid_toggled(pressed: bool) -> void:
 func _on_place_bid_pressed() -> void:
 	if _pending or _lot_id <= 0 or _is_closed:
 		return
-	var amount := bid_amount_spin.value
+	var amount: float = bid_amount_spin.value
 	if auto_bid_check.button_pressed:
 		amount = auto_bid_max_spin.value
 	if amount < bid_amount_spin.min_value:
@@ -156,10 +156,10 @@ func is_showing_lot(lot_id: int) -> bool:
 	return visible and _lot_id == lot_id
 
 func apply_live_bid_update(event_data: Dictionary) -> void:
-	var event_lot_id := int(event_data.get("lot_id", event_data.get("id", -1)))
+	var event_lot_id: int = int(event_data.get("lot_id", event_data.get("id", -1)))
 	if not is_showing_lot(event_lot_id):
 		return
-	var current_bid := float(event_data.get("current_bid", event_data.get("current_price", -1.0)))
+	var current_bid: float = float(event_data.get("current_bid", event_data.get("current_price", -1.0)))
 	if current_bid >= 0.0:
 		_lot_data["current_price"] = current_bid
 		_lot_data["current_bid"] = current_bid
@@ -170,13 +170,13 @@ func apply_live_bid_update(event_data: Dictionary) -> void:
 	bid_amount_spin.min_value = float(_lot_data.get("current_price", _lot_data.get("current_bid", 0.0))) + float(_lot_data.get("bid_step", 1.0))
 	bid_amount_spin.value = maxf(bid_amount_spin.value, bid_amount_spin.min_value)
 
-	var bidder := str(event_data.get("bidder", event_data.get("username", "unknown")))
-	var amount := float(event_data.get("amount", current_bid))
-	var time_text := str(event_data.get("time", event_data.get("created_at", Time.get_datetime_string_from_system())))
+	var bidder: String = str(event_data.get("bidder", event_data.get("username", "unknown")))
+	var amount: float = float(event_data.get("amount", current_bid))
+	var time_text: String = str(event_data.get("time", event_data.get("created_at", Time.get_datetime_string_from_system())))
 	bid_history_list.add_item("%s | %.2f | %s" % [bidder, amount, time_text])
 
 func apply_lot_closed(event_data: Dictionary) -> void:
-	var event_lot_id := int(event_data.get("lot_id", event_data.get("id", -1)))
+	var event_lot_id: int = int(event_data.get("lot_id", event_data.get("id", -1)))
 	if not is_showing_lot(event_lot_id):
 		return
 	_lot_data["is_closed"] = true
@@ -191,14 +191,14 @@ func _apply_closed_state() -> void:
 	auto_bid_max_spin.editable = false
 
 func _error_message_for_manager() -> String:
-	var code := AuctionManager.get_last_error_code()
+	var code: String = AuctionManager.get_last_error_code()
 	if code == "insufficient_funds":
 		return "Insufficient funds"
 	if code == "outbid":
 		return "You have been outbid"
 	if code == "lot_closed":
 		return "This lot is closed"
-	var fallback := AuctionManager.get_last_error_message()
+	var fallback: String = AuctionManager.get_last_error_message()
 	if fallback.is_empty():
 		fallback = "Request failed"
 	return fallback

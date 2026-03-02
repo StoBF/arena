@@ -20,21 +20,21 @@ func _ready() -> void:
 func open_for_item(item_data: Dictionary) -> void:
 	_item_data = item_data.duplicate(true)
 	_item_id = int(_item_data.get("id", -1))
-	var details := await InventoryManager.inspect_item(_item_id)
+	var details: Dictionary = await InventoryManager.inspect_item(_item_id)
 	if details.is_empty():
 		details = _item_data
 	_apply_details(details)
 	popup_centered_ratio(0.42)
 
 func _apply_details(details: Dictionary) -> void:
-	var rarity := str(details.get("rarity", "Common"))
+	var rarity: String = str(details.get("rarity", "Common"))
 	name_label.text = str(details.get("name", "Unknown Item"))
 	rarity_label.text = "Rarity: %s" % rarity
 	rarity_label.modulate = _rarity_color(rarity)
 	stats_label.text = _build_stats_text(details)
 	description_label.text = str(details.get("description", "No description."))
 
-	var icon_path := str(details.get("icon_path", "")).strip_edges()
+	var icon_path: String = str(details.get("icon_path", "")).strip_edges()
 	if not icon_path.is_empty() and ResourceLoader.exists(icon_path):
 		icon_rect.texture = load(icon_path)
 	else:
@@ -43,7 +43,7 @@ func _apply_details(details: Dictionary) -> void:
 func _on_sell_pressed() -> void:
 	if _item_id <= 0:
 		return
-	var listed := await InventoryManager.sell_item_on_auction(_item_id)
+	var listed: bool = await InventoryManager.sell_item_on_auction(_item_id)
 	if listed:
 		UIUtils.show_success("Item listed on auction")
 		hide()
