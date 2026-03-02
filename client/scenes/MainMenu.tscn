@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://bv4gongxnr28e"]
+[gd_scene load_steps=5 format=3 uid="uid://bv4gongxnr28e"]
 
 [ext_resource type="Script" uid="uid://dkqtlynloon07" path="res://scripts/ui/MainMenuScreen.gd" id="1_yqorp"]
 [ext_resource type="PackedScene" uid="uid://heroicon" path="res://scenes/HeroIcon.tscn" id="2_2wh52"]
+[ext_resource type="PackedScene" uid="uid://cf2qnplbgiv7k" path="res://scenes/ui/HeroCard.tscn" id="3_l72w3"]
 [ext_resource type="PackedScene" uid="uid://o3jyg78kpuht" path="res://scenes/ChatBox.tscn" id="3_ow34m"]
 
 [node name="MainMenu" type="Control"]
@@ -65,20 +66,39 @@ size_flags_vertical = 4
 theme_override_constants/h_separation = 110
 columns = 5
 
-[node name="HeroIcon" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer" instance=ExtResource("2_2wh52")]
-layout_mode = 2
-
 [node name="HeroIcon2" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer" instance=ExtResource("2_2wh52")]
 layout_mode = 2
+
+[node name="HeroCard" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer/HeroIcon2" instance=ExtResource("3_l72w3")]
+layout_mode = 0
 
 [node name="HeroIcon3" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer" instance=ExtResource("2_2wh52")]
 layout_mode = 2
 
+[node name="HeroCard" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer/HeroIcon3" instance=ExtResource("3_l72w3")]
+layout_mode = 0
+
 [node name="HeroIcon4" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer" instance=ExtResource("2_2wh52")]
 layout_mode = 2
 
+[node name="HeroCard" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer/HeroIcon4" instance=ExtResource("3_l72w3")]
+layout_mode = 0
+
 [node name="HeroIcon5" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer" instance=ExtResource("2_2wh52")]
 layout_mode = 2
+
+[node name="HeroCard" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer/HeroIcon5" instance=ExtResource("3_l72w3")]
+layout_mode = 0
+
+[node name="HeroCard" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer" instance=ExtResource("3_l72w3")]
+layout_mode = 2
+text = ""
+
+[node name="HeroIcon" parent="CanvasLayer/MarginContainer/VBoxContainer/HBoxContainer/HeroPanel/GridContainer/HeroCard" instance=ExtResource("2_2wh52")]
+layout_mode = 0
+offset_top = -4.0
+offset_right = 133.0
+offset_bottom = 128.0
 
 [node name="HBoxContainer2" type="HBoxContainer" parent="CanvasLayer/MarginContainer"]
 layout_mode = 2
@@ -128,6 +148,8 @@ anchor_bottom = 0.0
 offset_top = 127.0
 offset_right = 334.0
 offset_bottom = 314.0
+grow_horizontal = 1
+grow_vertical = 1
 
 [node name="Control" type="Control" parent="CanvasLayer/MarginContainer/HBoxContainer2"]
 layout_mode = 2

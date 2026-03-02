@@ -1,14 +1,14 @@
 extends Node
 class_name InventoryManager
 
-signal sig_inventory_updated
-signal sig_item_equipped(hero_id: int)
-signal sig_item_removed(item_id: int)
-
 signal items_updated(items: Array)
 signal items_load_failed(message: String)
 signal equipment_changed(hero_id: int, slot_name: String, item_data: Dictionary)
 signal item_lock_changed(item_id: int, locked: bool)
+
+signal sig_inventory_updated
+signal sig_item_equipped(hero_id: int)
+signal sig_item_removed(item_id: int)
 
 const EQUIPMENT_SLOTS := ["Helmet", "Armor", "Weapon", "Boots", "Ring", "Amulet"]
 
@@ -45,7 +45,6 @@ func get_items() -> Array:
 	var hero_id := _last_loaded_hero_id
 	if hero_id <= 0:
 		hero_id = AppState.current_hero_id
-
 	var path := "/inventory"
 	if hero_id > 0:
 		path = "%s?hero_id=%d" % [path, hero_id]
@@ -55,8 +54,9 @@ func get_items() -> Array:
 		items_load_failed.emit(_last_error_message)
 		return get_items_cached()
 
-	var parsed: Variant = response.get("data", {})
-	_items = _extract_items(parsed)
+	var data: Variant = response.get("data", {})
+	var items := _extract_items(data)
+	_items = items.duplicate(true)
 	if hero_id > 0:
 		_items_by_hero[hero_id] = _items.duplicate(true)
 		_last_loaded_hero_id = hero_id
@@ -70,9 +70,9 @@ func load_items(hero_id: int = -1) -> void:
 		items_load_failed.emit("No active hero selected")
 		return
 	_last_loaded_hero_id = hero_id
-	call_deferred("_load_items_async")
+	call_deferred("_load_items_async", hero_id)
 
-func _load_items_async() -> void:
+func _load_items_async(hero_id: int) -> void:
 	var _items_result: Array = await get_items()
 
 func get_equipment(hero_id: int) -> Dictionary:
@@ -103,8 +103,8 @@ func inspect_item(item_id: int, hero_id: int = -1) -> Dictionary:
 	if not bool(response.get("ok", false)):
 		return local_item
 	var parsed: Variant = response.get("data", {})
-	if parsed is Dictionary and (parsed as Dictionary).has("result") and (parsed as Dictionary)["result"] is Dictionary:
-		return ((parsed as Dictionary)["result"] as Dictionary).duplicate(true)
+	if typeof(parsed) == TYPE_DICTIONARY and parsed.has("result") and parsed["result"] is Dictionary:
+		return (parsed["result"] as Dictionary).duplicate(true)
 	if parsed is Dictionary:
 		return (parsed as Dictionary).duplicate(true)
 	return local_item
@@ -119,69 +119,121 @@ func equip_item_for_active_hero(item_id: int) -> bool:
 	var slot_type := resolve_slot_from_item(item)
 	if slot_type.is_empty():
 		return false
-	return await equip_item(hero_id, item_id, slot_type)
-
-func equip_item(hero_id: int, item_id: int, slot_type: String) -> bool:
-	if hero_id <= 0 or item_id <= 0 or not EQUIPMENT_SLOTS.has(slot_type):
-		return false
 
 	var rollback := apply_optimistic_equip(hero_id, item_id, slot_type)
-	var response := await _perform_request(HTTPClient.METHOD_PATCH, "/heroes/%d/equip" % hero_id, {
-		"item_id": item_id,
-		"slot_type": slot_type
-	})
-	if not bool(response.get("ok", false)):
+	var success := await equip_item(hero_id, item_id, slot_type)
+	if not success:
 		rollback_optimistic_equip(hero_id, slot_type, rollback)
+	return success
+
+func sell_item_on_auction(item_id: int, price: float = -1.0) -> bool:
+	var hero_id := HeroManager.get_active_hero_id()
+	if hero_id <= 0 or item_id <= 0:
+		return false
+	var item := get_item_by_id(item_id, hero_id)
+	if item.is_empty():
 		return false
 
-	sig_item_equipped.emit(hero_id)
+	if price <= 0.0:
+		price = float(item.get("sell_price", item.get("price", 1.0)))
+	if price <= 0.0:
+		price = 1.0
+
+	var payload := {
+		"item_id": item_id,
+		"price": price
+	}
+	var req = Network.request("/auctions/", HTTPClient.METHOD_POST, payload)
+	var result: Array = await req.request_completed
+	if result.size() < 2:
+		return false
+	var http_result := int(result[0])
+	var code := int(result[1])
+	if http_result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
+		return false
+
+	_remove_item_from_cache(hero_id, item_id)
+	items_updated.emit(get_items())
 	return true
-
-func unequip_item(hero_id: int, slot_type: String) -> bool:
-	if hero_id <= 0 or slot_type.is_empty() or not EQUIPMENT_SLOTS.has(slot_type):
-		return false
-
-	if not _equipment_by_hero.has(hero_id):
-		_equipment_by_hero[hero_id] = {}
-	if not _items_by_hero.has(hero_id):
-		_items_by_hero[hero_id] = []
-
-	var eq: Dictionary = _equipment_by_hero[hero_id]
-	var prev_item: Dictionary = {}
-	if eq.has(slot_type):
-		prev_item = (eq[slot_type] as Dictionary).duplicate(true)
-		eq.erase(slot_type)
-		(_items_by_hero[hero_id] as Array).append(prev_item)
-
-	equipment_changed.emit(hero_id, slot_type, {})
-	_emit_inventory_changed()
-
-	var response := await _perform_request(HTTPClient.METHOD_PATCH, "/heroes/%d/equip" % hero_id, {
-		"item_id": null,
-		"slot_type": slot_type
-	})
-	if bool(response.get("ok", false)):
-		return true
-
-	if not prev_item.is_empty():
-		eq[slot_type] = prev_item
-		_remove_item_from_list(_items_by_hero[hero_id], int(prev_item.get("id", -1)))
-	equipment_changed.emit(hero_id, slot_type, eq.get(slot_type, {}))
-	_emit_inventory_changed()
-	return false
 
 func dismantle_item(item_id: int) -> bool:
 	var hero_id := HeroManager.get_active_hero_id()
 	if hero_id <= 0 or item_id <= 0:
 		return false
-
-	var snapshot := _remove_item_optimistic(hero_id, item_id)
-	var response := await _perform_request(HTTPClient.METHOD_POST, "/inventory/%d/dismantle" % item_id, {})
-	if not bool(response.get("ok", false)):
-		_restore_removed_item(hero_id, snapshot)
-		_emit_inventory_changed()
+	var req = Network.request("/heroes/%d/inventory/%d/dismantle" % [hero_id, item_id], HTTPClient.METHOD_POST, {})
+	var result: Array = await req.request_completed
+	if result.size() < 2:
+		return false
+	var http_result := int(result[0])
+	var code := int(result[1])
+	if http_result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
 		return false
 
+	_remove_item_from_cache(hero_id, item_id)
+	items_updated.emit(get_items())
+	return true
+
+func set_item_lock(item_id: int, locked: bool) -> bool:
+	var hero_id := HeroManager.get_active_hero_id()
+	if hero_id <= 0 or item_id <= 0:
+		return false
+
+	var req = Network.request("/heroes/%d/inventory/%d/lock" % [hero_id, item_id], HTTPClient.METHOD_PATCH, {"is_locked": locked})
+	var result: Array = await req.request_completed
+	if result.size() < 2:
+		return false
+	var http_result := int(result[0])
+	var code := int(result[1])
+	if http_result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
+		return false
+
+	_update_item_in_cache(hero_id, item_id, {"is_locked": locked})
+	items_updated.emit(get_items())
+	item_lock_changed.emit(item_id, locked)
+	return true
+
+func toggle_item_lock(item_id: int) -> bool:
+	var hero_id := HeroManager.get_active_hero_id()
+	if hero_id <= 0 or item_id <= 0:
+		return false
+	var item := get_item_by_id(item_id, hero_id)
+	if item.is_empty():
+		return false
+	var new_value := not bool(item.get("is_locked", false))
+	return await set_item_lock(item_id, new_value)
+
+func is_item_valid_for_slot(item_id: int, slot_type: String, hero_id: int = -1) -> bool:
+	if slot_type.is_empty() or not EQUIPMENT_SLOTS.has(slot_type):
+		return false
+	var item := get_item_by_id(item_id, hero_id)
+	if item.is_empty():
+		return false
+	return resolve_slot_from_item(item) == slot_type
+
+func apply_optimistic_equip(hero_id: int, item_id: int, slot_type: String) -> Dictionary:
+	var snapshot := {
+		"previous_slot_item": {},
+	var payload := {
+		"item_removed": {},
+		"used_swap": false
+	}
+	var response := await _perform_request(HTTPClient.METHOD_POST, "/auctions/", payload)
+	if not bool(response.get("ok", false)):
+	if not _equipment_by_hero.has(hero_id):
+	sig_item_removed.emit(item_id)
+	_emit_inventory_changed()
+	var eq: Dictionary = _equipment_by_hero[hero_id]
+	var items: Array = _items_by_hero[hero_id]
+	var new_item := get_item_by_id(item_id, hero_id)
+	if new_item.is_empty():
+		return snapshot
+
+	var rollback := _remove_item_optimistic(hero_id, item_id)
+	var response := await _perform_request(HTTPClient.METHOD_POST, "/inventory/%d/dismantle" % item_id, {})
+	if not bool(response.get("ok", false)):
+		_restore_removed_item(hero_id, rollback)
+		_emit_inventory_changed()
+		return false
 	sig_item_removed.emit(item_id)
 	_emit_inventory_changed()
 	return true
@@ -214,68 +266,87 @@ func toggle_item_lock(item_id: int) -> bool:
 	var item := get_item_by_id(item_id, hero_id)
 	if item.is_empty():
 		return false
-	return await lock_item(item_id, not bool(item.get("is_locked", false)))
+	var new_value := not bool(item.get("is_locked", false))
+	return await lock_item(item_id, new_value)
 
-func sell_item_on_auction(item_id: int, price: float = -1.0) -> bool:
-	var hero_id := HeroManager.get_active_hero_id()
-	if hero_id <= 0 or item_id <= 0:
+func equip_item(hero_id: int, item_id: int, slot_type: String) -> bool:
+	if hero_id <= 0 or item_id <= 0 or not EQUIPMENT_SLOTS.has(slot_type):
 		return false
-
-	var item := get_item_by_id(item_id, hero_id)
-	if item.is_empty():
-		return false
-
-	if price <= 0.0:
-		price = float(item.get("sell_price", item.get("price", 1.0)))
-	if price <= 0.0:
-		price = 1.0
-
-	var response := await _perform_request(HTTPClient.METHOD_POST, "/auctions/", {"item_id": item_id, "price": price})
+	var rollback := apply_optimistic_equip(hero_id, item_id, slot_type)
+	var response := await _perform_request(HTTPClient.METHOD_PATCH, "/heroes/%d/equip" % hero_id, {
+		"item_id": item_id,
+		"slot_type": slot_type
+	})
 	if not bool(response.get("ok", false)):
+		rollback_optimistic_equip(hero_id, slot_type, rollback)
 		return false
-
-	_remove_item_from_cache(hero_id, item_id)
-	sig_item_removed.emit(item_id)
-	_emit_inventory_changed()
+	sig_item_equipped.emit(hero_id)
 	return true
 
-func is_item_valid_for_slot(item_id: int, slot_type: String, hero_id: int = -1) -> bool:
-	if slot_type.is_empty() or not EQUIPMENT_SLOTS.has(slot_type):
+func unequip_item(hero_id: int, slot_type: String) -> bool:
+	if hero_id <= 0 or slot_type.is_empty() or not EQUIPMENT_SLOTS.has(slot_type):
 		return false
-	var item := get_item_by_id(item_id, hero_id)
-	if item.is_empty():
-		return false
-	return resolve_slot_from_item(item) == slot_type
-
-func apply_optimistic_equip(hero_id: int, item_id: int, slot_type: String) -> Dictionary:
-	var snapshot := {
-		"previous_slot_item": {},
-		"item_removed": {},
-		"used_swap": false
-	}
-	if hero_id <= 0 or not EQUIPMENT_SLOTS.has(slot_type):
-		return snapshot
-
 	if not _equipment_by_hero.has(hero_id):
 		_equipment_by_hero[hero_id] = {}
-	if not _items_by_hero.has(hero_id):
-		_items_by_hero[hero_id] = []
 
 	var eq: Dictionary = _equipment_by_hero[hero_id]
-	var items: Array = _items_by_hero[hero_id]
-	var new_item := get_item_by_id(item_id, hero_id)
-	if new_item.is_empty():
-		return snapshot
-
+	var prev_item: Dictionary = {}
 	if eq.has(slot_type):
-		snapshot["previous_slot_item"] = (eq[slot_type] as Dictionary).duplicate(true)
-		snapshot["used_swap"] = true
-		items.append((snapshot["previous_slot_item"] as Dictionary).duplicate(true))
+		prev_item = (eq[slot_type] as Dictionary).duplicate(true)
+		eq.erase(slot_type)
+		if not _items_by_hero.has(hero_id):
+			_items_by_hero[hero_id] = []
+		(_items_by_hero[hero_id] as Array).append(prev_item)
 
-	eq[slot_type] = new_item.duplicate(true)
+	equipment_changed.emit(hero_id, slot_type, {})
+	_emit_inventory_changed()
 
-	for idx in range(items.size() - 1, -1, -1):
-		if int(items[idx].get("id", -1)) == item_id:
+	var response := await _perform_request(HTTPClient.METHOD_PATCH, "/heroes/%d/equip" % hero_id, {
+		"item_id": null,
+		"slot_type": slot_type
+	})
+	if bool(response.get("ok", false)):
+		return true
+
+	if not prev_item.is_empty():
+		eq[slot_type] = prev_item
+		_remove_item_from_list(_items_by_hero[hero_id], int(prev_item.get("id", -1)))
+	equipment_changed.emit(hero_id, slot_type, eq.get(slot_type, {}))
+	_emit_inventory_changed()
+	return false
+
+func _remove_item_optimistic(hero_id: int, item_id: int) -> Dictionary:
+	var snapshot := {"hero_id": hero_id, "item": {}, "index": -1}
+	if not _items_by_hero.has(hero_id):
+		return snapshot
+	var items: Array = _items_by_hero[hero_id]
+	for i in range(items.size()):
+		if int(items[i].get("id", -1)) == item_id:
+			snapshot["item"] = items[i].duplicate(true)
+			snapshot["index"] = i
+			items.remove_at(i)
+			break
+	_items_by_hero[hero_id] = items
+	if _last_loaded_hero_id == hero_id:
+		_items = items.duplicate(true)
+	return snapshot
+
+func _restore_removed_item(hero_id: int, snapshot: Dictionary) -> void:
+	if snapshot.is_empty() or not snapshot.has("item"):
+		return
+	var item := snapshot.get("item", {})
+	if item is Dictionary and not (item as Dictionary).is_empty():
+		if not _items_by_hero.has(hero_id):
+			_items_by_hero[hero_id] = []
+		var items: Array = _items_by_hero[hero_id]
+		var idx := int(snapshot.get("index", -1))
+		if idx >= 0 and idx <= items.size():
+			items.insert(idx, item)
+		else:
+			items.append(item)
+		_items_by_hero[hero_id] = items
+		if _last_loaded_hero_id == hero_id:
+			_items = items.duplicate(true)
 			snapshot["item_removed"] = items[idx].duplicate(true)
 			items.remove_at(idx)
 			break
@@ -285,7 +356,7 @@ func apply_optimistic_equip(hero_id: int, item_id: int, slot_type: String) -> Di
 		_items = items.duplicate(true)
 
 	equipment_changed.emit(hero_id, slot_type, new_item.duplicate(true))
-	_emit_inventory_changed()
+	items_updated.emit(get_items())
 	return snapshot
 
 func rollback_optimistic_equip(hero_id: int, slot_type: String, snapshot: Dictionary) -> void:
@@ -311,7 +382,29 @@ func rollback_optimistic_equip(hero_id: int, slot_type: String, snapshot: Dictio
 		_items = items.duplicate(true)
 
 	equipment_changed.emit(hero_id, slot_type, eq.get(slot_type, {}))
-	_emit_inventory_changed()
+	items_updated.emit(get_items())
+
+func equip_item(hero_id: int, item_id: int, slot_type: String) -> bool:
+	if hero_id <= 0 or item_id <= 0 or not EQUIPMENT_SLOTS.has(slot_type):
+		return false
+
+	var payload := {
+		"item_id": item_id,
+		"slot": slot_type
+	}
+	var req = Network.request("/heroes/%d/equipment" % hero_id, HTTPClient.METHOD_POST, payload)
+	var result: Array = await req.request_completed
+	if result.size() < 2:
+		return false
+	var http_result := int(result[0])
+	var code := int(result[1])
+	return http_result == HTTPRequest.RESULT_SUCCESS and code >= 200 and code < 300
+
+func unequip_item(hero_id: int, slot_name: String) -> void:
+	if hero_id <= 0 or slot_name.is_empty() or not _equipment_by_hero.has(hero_id):
+		return
+	(_equipment_by_hero[hero_id] as Dictionary).erase(slot_name)
+	equipment_changed.emit(hero_id, slot_name, {})
 
 func calculate_hero_preview_stats(hero_data: Dictionary, equipment: Dictionary) -> Dictionary:
 	var stats := {
@@ -376,16 +469,21 @@ func calculate_stat_delta_for_equip(hero_id: int, item_id: int, slot_type: Strin
 		"health": int(after_stats.get("health", 0)) - int(before_stats.get("health", 0))
 	}
 
-func _extract_items(parsed: Variant) -> Array:
-	if parsed is Array:
-		return (parsed as Array).duplicate(true)
-	if parsed is Dictionary:
-		var data: Dictionary = parsed
-		if data.has("result") and data["result"] is Array:
-			return (data["result"] as Array).duplicate(true)
-		if data.has("items") and data["items"] is Array:
-			return (data["items"] as Array).duplicate(true)
-	return []
+func _on_items_response(hero_id: int, result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
+		items_load_failed.emit("Failed to load inventory")
+		return
+
+	var parsed = _parse_json(body)
+	var items: Array = []
+	if typeof(parsed) == TYPE_DICTIONARY and parsed.has("result") and parsed["result"] is Array:
+		items = parsed["result"]
+	elif parsed is Array:
+		items = parsed
+
+	_items = items.duplicate(true)
+	_items_by_hero[hero_id] = _items.duplicate(true)
+	items_updated.emit(get_items())
 
 func _item_power(item: Dictionary) -> int:
 	if item.has("power"):
@@ -395,7 +493,7 @@ func _item_power(item: Dictionary) -> int:
 func _parse_json(body: PackedByteArray) -> Variant:
 	var json := JSON.new()
 	if json.parse(body.get_string_from_utf8()) != OK:
-		return {}
+		return []
 	return json.data
 
 func _perform_request(method: int, path: String, payload: Dictionary = {}, extra_headers: PackedStringArray = PackedStringArray()) -> Dictionary:
@@ -405,18 +503,17 @@ func _perform_request(method: int, path: String, payload: Dictionary = {}, extra
 	http.timeout = 12.0
 
 	var headers := PackedStringArray(["Accept: application/json"])
-	for header in extra_headers:
-		headers.append(header)
+	for h in extra_headers:
+		headers.append(h)
 	if not AppState.access_token.is_empty():
 		headers.append("Authorization: Bearer %s" % AppState.access_token)
 
-	var body_text := ""
+	var body := ""
 	if method != HTTPClient.METHOD_GET and method != HTTPClient.METHOD_DELETE:
 		headers.append("Content-Type: application/json")
-		body_text = JSON.stringify(payload)
+		body = JSON.stringify(payload)
 
-	var url := ServerConfig.get_instance().get_http_endpoint(path)
-	var err := http.request(url, headers, method, body_text)
+	var err := http.request(ServerConfig.get_instance().get_http_endpoint(path), headers, method, body)
 	if err != OK:
 		http.queue_free()
 		_set_error("request_failed", "Failed to send request")
@@ -430,8 +527,7 @@ func _perform_request(method: int, path: String, payload: Dictionary = {}, extra
 
 	var req_result := int(result[0])
 	var code := int(result[1])
-	var body: PackedByteArray = result[3]
-	var parsed := _parse_json(body)
+	var parsed := _parse_json(result[3])
 	if req_result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
 		var msg := _extract_error_message(parsed, "Request failed")
 		_set_error(_classify_error(code, msg), msg)
@@ -441,11 +537,11 @@ func _perform_request(method: int, path: String, payload: Dictionary = {}, extra
 
 func _extract_error_message(data: Variant, fallback: String) -> String:
 	if data is Dictionary:
-		var parsed: Dictionary = data
-		if parsed.has("detail"):
-			return str(parsed.get("detail", fallback))
-		if parsed.has("message"):
-			return str(parsed.get("message", fallback))
+		var d: Dictionary = data
+		if d.has("detail"):
+			return str(d.get("detail", fallback))
+		if d.has("message"):
+			return str(d.get("message", fallback))
 	return fallback
 
 func _classify_error(code: int, message: String) -> String:
@@ -479,40 +575,6 @@ func _remove_item_from_cache(hero_id: int, item_id: int) -> void:
 		return
 	var items: Array = _items_by_hero[hero_id]
 	_remove_item_from_list(items, item_id)
-	_items_by_hero[hero_id] = items
-	if _last_loaded_hero_id == hero_id:
-		_items = items.duplicate(true)
-
-func _remove_item_optimistic(hero_id: int, item_id: int) -> Dictionary:
-	var snapshot := {"hero_id": hero_id, "item": {}, "index": -1}
-	if not _items_by_hero.has(hero_id):
-		return snapshot
-	var items: Array = _items_by_hero[hero_id]
-	for idx in range(items.size()):
-		if int(items[idx].get("id", -1)) == item_id:
-			snapshot["item"] = items[idx].duplicate(true)
-			snapshot["index"] = idx
-			items.remove_at(idx)
-			break
-	_items_by_hero[hero_id] = items
-	if _last_loaded_hero_id == hero_id:
-		_items = items.duplicate(true)
-	return snapshot
-
-func _restore_removed_item(hero_id: int, snapshot: Dictionary) -> void:
-	if snapshot.is_empty() or not snapshot.has("item"):
-		return
-	if not _items_by_hero.has(hero_id):
-		_items_by_hero[hero_id] = []
-	var item: Dictionary = snapshot.get("item", {})
-	if item.is_empty():
-		return
-	var idx := int(snapshot.get("index", -1))
-	var items: Array = _items_by_hero[hero_id]
-	if idx >= 0 and idx <= items.size():
-		items.insert(idx, item)
-	else:
-		items.append(item)
 	_items_by_hero[hero_id] = items
 	if _last_loaded_hero_id == hero_id:
 		_items = items.duplicate(true)
