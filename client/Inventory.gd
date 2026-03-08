@@ -1,10 +1,10 @@
-extends Node2D
+extends CanvasLayer
 
 const SlotClass = preload("res://Slot.gd")
 const INVENTORY_DEBUG_SIGNALS := true
 
-@onready var inventory_slots: GridContainer = $GridContainer
-@onready var equip_slots: Array = $EquipSlots.get_children()
+@onready var inventory_slots: GridContainer = $Panel/InventoryGrid
+@onready var equip_slots: Array = $Panel/EquipmentGrid.get_children()
 
 var holding_item = null
 var holding_from_slot: SlotClass = null
@@ -74,6 +74,9 @@ func initialize_equips() -> void:
 func _input(_event: InputEvent) -> void:
 	if holding_item != null:
 		holding_item.global_position = get_global_mouse_position()
+		_update_drag_slot_feedback()
+	else:
+		_clear_drag_slot_feedback()
 
 func _on_slot_gui_input(event: InputEvent, slot: SlotClass) -> void:
 	if event is InputEventMouseButton == false:
@@ -103,10 +106,11 @@ func handle_slot_left_click(slot: SlotClass, mouse_event: InputEventMouseButton)
 func _is_valid_for_slot(slot: SlotClass, dragged_item) -> bool:
 	if dragged_item == null:
 		return true
-	if JsonData.item_data.has(dragged_item.item_name) == false:
+	var item_data: Dictionary = JsonData.get_item_data(str(dragged_item.item_name))
+	if item_data.is_empty():
 		return true
 
-	var category: String = str(JsonData.item_data[dragged_item.item_name].get("ItemCategory", ""))
+	var category: String = str(item_data.get("ItemCategory", ""))
 	match slot.slotType:
 		SlotClass.SlotType.SHIRT:
 			return category == "Shirt"
@@ -118,8 +122,13 @@ func _is_valid_for_slot(slot: SlotClass, dragged_item) -> bool:
 			return true
 
 func _pick_from_slot(slot: SlotClass) -> void:
-	PlayerInventory.remove_item(slot)
-	holding_item = slot.pickFromSlot()
+	var picked_item = slot.pickFromSlot()
+	if picked_item == null:
+		return
+	if PlayerInventory.remove_item(slot) <= 0:
+		slot.putIntoSlot(picked_item)
+		return
+	holding_item = picked_item
 	holding_from_slot = slot
 	if holding_item != null:
 		holding_item.global_position = get_global_mouse_position()
@@ -138,7 +147,7 @@ func _merge_holding_with_slot(slot: SlotClass) -> void:
 	if holding_item == null or slot.item == null:
 		return
 
-	var stack_size: int = int(JsonData.item_data[slot.item.item_name].get("StackSize", 1))
+	var stack_size: int = JsonData.get_stack_size(str(slot.item.item_name))
 	var able_to_add: int = stack_size - int(slot.item.item_quantity)
 	if able_to_add <= 0:
 		return
@@ -163,16 +172,17 @@ func _swap_with_slot(slot: SlotClass, event: InputEventMouseButton) -> void:
 	if holding_from_slot == null:
 		return
 
-	PlayerInventory.remove_item(slot)
 	var target_item = slot.pickFromSlot()
 	if target_item == null:
 		return
 
-	PlayerInventory.add_item_to_empty_slot(holding_item, slot)
+	if PlayerInventory.swap_items(holding_from_slot, slot) == false:
+		slot.putIntoSlot(target_item)
+		return
+
 	slot.putIntoSlot(holding_item)
 
 	if holding_from_slot.is_inside_tree():
-		PlayerInventory.add_item_to_empty_slot(target_item, holding_from_slot)
 		holding_from_slot.putIntoSlot(target_item)
 		holding_from_slot.notify_swapped(slot)
 		slot.notify_swapped(holding_from_slot)
@@ -195,6 +205,43 @@ func _return_holding_to_origin() -> void:
 		holding_item.queue_free()
 	holding_item = null
 	holding_from_slot = null
+	_clear_drag_slot_feedback()
+
+func _update_drag_slot_feedback() -> void:
+	if holding_item == null:
+		_clear_drag_slot_feedback()
+		return
+	for slot in _all_slots():
+		if slot == null:
+			continue
+		slot.show_drag_feedback(_is_valid_for_slot(slot, holding_item))
+
+func _clear_drag_slot_feedback() -> void:
+	for slot in _all_slots():
+		if slot == null:
+			continue
+		slot.clear_drag_feedback()
+
+func _all_slots() -> Array:
+	var result: Array = []
+	for slot in inventory_slots.get_children():
+		if slot is SlotClass:
+			result.append(slot)
+	for slot in equip_slots:
+		if slot is SlotClass:
+			result.append(slot)
+
+	var ui_root = get_parent()
+	if ui_root != null:
+		var hotbar_slots_node = ui_root.get_node_or_null("Hotbar/HotbarSlots")
+		if hotbar_slots_node == null:
+			hotbar_slots_node = ui_root.get_node_or_null("Hotbar/Panel/HotbarGrid")
+		if hotbar_slots_node != null:
+			for slot in hotbar_slots_node.get_children():
+				if slot is SlotClass:
+					result.append(slot)
+
+	return result
 
 func _connect_slot_debug_signals(slot: SlotClass) -> void:
 	if INVENTORY_DEBUG_SIGNALS == false:

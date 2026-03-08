@@ -10,11 +10,10 @@ func set_item(nm: String, qt: int) -> void:
 	item_name = nm
 	item_quantity = maxi(1, qt)
 
-	var data: Dictionary = JsonData.item_data.get(item_name, {})
-	var stack_size: int = int(data.get("StackSize", 1))
+	var stack_size: int = JsonData.get_stack_size(item_name)
 	item_quantity = mini(item_quantity, stack_size)
 
-	var icon_path: String = str(data.get("IconPath", "res://item_icons/%s.png" % item_name))
+	var icon_path: String = JsonData.get_item_icon(item_name)
 	if ResourceLoader.exists(icon_path):
 		icon_rect.texture = load(icon_path)
 	else:
@@ -29,7 +28,7 @@ func set_item(nm: String, qt: int) -> void:
 func add_item_quantity(amount_to_add: int) -> void:
 	if amount_to_add <= 0:
 		return
-	var stack_size: int = int(JsonData.item_data.get(item_name, {}).get("StackSize", 1))
+	var stack_size: int = JsonData.get_stack_size(item_name)
 	item_quantity = mini(item_quantity + amount_to_add, stack_size)
 	if stack_size > 1:
 		quantity_label.text = str(item_quantity)
@@ -42,6 +41,6 @@ func decrease_item_quantity(amount_to_remove: int) -> void:
 		queue_free()
 		return
 
-	var stack_size: int = int(JsonData.item_data.get(item_name, {}).get("StackSize", 1))
+	var stack_size: int = JsonData.get_stack_size(item_name)
 	if stack_size > 1:
 		quantity_label.text = str(item_quantity)

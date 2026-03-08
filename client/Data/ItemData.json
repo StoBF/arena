@@ -2,6 +2,7 @@
   "Tree Branch": {
     "ItemCategory": "Resource",
     "StackSize": 99,
+    "Icon": "res://item_icons/Tree Branch.png",
     "Description": "A sturdy tree branch that can be used for crafting."
   },
   "Slime Potion": {
@@ -9,6 +10,7 @@
     "AddHealth": 5,
     "AddEnergy": 32,
     "StackSize": 99,
+    "Icon": "res://item_icons/Slime Potion.png",
     "Description": "It smells like medicine."
   },
   "Iron Sword": {
@@ -16,21 +18,25 @@
     "ItemAttack": 3,
     "ItemSpeed": 0.75, 
     "StackSize": 1,
+    "Icon": "res://item_icons/Iron Sword.png",
     "Description": "Quite a rusty sword, but should be able to get the job done."
   },
   "Brown Shirt": {
     "ItemCategory": "Shirt",
     "StackSize": 1,
+    "Icon": "res://item_icons/Brown Shirt.png",
     "Description": "A brown shirt!!"
   },
   "Blue Jeans": {
     "ItemCategory": "Pants",
     "StackSize": 1,
+    "Icon": "res://item_icons/Blue Jeans.png",
     "Description": "Blue jeans!!"
   },
   "Brown Boots": {
     "ItemCategory": "Shoes",
     "StackSize": 1,
+    "Icon": "res://item_icons/Brown Boots.png",
     "Description": "Some dirty boots!!"
   }
 }

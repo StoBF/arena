@@ -1,9 +1,9 @@
-extends Node2D
+extends CanvasLayer
 
 const SlotClass = preload("res://Slot.gd")
 
-@onready var hotbar_slots: GridContainer = $HotbarSlots
-@onready var active_item_label: Label = $ActiveItemLabel
+@onready var hotbar_slots: GridContainer = $Panel/HotbarGrid
+@onready var active_item_label: Label = $Panel/ActiveItemLabel
 @onready var slots: Array = hotbar_slots.get_children()
 
 func _ready() -> void:
@@ -50,8 +50,41 @@ func update_active_item_label() -> void:
 	else:
 		active_item_label.text = ""
 
-func _input(_event: InputEvent) -> void:
-	pass
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey == false:
+		return
+	var key_event := event as InputEventKey
+	if key_event.pressed == false or key_event.echo:
+		return
+
+	var slot_index := _hotbar_index_from_key_event(key_event)
+	if slot_index < 0 or slot_index >= slots.size():
+		return
+
+	PlayerInventory.activate_hotbar_slot(slot_index)
+	update_active_item_label()
+	get_viewport().set_input_as_handled()
+
+func _hotbar_index_from_key_event(event: InputEventKey) -> int:
+	match event.keycode:
+		KEY_1, KEY_KP_1:
+			return 0
+		KEY_2, KEY_KP_2:
+			return 1
+		KEY_3, KEY_KP_3:
+			return 2
+		KEY_4, KEY_KP_4:
+			return 3
+		KEY_5, KEY_KP_5:
+			return 4
+		KEY_6, KEY_KP_6:
+			return 5
+		KEY_7, KEY_KP_7:
+			return 6
+		KEY_8, KEY_KP_8:
+			return 7
+		_:
+			return -1
 
 func _on_slot_gui_input(event: InputEvent, slot: SlotClass) -> void:
 	if event is InputEventMouseButton == false:

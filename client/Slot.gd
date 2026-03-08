@@ -26,6 +26,9 @@ enum SlotType {
 }
 
 var slotType: int = SlotType.INVENTORY
+var _normal_modulate: Color = Color(1, 1, 1, 1)
+var _valid_drop_modulate: Color = Color(0.82, 1.0, 0.82, 1)
+var _invalid_drop_modulate: Color = Color(1.0, 0.78, 0.78, 1)
 
 func _ready() -> void:
 	default_style = StyleBoxTexture.new()
@@ -34,6 +37,7 @@ func _ready() -> void:
 	default_style.texture = default_tex
 	empty_style.texture = empty_tex
 	selected_style.texture = selected_tex
+	modulate = _normal_modulate
 	refresh_style()
 
 func refresh_style() -> void:
@@ -81,3 +85,9 @@ func initialize_item(item_name: String, item_quantity: int) -> void:
 
 func notify_swapped(other_slot: Slot) -> void:
 	item_swapped.emit(self, other_slot)
+
+func show_drag_feedback(is_valid: bool) -> void:
+	modulate = _valid_drop_modulate if is_valid else _invalid_drop_modulate
+
+func clear_drag_feedback() -> void:
+	modulate = _normal_modulate
