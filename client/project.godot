@@ -20,6 +20,8 @@ config/icon="res://icon.svg"
 
 Network="*res://scripts/network/NetworkManager.gd"
 ApiClient="*res://scripts/network/ApiClient.gd"
+JsonData="*res://JSONData.gd"
+PlayerInventory="*res://PlayerInventory.gd"
 Localization="*res://autoload/Localization.gd"
 AppState="*res://autoload/AppState.gd"
 UIUtils="*res://autoload/UIUtils.gd"

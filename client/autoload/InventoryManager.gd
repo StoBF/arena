@@ -413,13 +413,13 @@ func _perform_request(method: int, path: String, payload: Dictionary = {}, extra
 	var response: Dictionary = {}
 	match method:
 		HTTPClient.METHOD_GET:
-			response = await ApiClient.get(path, headers)
+			response = await ApiClient.request_get(path, headers)
 		HTTPClient.METHOD_POST:
-			response = await ApiClient.post(path, payload, headers)
+			response = await ApiClient.request_post(path, payload, headers)
 		HTTPClient.METHOD_PATCH:
-			response = await ApiClient.patch(path, payload, headers)
+			response = await ApiClient.request_patch(path, payload, headers)
 		HTTPClient.METHOD_DELETE:
-			response = await ApiClient.delete(path, headers)
+			response = await ApiClient.request_delete(path, headers)
 		_:
 			response = await ApiClient.request_json(path, method, payload, headers)
 

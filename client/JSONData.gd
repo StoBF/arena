@@ -1,15 +1,30 @@
 extends Node
 
-var item_data: Dictionary
+signal data_loaded(item_data: Dictionary)
 
-func _ready():
-	item_data = LoadData("res://Data/ItemData.json")
+var item_data: Dictionary = {}
 
-func LoadData(file_path):
-	var json_data
-	var file_data = File.new()
-	
-	file_data.open(file_path, File.READ)
-	json_data = JSON.parse(file_data.get_as_text())
-	file_data.close()
-	return json_data.result
+func _ready() -> void:
+	item_data = load_data("res://Data/ItemData.json")
+	data_loaded.emit(item_data)
+
+func load_data(file_path: String) -> Dictionary:
+	if FileAccess.file_exists(file_path) == false:
+		push_error("[JsonData] Missing data file: %s" % file_path)
+		return {}
+
+	var file := FileAccess.open(file_path, FileAccess.READ)
+	if file == null:
+		push_error("[JsonData] Failed to open: %s" % file_path)
+		return {}
+
+	var text: String = file.get_as_text()
+	var parsed: Variant = JSON.parse_string(text)
+	if parsed is Dictionary:
+		return parsed
+
+	push_error("[JsonData] Invalid JSON format in %s" % file_path)
+	return {}
+
+func LoadData(file_path: String):
+	return load_data(file_path)

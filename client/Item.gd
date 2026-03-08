@@ -1,43 +1,47 @@
 extends Node2D
 
-var item_name
-var item_quantity
+var item_name: String = ""
+var item_quantity: int = 1
 
-func _ready():
-	var rand_val = randi() % 3
-	if rand_val == 0:
-		item_name = "Iron Sword"
-	elif rand_val == 1:
-		item_name = "Tree Branch"
-	else:
-		item_name = "Slime Potion"
-	
-	$TextureRect.texture = load("res://item_icons/" + item_name + ".png")
-	var stack_size = int(JsonData.item_data[item_name]["StackSize"])
-	item_quantity = randi() % stack_size + 1
-	
-	if stack_size == 1:
-		$Label.visible = false
-	else:
-		$Label.text = String(item_quantity)
+@onready var icon_rect: TextureRect = $TextureRect
+@onready var quantity_label: Label = $Label
 
-func set_item(nm, qt):
+func set_item(nm: String, qt: int) -> void:
 	item_name = nm
-	item_quantity = qt
-	$TextureRect.texture = load("res://item_icons/" + item_name + ".png")
-	
-	var stack_size = int(JsonData.item_data[item_name]["StackSize"])
-	if stack_size == 1:
-		$Label.visible = false
+	item_quantity = maxi(1, qt)
+
+	var data: Dictionary = JsonData.item_data.get(item_name, {})
+	var stack_size: int = int(data.get("StackSize", 1))
+	item_quantity = mini(item_quantity, stack_size)
+
+	var icon_path: String = str(data.get("IconPath", "res://item_icons/%s.png" % item_name))
+	if ResourceLoader.exists(icon_path):
+		icon_rect.texture = load(icon_path)
 	else:
-		$Label.visible = true
-		$Label.text = String(item_quantity)
-		
-func add_item_quantity(amount_to_add):
-	item_quantity += amount_to_add
-	$Label.text = String(item_quantity)
-	
-func decrease_item_quantity(amount_to_remove):
-	item_quantity -= amount_to_remove
-	$Label.text = String(item_quantity)
-	
+		icon_rect.texture = null
+
+	if stack_size <= 1:
+		quantity_label.visible = false
+	else:
+		quantity_label.visible = true
+		quantity_label.text = str(item_quantity)
+
+func add_item_quantity(amount_to_add: int) -> void:
+	if amount_to_add <= 0:
+		return
+	var stack_size: int = int(JsonData.item_data.get(item_name, {}).get("StackSize", 1))
+	item_quantity = mini(item_quantity + amount_to_add, stack_size)
+	if stack_size > 1:
+		quantity_label.text = str(item_quantity)
+
+func decrease_item_quantity(amount_to_remove: int) -> void:
+	if amount_to_remove <= 0:
+		return
+	item_quantity = maxi(0, item_quantity - amount_to_remove)
+	if item_quantity <= 0:
+		queue_free()
+		return
+
+	var stack_size: int = int(JsonData.item_data.get(item_name, {}).get("StackSize", 1))
+	if stack_size > 1:
+		quantity_label.text = str(item_quantity)

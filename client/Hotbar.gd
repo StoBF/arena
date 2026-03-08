@@ -1,82 +1,80 @@
 extends Node2D
 
 const SlotClass = preload("res://Slot.gd")
-onready var hotbar_slots = $HotbarSlots
-onready var active_item_label = $ActiveItemLabel
-onready var slots = hotbar_slots.get_children()
 
-func _ready():
-#	for i in range(slots.size()):
-#		slots[i].connect("gui_input", self, "slot_gui_input", [slots[i]])
-#		slots[i].slot_index = i
-	PlayerInventory.connect("active_item_updated", self, "update_active_item_label")
-	for i in range(slots.size()):
-		PlayerInventory.connect("active_item_updated", slots[i], "refresh_style")
-		slots[i].connect("gui_input", self, "slot_gui_input", [slots[i]])
-		slots[i].slotType = SlotClass.SlotType.HOTBAR
-		slots[i].slot_index = i
+@onready var hotbar_slots: GridContainer = $HotbarSlots
+@onready var active_item_label: Label = $ActiveItemLabel
+@onready var slots: Array = hotbar_slots.get_children()
+
+func _ready() -> void:
+	if PlayerInventory.active_item_updated.is_connected(update_active_item_label) == false:
+		PlayerInventory.active_item_updated.connect(update_active_item_label)
+	if PlayerInventory.hotbar_changed.is_connected(initialize_hotbar) == false:
+		PlayerInventory.hotbar_changed.connect(initialize_hotbar)
+
+	for i: int in range(slots.size()):
+		var slot := slots[i] as SlotClass
+		if slot == null:
+			continue
+		slot.slotType = SlotClass.SlotType.HOTBAR
+		slot.slot_index = i
+		if slot.gui_input.is_connected(_on_slot_gui_input.bind(slot)) == false:
+			slot.gui_input.connect(_on_slot_gui_input.bind(slot))
+		if PlayerInventory.active_item_updated.is_connected(slot.refresh_style) == false:
+			PlayerInventory.active_item_updated.connect(slot.refresh_style)
+
 	initialize_hotbar()
 	update_active_item_label()
 
-func update_active_item_label():
-	if slots[PlayerInventory.active_item_slot].item != null:
-		active_item_label.text = slots[PlayerInventory.active_item_slot].item.item_name
+func initialize_hotbar() -> void:
+	for i: int in range(slots.size()):
+		var slot := slots[i] as SlotClass
+		if slot == null:
+			continue
+		if PlayerInventory.hotbar_slots.has(i):
+			var data: Array = PlayerInventory.hotbar_slots[i]
+			slot.initialize_item(str(data[0]), int(data[1]))
+		elif slot.is_empty() == false:
+			var orphan = slot.pickFromSlot()
+			if orphan != null:
+				orphan.queue_free()
+		slot.refresh_style()
+
+func update_active_item_label() -> void:
+	if PlayerInventory.active_item_slot < 0 or PlayerInventory.active_item_slot >= slots.size():
+		active_item_label.text = ""
+		return
+	var active_slot := slots[PlayerInventory.active_item_slot] as SlotClass
+	if active_slot != null and active_slot.item != null:
+		active_item_label.text = str(active_slot.item.item_name)
 	else:
 		active_item_label.text = ""
 
-func initialize_hotbar():
-	for i in range(slots.size()):
-		if PlayerInventory.hotbar.has(i):
-			slots[i].initialize_item(PlayerInventory.hotbar[i][0], PlayerInventory.hotbar[i][1])
+func _input(_event: InputEvent) -> void:
+	pass
 
-func _input(event):
-	if find_parent("UserInterface").holding_item:
-		find_parent("UserInterface").holding_item.global_position = get_global_mouse_position()
+func _on_slot_gui_input(event: InputEvent, slot: SlotClass) -> void:
+	if event is InputEventMouseButton == false:
+		return
+	var mouse_event := event as InputEventMouseButton
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT or mouse_event.pressed == false:
+		return
+	var inventory_controller = _get_inventory_controller()
+	if inventory_controller != null and inventory_controller.has_method("handle_slot_left_click"):
+		inventory_controller.handle_slot_left_click(slot, mouse_event)
 
-func slot_gui_input(event: InputEvent, slot: SlotClass):
-	if event is InputEventMouseButton:
-		if event.button_index == BUTTON_LEFT && event.pressed:
-			if find_parent("UserInterface").holding_item != null:
-				if !slot.item:
-					left_click_empty_slot(slot)
-				else:
-					if find_parent("UserInterface").holding_item.item_name != slot.item.item_name:
-						left_click_different_item(event, slot)
-					else:
-						left_click_same_item(slot)
-			elif slot.item:
-				left_click_not_holding(slot)
-			update_active_item_label()
+	update_active_item_label()
 
-func left_click_empty_slot(slot: SlotClass):
-	PlayerInventory.add_item_to_empty_slot(find_parent("UserInterface").holding_item, slot)
-	slot.putIntoSlot(find_parent("UserInterface").holding_item)
-	find_parent("UserInterface").holding_item = null
-	
-func left_click_different_item(event: InputEvent, slot: SlotClass):
-	PlayerInventory.remove_item(slot)
-	PlayerInventory.add_item_to_empty_slot(find_parent("UserInterface").holding_item, slot)
-	var temp_item = slot.item
-	slot.pickFromSlot()
-	temp_item.global_position = event.global_position
-	slot.putIntoSlot(find_parent("UserInterface").holding_item)
-	find_parent("UserInterface").holding_item = temp_item
+func _get_ui_root() -> Node:
+	var current: Node = self
+	while current != null:
+		if current.name == "UserInterface":
+			return current
+		current = current.get_parent()
+	return null
 
-func left_click_same_item(slot: SlotClass):
-	var stack_size = int(JsonData.item_data[slot.item.item_name]["StackSize"])
-	var able_to_add = stack_size - slot.item.item_quantity
-	if able_to_add >= find_parent("UserInterface").holding_item.item_quantity:
-		PlayerInventory.add_item_quantity(slot, find_parent("UserInterface").holding_item.item_quantity)
-		slot.item.add_item_quantity(find_parent("UserInterface").holding_item.item_quantity)
-		find_parent("UserInterface").holding_item.queue_free()
-		find_parent("UserInterface").holding_item = null
-	else:
-		PlayerInventory.add_item_quantity(slot, able_to_add)
-		slot.item.add_item_quantity(able_to_add)
-		find_parent("UserInterface").holding_item.decrease_item_quantity(able_to_add)
-		
-func left_click_not_holding(slot: SlotClass):
-	PlayerInventory.remove_item(slot)
-	find_parent("UserInterface").holding_item = slot.item
-	slot.pickFromSlot()
-	find_parent("UserInterface").holding_item.global_position = get_global_mouse_position()
+func _get_inventory_controller():
+	var ui_root = _get_ui_root()
+	if ui_root == null:
+		return null
+	return ui_root.get_node_or_null("Inventory")

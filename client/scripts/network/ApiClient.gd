@@ -1,20 +1,19 @@
 extends Node
-class_name ApiClient
 
 ## Thin centralized HTTP facade over Network autoload.
 ## Safe migration path: existing scripts can continue using Network directly,
 ## while new/updated services move to ApiClient incrementally.
 
-func get(path: String, headers: PackedStringArray = PackedStringArray()) -> Dictionary:
+func request_get(path: String, headers: PackedStringArray = PackedStringArray()) -> Dictionary:
 	return await request_json(path, HTTPClient.METHOD_GET, {}, headers)
 
-func post(path: String, payload: Dictionary = {}, headers: PackedStringArray = PackedStringArray()) -> Dictionary:
+func request_post(path: String, payload: Dictionary = {}, headers: PackedStringArray = PackedStringArray()) -> Dictionary:
 	return await request_json(path, HTTPClient.METHOD_POST, payload, headers)
 
-func patch(path: String, payload: Dictionary = {}, headers: PackedStringArray = PackedStringArray()) -> Dictionary:
+func request_patch(path: String, payload: Dictionary = {}, headers: PackedStringArray = PackedStringArray()) -> Dictionary:
 	return await request_json(path, HTTPClient.METHOD_PATCH, payload, headers)
 
-func delete(path: String, headers: PackedStringArray = PackedStringArray()) -> Dictionary:
+func request_delete(path: String, headers: PackedStringArray = PackedStringArray()) -> Dictionary:
 	return await request_json(path, HTTPClient.METHOD_DELETE, {}, headers)
 
 func request_json(path: String, method: int, payload: Dictionary = {}, headers: PackedStringArray = PackedStringArray()) -> Dictionary:
