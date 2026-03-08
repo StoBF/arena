@@ -1,0 +1,31 @@
+[gd_scene load_steps=2 format=3 uid="uid://jg3yv6khelg"]
+
+[ext_resource type="Script" path="res://scripts/ui/components/ChatPanel.gd" id="1"]
+
+[node name="ChatPanel" type="VBoxContainer"]
+offset_right = 280.0
+offset_bottom = 160.0
+script = ExtResource("1")
+
+[node name="Tabs" type="TabContainer" parent="."]
+layout_mode = 2
+current_tab = 0
+
+[node name="General" type="VBoxContainer" parent="Tabs"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="MessageList" type="ItemList" parent="Tabs/General"]
+layout_mode = 2
+max_columns = 7
+fixed_column_width = 4
+
+[node name="InputHBox" type="HBoxContainer" parent="Tabs/General"]
+layout_mode = 2
+
+[node name="LineEdit" type="LineEdit" parent="Tabs/General/InputHBox"]
+layout_mode = 2
+
+[node name="Send" type="Button" parent="Tabs/General/InputHBox"]
+layout_mode = 2
+text = "Send"

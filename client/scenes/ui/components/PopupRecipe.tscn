@@ -1,0 +1,35 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/components/PopupRecipe.gd" id="1"]
+
+[node name="PopupRecipe" type="PanelContainer"]
+visible = false
+size_flags_horizontal = 4
+size_flags_vertical = 4
+script = ExtResource("1")
+
+[node name="Margin" type="MarginContainer" parent="."]
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="Margin"]
+
+[node name="Title" type="Label" parent="Margin/VBox"]
+text = "Recipe"
+
+[node name="Requirements" type="Label" parent="Margin/VBox"]
+autowrap_mode = 2
+text = "Requirements"
+
+[node name="Buttons" type="HBoxContainer" parent="Margin/VBox"]
+
+[node name="CraftButton" type="Button" parent="Margin/VBox/Buttons"]
+text = "Craft"
+
+[node name="CloseButton" type="Button" parent="Margin/VBox/Buttons"]
+text = "Close"
+
+[connection signal="pressed" from="Margin/VBox/Buttons/CraftButton" to="." method="_on_craft_button_pressed"]
+[connection signal="pressed" from="Margin/VBox/Buttons/CloseButton" to="." method="_on_close_button_pressed"]

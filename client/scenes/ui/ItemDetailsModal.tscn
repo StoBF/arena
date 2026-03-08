@@ -1,0 +1,77 @@
+[gd_scene load_steps=2 format=3 uid="uid://cbcgmwyycgygn"]
+
+[ext_resource type="Script" path="res://scripts/ui/ItemDetailsModal.gd" id="1"]
+
+[node name="ItemDetailsModal" type="Window"]
+oversampling_override = 1.0
+title = "Item Details"
+initial_position = 1
+size = Vector2i(520, 420)
+unresizable = true
+min_size = Vector2i(420, 320)
+script = ExtResource("1")
+
+[node name="Root" type="VBoxContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="Root"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="HBoxContainer" parent="Root/Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="Icon" type="TextureRect" parent="Root/Margin/Content"]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Info" type="VBoxContainer" parent="Root/Margin/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="NameLabel" type="Label" parent="Root/Margin/Content/Info"]
+layout_mode = 2
+text = "Item Name"
+
+[node name="RarityLabel" type="Label" parent="Root/Margin/Content/Info"]
+layout_mode = 2
+text = "Rarity: Common"
+
+[node name="StatsLabel" type="Label" parent="Root/Margin/Content/Info"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Stats"
+autowrap_mode = 2
+
+[node name="DescriptionLabel" type="Label" parent="Root/Margin/Content/Info"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Description"
+autowrap_mode = 2
+
+[node name="Actions" type="HBoxContainer" parent="Root/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="SellButton" type="Button" parent="Root/Margin/Actions"]
+layout_mode = 2
+text = "Sell"
+
+[node name="CloseButton" type="Button" parent="Root/Margin/Actions"]
+layout_mode = 2
+text = "Close"

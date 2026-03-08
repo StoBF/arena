@@ -1,0 +1,18 @@
+{
+  "heroes": [
+    {
+      "id": "hero_1",
+      "name": "Astra"
+    },
+    {
+      "id": "hero_2",
+      "name": "Riven"
+    }
+  ],
+  "resources": {
+    "herb": 10,
+    "water": 8,
+    "ore": 6,
+    "wood": 6
+  }
+}

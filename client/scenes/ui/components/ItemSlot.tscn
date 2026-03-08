@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/components/ItemSlot.gd" id="1"]
+
+[node name="ItemSlot" type="Button"]
+custom_minimum_size = Vector2(150, 40)
+script = ExtResource("1")
+text = "Item"

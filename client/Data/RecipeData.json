@@ -1,0 +1,24 @@
+{
+  "recipes": [
+    {
+      "id": "recipe_health_potion",
+      "name": "Health Potion",
+      "output_item": "Slime Potion",
+      "output_quantity": 1,
+      "requirements": {
+        "herb": 2,
+        "water": 1
+      }
+    },
+    {
+      "id": "recipe_branch_blade",
+      "name": "Branch Blade",
+      "output_item": "Iron Sword",
+      "output_quantity": 1,
+      "requirements": {
+        "ore": 2,
+        "wood": 2
+      }
+    }
+  ]
+}
