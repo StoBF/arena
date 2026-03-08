@@ -1,9 +1,11 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://b6ecarprllud6"]
 
-[ext_resource type="Script" path="res://scripts/ui/components/LotRow.gd" id="1"]
+[ext_resource type="Script" uid="uid://yxka8lpvoa2q" path="res://scripts/ui/components/LotRow.gd" id="1"]
 
 [node name="LotRow" type="HBoxContainer"]
 custom_minimum_size = Vector2(0, 78)
+offset_right = 1242.0
+offset_bottom = 78.0
 size_flags_horizontal = 3
 size_flags_vertical = 0
 theme_override_constants/separation = 10

@@ -404,60 +404,38 @@ func _item_power(item: Dictionary) -> int:
 		return int(item.get("power", 0))
 	return int(item.get("attack", 0)) + int(item.get("defense", 0)) + int(item.get("stability", 0)) + int(item.get("energy", 0)) + int(item.get("durability", 0))
 
-func _parse_json(body: PackedByteArray) -> Variant:
-	var json: JSON = JSON.new()
-	if json.parse(body.get_string_from_utf8()) != OK:
-		return {}
-	return json.data
-
 func _perform_request(method: int, path: String, payload: Dictionary = {}, extra_headers: PackedStringArray = PackedStringArray()) -> Dictionary:
 	clear_error()
-	var http: HTTPRequest = HTTPRequest.new()
-	add_child(http)
-	http.timeout = 12.0
-
 	var headers: PackedStringArray = PackedStringArray(["Accept: application/json"])
 	for header: String in extra_headers:
 		headers.append(header)
-	if not AppState.access_token.is_empty():
-		headers.append("Authorization: Bearer %s" % AppState.access_token)
 
-	var body_text: String = ""
-	if method != HTTPClient.METHOD_GET and method != HTTPClient.METHOD_DELETE:
-		headers.append("Content-Type: application/json")
-		body_text = JSON.stringify(payload)
+	var response: Dictionary = {}
+	match method:
+		HTTPClient.METHOD_GET:
+			response = await ApiClient.get(path, headers)
+		HTTPClient.METHOD_POST:
+			response = await ApiClient.post(path, payload, headers)
+		HTTPClient.METHOD_PATCH:
+			response = await ApiClient.patch(path, payload, headers)
+		HTTPClient.METHOD_DELETE:
+			response = await ApiClient.delete(path, headers)
+		_:
+			response = await ApiClient.request_json(path, method, payload, headers)
 
-	var url: String = ServerConfig.get_instance().get_http_endpoint(path)
-	var err: int = http.request(url, headers, method, body_text)
-	if err != OK:
-		http.queue_free()
-		_set_error("request_failed", "Failed to send request")
-		return {"ok": false, "data": {}}
+	var ok: bool = bool(response.get("ok", false))
+	var status: int = int(response.get("status", response.get("code", 0)))
+	var data: Variant = response.get("data", {})
+	var msg: String = str(response.get("error", response.get("message", "Request failed")))
 
-	var result: Array = await http.request_completed
-	http.queue_free()
-	if result.size() < 4:
-		_set_error("request_failed", "Unexpected response")
-		return {"ok": false, "data": {}}
+	if not ok:
+		if msg.is_empty():
+			msg = "Request failed"
+		_set_error(_classify_error(status, msg), msg)
+		print("[InventoryManager] request failed method=%d path=%s status=%d message=%s" % [method, path, status, msg])
+		return {"ok": false, "status": status, "error": msg, "data": data}
 
-	var req_result: int = int(result[0])
-	var code: int = int(result[1])
-	var body: PackedByteArray = result[3]
-	var parsed: Variant = _parse_json(body)
-	if req_result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
-		var msg: String = _extract_error_message(parsed, "Request failed")
-		_set_error(_classify_error(code, msg), msg)
-		return {"ok": false, "data": parsed}
-	return {"ok": true, "data": parsed}
-
-func _extract_error_message(data: Variant, fallback: String) -> String:
-	if data is Dictionary:
-		var parsed: Dictionary = data
-		if parsed.has("detail"):
-			return str(parsed.get("detail", fallback))
-		if parsed.has("message"):
-			return str(parsed.get("message", fallback))
-	return fallback
+	return {"ok": true, "status": status, "error": "", "data": data}
 
 func _classify_error(code: int, message: String) -> String:
 	var m: String = message.to_lower()

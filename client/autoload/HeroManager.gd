@@ -37,6 +37,8 @@ func load_heroes() -> void:
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_GET, "/heroes")
 	if not bool(response.get("ok", false)):
 		var msg: String = str(response.get("error", "Failed to load heroes"))
+		var status: int = int(response.get("status", 0))
+		print("[HeroManager] load_heroes failed (status=%d): %s" % [status, msg])
 		heroes_load_failed.emit(msg)
 		manager_error.emit(msg)
 		return
@@ -76,48 +78,32 @@ func _extract_heroes(parsed: Variant) -> Array[Dictionary]:
 	return output
 
 func _perform_request(method: int, path: String, payload: Dictionary = {}) -> Dictionary:
-	var http: HTTPRequest = HTTPRequest.new()
-	add_child(http)
-	http.timeout = 12.0
+	var response: Dictionary = {}
+	match method:
+		HTTPClient.METHOD_GET:
+			response = await ApiClient.get(path)
+		HTTPClient.METHOD_POST:
+			response = await ApiClient.post(path, payload)
+		HTTPClient.METHOD_PATCH:
+			response = await ApiClient.patch(path, payload)
+		HTTPClient.METHOD_DELETE:
+			response = await ApiClient.delete(path)
+		_:
+			response = await ApiClient.request_json(path, method, payload)
 
-	var headers: PackedStringArray = PackedStringArray(["Accept: application/json"])
-	if not AppState.access_token.is_empty():
-		headers.append("Authorization: Bearer %s" % AppState.access_token)
+	var ok: bool = bool(response.get("ok", false))
+	var status: int = int(response.get("status", response.get("code", 0)))
+	var data: Variant = response.get("data", {})
+	var error_message: String = str(response.get("error", response.get("message", "Request failed")))
 
-	var body_text: String = ""
-	if method != HTTPClient.METHOD_GET and method != HTTPClient.METHOD_DELETE:
-		headers.append("Content-Type: application/json")
-		body_text = JSON.stringify(payload)
+	if ok:
+		error_message = ""
+	elif error_message.is_empty():
+		error_message = "Request failed"
 
-	var err: int = http.request(ServerConfig.get_instance().get_http_endpoint(path), headers, method, body_text)
-	if err != OK:
-		http.queue_free()
-		return {"ok": false, "error": "Failed to send request", "data": {}}
-
-	var result: Array = await http.request_completed
-	http.queue_free()
-	if result.size() < 4:
-		return {"ok": false, "error": "Unexpected response", "data": {}}
-
-	var req_result: int = int(result[0])
-	var code: int = int(result[1])
-	var body: PackedByteArray = result[3]
-	var parsed: Variant = _parse_json(body)
-	if req_result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
-		return {"ok": false, "error": _extract_error(parsed, "Request failed"), "data": parsed}
-	return {"ok": true, "error": "", "data": parsed}
-
-func _parse_json(body: PackedByteArray) -> Variant:
-	var json: JSON = JSON.new()
-	if json.parse(body.get_string_from_utf8()) != OK:
-		return {}
-	return json.data
-
-func _extract_error(parsed: Variant, fallback: String) -> String:
-	if parsed is Dictionary:
-		var data: Dictionary = parsed
-		if data.has("detail"):
-			return str(data.get("detail", fallback))
-		if data.has("message"):
-			return str(data.get("message", fallback))
-	return fallback
+	return {
+		"ok": ok,
+		"status": status,
+		"error": error_message,
+		"data": data
+	}

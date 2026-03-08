@@ -18,12 +18,12 @@ class_name Equipment
 var quantum_effects: Array = []
 
 func to_dict() -> Dictionary:
-    return {
-        "slot": slot,
-        "stability": stability,
-        "energy": energy,
-        "durability": durability,
-        "mutation_chance": mutation_chance,
-        "skill_requirement": skill_requirement,
-        "quantum_effects": quantum_effects,
-    }
+	return {
+		"slot": slot,
+		"stability": stability,
+		"energy": energy,
+		"durability": durability,
+		"mutation_chance": mutation_chance,
+		"skill_requirement": skill_requirement,
+		"quantum_effects": quantum_effects,
+	}

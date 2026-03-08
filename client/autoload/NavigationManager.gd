@@ -16,7 +16,7 @@ const SCENES := {
 	"Register":         "res://scenes/Register.tscn",
 	"GenerateHero":     "res://scenes/GenerateHeroScene.tscn",
 	"Auction":          "res://scenes/AuctionUI.tscn",
-	"Inventory":        "res://scenes/InventoryUI.tscn",
+	"Inventory":        "res://scenes/Inventory.tscn",
 	"Battle":           "res://scenes/BattlePrep.tscn",
 	"BattleRoom":       "res://scenes/BattlePreparationRoom.tscn",
 	"HeroList":         "res://scenes/HeroList.tscn",
