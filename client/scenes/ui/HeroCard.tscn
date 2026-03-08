@@ -1,9 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://cf2qnplbgiv7k"]
-
-[ext_resource type="Script" uid="uid://ilg0morjpc5c" path="res://scripts/ui/components/HeroCard.gd" id="1"]
-
-[node name="HeroCard" type="Button"]
-offset_right = 133.0
-offset_bottom = 129.0
-text = "Hero Name (Lvl)"
-script = ExtResource("1")
