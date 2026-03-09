@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Arena_manager"
-run/main_scene="uid://5o0uyhod01ad"
+run/main_scene="res://Main.tscn"
 config/use_custom_user_dir=true
 config/features=PackedStringArray("4.5", "C#", "Mobile")
 config/icon="res://icon.svg"

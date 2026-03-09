@@ -7,35 +7,45 @@
 ##   - Deduplication (no double-load of same scene)
 extends Node
 
-const MAIN_MENU := "res://scenes/MainMenu.tscn"
+const MAIN_MENU := "res://Main.tscn"
 
-# Map of short names → scene paths (single source of truth)
 const SCENES := {
-	"MainMenu":         "res://scenes/MainMenu.tscn",
-	"Login":            "res://scenes/login_screen.tscn",
-	"Register":         "res://scenes/Register.tscn",
-	"GenerateHero":     "res://scenes/GenerateHeroScene.tscn",
-	"Auction":          "res://scenes/AuctionUI.tscn",
-	"Inventory":        "res://scenes/Inventory.tscn",
-	"Battle":           "res://scenes/BattlePrep.tscn",
-	"BattleRoom":       "res://scenes/BattlePreparationRoom.tscn",
-	"HeroList":         "res://scenes/HeroList.tscn",
-	"HeroMenu":         "res://scenes/HeroMenu.tscn",
-	"HeroEquipment":    "res://scenes/HeroEquipment.tscn",
-	"Settings":         "res://scenes/LocaleMenu.tscn",
-	"ChatBox":          "res://scenes/ChatBox.tscn",
+	"Main":             "res://Main.tscn",
+	"PlayerHub":        "res://scenes/ui/PlayerHub.tscn",
+	"HeroCreation":     "res://scenes/ui/HeroCreation.tscn",
+	"Storage":          "res://scenes/ui/Storage.tscn",
+	"Auction":          "res://scenes/ui/Auction.tscn",
+	"BattleRoom":       "res://scenes/ui/BattleRoom.tscn",
+	"Settings":         "res://scenes/ui/Settings.tscn",
+}
+
+const VIEW_ROUTES := {
+	"MainMenu": "PlayerHub",
+	"Login": "PlayerHub",
+	"Register": "PlayerHub",
+	"GenerateHero": "HeroCreation",
+	"Inventory": "Storage",
+	"HeroList": "Storage",
+	"HeroMenu": "Storage",
+	"HeroEquipment": "Storage",
+	"Battle": "BattleRoom",
+	"BattleRoom": "BattleRoom",
+	"Auction": "Auction",
+	"Settings": "Settings",
+	"PlayerHub": "PlayerHub",
+	"HeroCreation": "HeroCreation",
+	"Storage": "Storage",
 }
 
 # Scenes that require an authenticated user
 const AUTH_REQUIRED := [
-	"MainMenu", "GenerateHero", "Auction", "Inventory",
-	"Battle", "BattleRoom", "HeroList", "HeroMenu",
-	"HeroEquipment", "Settings",
+	"PlayerHub", "HeroCreation", "Storage", "Auction", "BattleRoom", "Settings",
+	"MainMenu", "GenerateHero", "Inventory", "Battle", "HeroList", "HeroMenu", "HeroEquipment",
 ]
 
 # Scenes that require an active (selected) hero
 const HERO_REQUIRED := [
-	"Battle", "BattleRoom", "HeroEquipment",
+	"Battle", "BattleRoom",
 ]
 
 # Track current scene to prevent duplicate loads
@@ -44,6 +54,9 @@ var _current_scene_path: String = ""
 ## Navigate to a scene by short name (see SCENES dict).
 ## Returns true if transition initiated, false on failure.
 func go(scene_name: String) -> bool:
+	if VIEW_ROUTES.has(scene_name):
+		return go_view(str(VIEW_ROUTES[scene_name]))
+
 	if not SCENES.has(scene_name):
 		push_error("[Nav] Unknown scene name: '%s'" % scene_name)
 		print("[Nav] ERROR unknown scene: %s" % scene_name)
@@ -51,6 +64,22 @@ func go(scene_name: String) -> bool:
 
 	var path: String = SCENES[scene_name]
 	return go_path(path, scene_name)
+
+func go_view(view_name: String) -> bool:
+	if VIEW_ROUTES.has(view_name):
+		view_name = str(VIEW_ROUTES[view_name])
+	if SCENES.has(view_name) == false and view_name != "PlayerHub" and view_name != "HeroCreation" and view_name != "Storage" and view_name != "Auction" and view_name != "BattleRoom" and view_name != "Settings":
+		push_error("[Nav] Unknown view name: '%s'" % view_name)
+		return false
+
+	if _current_scene_path != MAIN_MENU:
+		if _do_change(MAIN_MENU, "Main") == false:
+			return false
+		call_deferred("_open_view_on_main", view_name)
+		return true
+
+	_open_view_on_main(view_name)
+	return true
 
 ## Navigate to a scene by full resource path.
 func go_path(path: String, label: String = "") -> bool:
@@ -64,9 +93,9 @@ func go_path(path: String, label: String = "") -> bool:
 	# Auth guard
 	if label in AUTH_REQUIRED:
 		if AppState.access_token.is_empty():
-			print("[Nav] AUTH REQUIRED for '%s' but no token — redirecting to Login" % tag)
+			print("[Nav] AUTH REQUIRED for '%s' but no token — opening PlayerHub" % tag)
 			UIUtils.show_error("Please log in first")
-			return _do_change("res://scenes/login_screen.tscn", "Login")
+			return go_view("PlayerHub")
 
 	# Hero guard
 	if label in HERO_REQUIRED:
@@ -78,17 +107,24 @@ func go_path(path: String, label: String = "") -> bool:
 	# Validate file exists
 	if not ResourceLoader.exists(path):
 		push_error("[Nav] Scene file not found: %s" % path)
-		print("[Nav] ERROR scene not found: '%s' — falling back to MainMenu" % path)
+		print("[Nav] ERROR scene not found: '%s' — falling back to Main" % path)
 		UIUtils.show_error("Scene '%s' not found" % tag)
 		if path != MAIN_MENU:
-			return _do_change(MAIN_MENU, "MainMenu")
+			return _do_change(MAIN_MENU, "Main")
 		return false
 
 	return _do_change(path, tag)
 
 ## Go straight to MainMenu (dashboard).
 func go_main_menu() -> bool:
-	return go("MainMenu")
+	return go_view("PlayerHub")
+
+func _open_view_on_main(view_name: String) -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	if scene.has_method("open_view"):
+		scene.call("open_view", view_name)
 
 ## Internal: perform the actual scene change with error checking.
 func _do_change(path: String, tag: String) -> bool:
