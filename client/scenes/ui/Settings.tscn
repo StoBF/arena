@@ -53,3 +53,7 @@ text = "Fullscreen"
 
 [node name="LanguageOption" type="OptionButton" parent="VBox/Body"]
 layout_mode = 2
+
+[node name="LogoutButton" type="Button" parent="VBox/Body"]
+layout_mode = 2
+text = "Logout"

@@ -53,6 +53,7 @@ func load_heroes() -> void:
 		if _active_hero_id > 0:
 			AppState.current_hero_id = _active_hero_id
 
+	AppState.set_heroes_data(_heroes)
 	heroes_updated.emit(get_heroes())
 	if _active_hero_id > 0:
 		active_hero_changed.emit(_active_hero_id)

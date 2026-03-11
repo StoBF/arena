@@ -3,6 +3,8 @@ extends Control
 signal view_changed(view_name: String)
 
 const PLAYER_HUB_SCENE := preload("res://scenes/ui/PlayerHub.tscn")
+const LOGIN_SCENE := preload("res://scenes/ui/LoginScene.tscn")
+const REGISTER_SCENE := preload("res://scenes/ui/RegisterScene.tscn")
 const HERO_CREATION_SCENE := preload("res://scenes/ui/HeroCreation.tscn")
 const STORAGE_SCENE := preload("res://scenes/ui/Storage.tscn")
 const AUCTION_SCENE := preload("res://scenes/ui/Auction.tscn")
@@ -19,7 +21,10 @@ var _current_view: Control = null
 func _ready() -> void:
 	inventory_controller.bind_player_data(player_data)
 	craft_controller.bind_controllers(player_data, inventory_controller)
-	open_view("PlayerHub")
+	if AuthManager.is_authenticated():
+		open_view("PlayerHub")
+	else:
+		open_view("LoginScene")
 
 func open_view(view_name: String) -> void:
 	if _current_view != null and _current_view.is_inside_tree():
@@ -36,6 +41,10 @@ func open_view(view_name: String) -> void:
 
 func _scene_for_view(view_name: String) -> PackedScene:
 	match view_name:
+		"LoginScene":
+			return LOGIN_SCENE
+		"RegisterScene":
+			return REGISTER_SCENE
 		"PlayerHub":
 			return PLAYER_HUB_SCENE
 		"HeroCreation":
@@ -56,6 +65,9 @@ func _bind_view(view: Node) -> void:
 		view.bind_controllers(player_data, inventory_controller, craft_controller)
 
 	_connect_if_exists(view, "open_player_hub", func(): open_view("PlayerHub"))
+	_connect_if_exists(view, "open_register", func(): open_view("RegisterScene"))
+	_connect_if_exists(view, "open_login", func(): open_view("LoginScene"))
+	_connect_if_exists(view, "login_success", func(): open_view("PlayerHub"))
 	_connect_if_exists(view, "open_hero_creation", func(): open_view("HeroCreation"))
 	_connect_if_exists(view, "open_storage", func(): open_view("Storage"))
 	_connect_if_exists(view, "open_auction", func(): open_view("Auction"))

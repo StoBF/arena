@@ -9,6 +9,9 @@ signal chat_message_received(channel, message)
 signal chat_connection_changed(channel, connected)
 signal auction_lot_requested(lot_id)
 signal user_data_updated
+signal heroes_updated(heroes)
+signal inventory_updated(items)
+signal auction_updated(items, pagination)
 
 # Authentication tokens
 var access_token: String = ""
@@ -21,6 +24,10 @@ var username: String = ""
 var balance: float = 0.0
 var current_hero_id: int = -1
 var last_created_hero: Dictionary = {}
+var heroes: Array = []
+var inventory_items: Array = []
+var auction_items: Array = []
+var auction_pagination: Dictionary = {"page": 1, "page_size": 20, "total": 0, "has_next": false, "has_prev": false}
 
 # Battle lobby state (serializable only)
 var battle_queue: Array = []
@@ -46,6 +53,22 @@ func set_user_data(data: Dictionary) -> void:
 	balance = float(data.get("balance", balance))
 	print("[AppState] User data cached: username=%s balance=%.2f" % [username, balance])
 	user_data_updated.emit()
+
+
+func set_heroes_data(data: Array) -> void:
+	heroes = data.duplicate(true)
+	heroes_updated.emit(heroes.duplicate(true))
+
+
+func set_inventory_data(items: Array) -> void:
+	inventory_items = items.duplicate(true)
+	inventory_updated.emit(inventory_items.duplicate(true))
+
+
+func set_auction_data(items: Array, pagination: Dictionary) -> void:
+	auction_items = items.duplicate(true)
+	auction_pagination = pagination.duplicate(true)
+	auction_updated.emit(auction_items.duplicate(true), auction_pagination.duplicate(true))
 
 
 func update_battle_queue(queue_data: Array) -> void:

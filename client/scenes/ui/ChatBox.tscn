@@ -1,0 +1,97 @@
+[gd_scene load_steps=2 format=3 uid="uid://o3jyg78kpuht"]
+
+[ext_resource type="Script" path="res://scripts/ui/ChatBox.gd" id="1_x4cou"]
+
+[node name="ChatBox" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_x4cou")
+
+[node name="TabContainer" type="TabContainer" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+current_tab = 0
+
+[node name="General" type="Control" parent="TabContainer"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="GeneralLog" type="RichTextLabel" parent="TabContainer/General"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_following = true
+
+[node name="Trade" type="Control" parent="TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="TradeLog" type="RichTextLabel" parent="TabContainer/Trade"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_following = true
+
+[node name="System" type="Control" parent="TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="SystemLog" type="RichTextLabel" parent="TabContainer/System"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_following = true
+
+[node name="Private" type="Control" parent="TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 3
+
+[node name="PrivateLog" type="RichTextLabel" parent="TabContainer/Private"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_following = true
+
+[node name="BottomBar" type="HBoxContainer" parent="."]
+layout_mode = 0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+size_flags_horizontal = 3
+size_flags_vertical = 0
+
+[node name="MessageInput" type="LineEdit" parent="BottomBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+
+[node name="SendButton" type="Button" parent="BottomBar"]
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+text = "send"

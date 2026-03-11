@@ -12,12 +12,19 @@ const DEFAULT_PAGE_SIZE := 20
 
 var _last_items: Array = []
 var _last_pagination: Dictionary = {"page": 1, "page_size": DEFAULT_PAGE_SIZE, "total": 0, "has_next": false, "has_prev": false}
+var _last_filters: Dictionary = {"type": "heroes", "page": 1, "page_size": DEFAULT_PAGE_SIZE}
 var _last_error_code: String = ""
 var _last_error_message: String = ""
 
 func fetch_lots(filters: Dictionary) -> Array:
 	var sanitized: Dictionary = _sanitize_filters(filters)
-	var response: Dictionary = await _perform_request(HTTPClient.METHOD_GET, _build_endpoint(sanitized))
+	_last_filters = sanitized.duplicate(true)
+	var endpoint_candidates: Array[String] = _build_endpoint_candidates(sanitized)
+	var response: Dictionary = {}
+	for endpoint in endpoint_candidates:
+		response = await _perform_request(HTTPClient.METHOD_GET, endpoint)
+		if bool(response.get("ok", false)):
+			break
 	if not bool(response.get("ok", false)):
 		lots_fetch_failed.emit(_last_error_message)
 		return []
@@ -27,6 +34,7 @@ func fetch_lots(filters: Dictionary) -> Array:
 	var pagination: Dictionary = _extract_pagination(parsed, sanitized, items.size())
 	_last_items = items.duplicate(true)
 	_last_pagination = pagination.duplicate(true)
+	AppState.set_auction_data(_last_items, _last_pagination)
 	lots_updated.emit(_last_items.duplicate(true), _last_pagination.duplicate(true))
 	return _last_items.duplicate(true)
 
@@ -66,6 +74,8 @@ func place_bid(lot_id: int, amount: int) -> bool:
 		return false
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_POST, "/auctions/%d/bid" % lot_id, {"amount": amount})
 	if bool(response.get("ok", false)):
+		await fetch_lots(_last_filters)
+		await _refresh_user_profile()
 		sig_lot_updated.emit(lot_id)
 		bid_received.emit(lot_id, float(amount))
 		return true
@@ -79,6 +89,8 @@ func buy_now(lot_id: int) -> bool:
 		return false
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_POST, "/auctions/%d/buy" % lot_id, {})
 	if bool(response.get("ok", false)):
+		await fetch_lots(_last_filters)
+		await _refresh_user_profile()
 		sig_lot_closed.emit(lot_id)
 		return true
 	if _last_error_code == "lot_closed":
@@ -93,6 +105,7 @@ func create_lot(data: Dictionary) -> bool:
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_POST, "/auctions", payload)
 	if not bool(response.get("ok", false)):
 		return false
+	await fetch_lots(_last_filters)
 	var created_lot: Dictionary = _extract_lot_from_response(response.get("data", {}), payload)
 	sig_new_lot.emit(created_lot)
 	return true
@@ -104,6 +117,7 @@ func cancel_lot(lot_id: int) -> bool:
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_DELETE, "/auctions/%d" % lot_id)
 	if not bool(response.get("ok", false)):
 		return false
+	await fetch_lots(_last_filters)
 	sig_lot_closed.emit(lot_id)
 	return true
 
@@ -111,7 +125,7 @@ func _sanitize_filters(filters: Dictionary) -> Dictionary:
 	var page: int = maxi(1, int(filters.get("page", 1)))
 	var page_size: int = maxi(1, mini(100, int(filters.get("page_size", DEFAULT_PAGE_SIZE))))
 	return {
-		"type": str(filters.get("type", "Hero")).strip_edges(),
+		"type": str(filters.get("type", "heroes")).strip_edges(),
 		"rarity": str(filters.get("rarity", "All")).strip_edges(),
 		"price_min": float(filters.get("price_min", 0.0)),
 		"price_max": float(filters.get("price_max", 0.0)),
@@ -122,14 +136,25 @@ func _sanitize_filters(filters: Dictionary) -> Dictionary:
 		"page_size": page_size
 	}
 
-func _build_endpoint(filters: Dictionary) -> String:
-	var params: Array[String] = []
-	params.append("page=%d" % int(filters.get("page", 1)))
-	params.append("page_size=%d" % int(filters.get("page_size", DEFAULT_PAGE_SIZE)))
+func _build_endpoint_candidates(filters: Dictionary) -> Array[String]:
+	var queries: PackedStringArray = _build_query_parts(filters)
+	return [
+		"/auction/lots?%s" % "&".join(queries),
+		"/auctions/lots?%s" % "&".join(queries),
+	]
 
-	var type_filter: String = str(filters.get("type", "Hero"))
+func _build_query_parts(filters: Dictionary) -> PackedStringArray:
+	var params: Array[String] = []
+	var page: int = int(filters.get("page", 1))
+	var page_size: int = int(filters.get("page_size", DEFAULT_PAGE_SIZE))
+	params.append("page=%d" % page)
+	params.append("page_size=%d" % page_size)
+	params.append("limit=%d" % page_size)
+	params.append("offset=%d" % maxi(0, (page - 1) * page_size))
+
+	var type_filter: String = str(filters.get("type", "heroes"))
 	if not type_filter.is_empty() and type_filter.to_lower() != "all":
-		params.append("type=%s" % _url_encode(type_filter.to_lower()))
+		params.append("type=%s" % _url_encode(_map_category(type_filter)))
 
 	var rarity_filter: String = str(filters.get("rarity", "All"))
 	if rarity_filter.to_lower() != "all":
@@ -155,7 +180,26 @@ func _build_endpoint(filters: Dictionary) -> String:
 	if not sort_value.is_empty():
 		params.append("sort=%s" % _url_encode(sort_value))
 
-	return "/auctions/lots?%s" % "&".join(params)
+	return PackedStringArray(params)
+
+func _map_category(value: String) -> String:
+	match value.to_lower():
+		"heroes":
+			return "hero"
+		"armor":
+			return "armor"
+		"helmets":
+			return "helmet"
+		"gloves":
+			return "gloves"
+		"artifacts":
+			return "artifact"
+		"recipes":
+			return "recipe"
+		"resources":
+			return "resource"
+		_:
+			return value.to_lower()
 
 func _extract_items(parsed: Variant) -> Array:
 	if parsed is Array:
@@ -173,26 +217,35 @@ func _extract_pagination(parsed: Variant, filters: Dictionary, item_count: int) 
 	var page_size: int = int(filters.get("page_size", DEFAULT_PAGE_SIZE))
 	var total: int = item_count
 	var has_next: bool = item_count >= page_size
+	var has_prev: bool = page > 1
 	if parsed is Dictionary:
 		var data: Dictionary = parsed
+		if data.has("limit") and data.has("offset"):
+			var limit: int = maxi(1, int(data.get("limit", page_size)))
+			var offset: int = maxi(0, int(data.get("offset", 0)))
+			page = int(offset / limit) + 1
+			page_size = limit
 		if data.has("total"):
 			total = int(data.get("total", total))
+			has_next = page * page_size < total
+			has_prev = page > 1
 		if data.has("has_next"):
 			has_next = bool(data.get("has_next", has_next))
 		if data.has("has_prev"):
+			has_prev = bool(data.get("has_prev", has_prev))
 			return {
 				"page": page,
 				"page_size": page_size,
 				"total": total,
 				"has_next": has_next,
-				"has_prev": bool(data.get("has_prev", page > 1))
+				"has_prev": has_prev
 			}
 	return {
 		"page": page,
 		"page_size": page_size,
 		"total": total,
 		"has_next": has_next,
-		"has_prev": page > 1
+		"has_prev": has_prev
 	}
 
 func _sort_to_query(value: String) -> String:
@@ -219,45 +272,43 @@ func _parse_json(body: PackedByteArray) -> Variant:
 
 func _perform_request(method: int, path: String, payload: Dictionary = {}, extra_headers: PackedStringArray = PackedStringArray()) -> Dictionary:
 	clear_error()
-	var http: HTTPRequest = HTTPRequest.new()
-	add_child(http)
-	http.timeout = 12.0
-
 	var headers: PackedStringArray = PackedStringArray(["Accept: application/json"])
 	for header: String in extra_headers:
 		headers.append(header)
-	if not AppState.access_token.is_empty():
-		headers.append("Authorization: Bearer %s" % AppState.access_token)
 
-	var body_text: String = ""
-	if method != HTTPClient.METHOD_GET and method != HTTPClient.METHOD_DELETE:
-		headers.append("Content-Type: application/json")
-		body_text = JSON.stringify(payload)
+	var response: Dictionary = {}
+	match method:
+		HTTPClient.METHOD_GET:
+			response = await ApiClient.request_get(path, headers)
+		HTTPClient.METHOD_POST:
+			response = await ApiClient.request_post(path, payload, headers)
+		HTTPClient.METHOD_PATCH:
+			response = await ApiClient.request_patch(path, payload, headers)
+		HTTPClient.METHOD_DELETE:
+			response = await ApiClient.request_delete(path, headers)
+		_:
+			response = await ApiClient.request_json(path, method, payload, headers)
 
-	var url: String = ServerConfig.get_instance().get_http_endpoint(path)
-	var err: int = http.request(url, headers, method, body_text)
-	if err != OK:
-		http.queue_free()
-		_set_error("request_failed", "Failed to send request")
-		return {"ok": false, "code": 0, "data": {}, "headers": PackedStringArray()}
-
-	var response: Array = await http.request_completed
-	http.queue_free()
-	if response.size() < 4:
-		_set_error("request_failed", "Unexpected response")
-		return {"ok": false, "code": 0, "data": {}, "headers": PackedStringArray()}
-
-	var result: int = int(response[0])
-	var code: int = int(response[1])
-	var headers_out: PackedStringArray = response[2]
-	var body: PackedByteArray = response[3]
-	var data: Variant = _parse_json(body)
-	if result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
-		var message: String = _extract_error_message(data, "Request failed")
+	var code: int = int(response.get("code", 0))
+	var data: Variant = response.get("data", {})
+	if bool(response.get("ok", false)) == false:
+		var message: String = str(response.get("message", _extract_error_message(data, "Request failed")))
 		_set_error(_classify_error(code, message), message)
-		return {"ok": false, "code": code, "data": data, "headers": headers_out}
+		return {"ok": false, "code": code, "data": data, "headers": PackedStringArray(response.get("headers", PackedStringArray()))}
 
-	return {"ok": true, "code": code, "data": data, "headers": headers_out}
+	return {"ok": true, "code": code, "data": data, "headers": PackedStringArray(response.get("headers", PackedStringArray()))}
+
+func _refresh_user_profile() -> void:
+	var profile_response: Dictionary = await ApiClient.request_get("/auth/me")
+	if bool(profile_response.get("ok", false)) == false:
+		return
+	var parsed: Variant = profile_response.get("data", {})
+	if parsed is Dictionary:
+		var data := parsed as Dictionary
+		if data.has("result") and data["result"] is Dictionary:
+			AppState.set_user_data((data["result"] as Dictionary).duplicate(true))
+			return
+		AppState.set_user_data(data.duplicate(true))
 
 func _extract_error_message(data: Variant, fallback: String) -> String:
 	if data is Dictionary:

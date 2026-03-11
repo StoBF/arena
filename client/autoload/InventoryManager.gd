@@ -60,6 +60,7 @@ func get_items() -> Array[Dictionary]:
 	if hero_id > 0:
 		_items_by_hero[hero_id] = _items.duplicate(true)
 		_last_loaded_hero_id = hero_id
+	AppState.set_inventory_data(_items)
 	_emit_inventory_changed()
 	return _items.duplicate(true)
 
@@ -127,15 +128,15 @@ func equip_item(hero_id: int, item_id: int, slot_type: String) -> bool:
 		_set_error("invalid_input", "Invalid equip request")
 		return false
 
-	var rollback: Dictionary = apply_optimistic_equip(hero_id, item_id, slot_type)
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_PATCH, "/heroes/%d/equip" % hero_id, {
 		"item_id": item_id,
 		"slot_type": slot_type
 	})
 	if not bool(response.get("ok", false)):
-		rollback_optimistic_equip(hero_id, slot_type, rollback)
 		return false
 
+	await get_items()
+	await HeroManager.load_heroes()
 	sig_item_equipped.emit(hero_id)
 	return true
 
@@ -144,33 +145,14 @@ func unequip_item(hero_id: int, slot_type: String) -> bool:
 		_set_error("invalid_input", "Invalid unequip request")
 		return false
 
-	if not _equipment_by_hero.has(hero_id):
-		_equipment_by_hero[hero_id] = {}
-	if not _items_by_hero.has(hero_id):
-		_items_by_hero[hero_id] = []
-
-	var eq: Dictionary = _equipment_by_hero[hero_id]
-	var prev_item: Dictionary = {}
-	if eq.has(slot_type) and eq[slot_type] is Dictionary:
-		prev_item = (eq[slot_type] as Dictionary).duplicate(true)
-		eq.erase(slot_type)
-		(_items_by_hero[hero_id] as Array).append(prev_item)
-
-	equipment_changed.emit(hero_id, slot_type, {})
-	_emit_inventory_changed()
-
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_PATCH, "/heroes/%d/equip" % hero_id, {
 		"item_id": null,
 		"slot_type": slot_type
 	})
 	if bool(response.get("ok", false)):
+		await get_items()
+		await HeroManager.load_heroes()
 		return true
-
-	if not prev_item.is_empty():
-		eq[slot_type] = prev_item
-		_remove_item_from_list(_items_by_hero[hero_id] as Array, int(prev_item.get("id", -1)))
-	equipment_changed.emit(hero_id, slot_type, eq.get(slot_type, {}))
-	_emit_inventory_changed()
 	return false
 
 func dismantle_item(item_id: int) -> bool:
@@ -179,15 +161,12 @@ func dismantle_item(item_id: int) -> bool:
 		_set_error("invalid_input", "Invalid dismantle request")
 		return false
 
-	var snapshot: Dictionary = _remove_item_optimistic(hero_id, item_id)
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_POST, "/inventory/%d/dismantle" % item_id, {})
 	if not bool(response.get("ok", false)):
-		_restore_removed_item(hero_id, snapshot)
-		_emit_inventory_changed()
 		return false
 
+	await get_items()
 	sig_item_removed.emit(item_id)
-	_emit_inventory_changed()
 	return true
 
 func lock_item(item_id: int, locked: bool) -> bool:
@@ -196,17 +175,11 @@ func lock_item(item_id: int, locked: bool) -> bool:
 		_set_error("invalid_input", "Invalid lock request")
 		return false
 
-	var previous: bool = bool(get_item_by_id(item_id, hero_id).get("is_locked", false))
-	_update_item_in_cache(hero_id, item_id, {"is_locked": locked})
-	item_lock_changed.emit(item_id, locked)
-	_emit_inventory_changed()
-
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_PATCH, "/inventory/%d/lock" % item_id, {"locked": locked})
 	if not bool(response.get("ok", false)):
-		_update_item_in_cache(hero_id, item_id, {"is_locked": previous})
-		item_lock_changed.emit(item_id, previous)
-		_emit_inventory_changed()
 		return false
+	await get_items()
+	item_lock_changed.emit(item_id, locked)
 	return true
 
 func set_item_lock(item_id: int, locked: bool) -> bool:
@@ -238,10 +211,8 @@ func sell_item_on_auction(item_id: int, price: float = -1.0) -> bool:
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_POST, "/auctions/", {"item_id": item_id, "price": price})
 	if not bool(response.get("ok", false)):
 		return false
-
-	_remove_item_from_cache(hero_id, item_id)
+	await get_items()
 	sig_item_removed.emit(item_id)
-	_emit_inventory_changed()
 	return true
 
 func is_item_valid_for_slot(item_id: int, slot_type: String, hero_id: int = -1) -> bool:

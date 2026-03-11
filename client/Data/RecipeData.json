@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "recipes": [
     {
       "id": "recipe_health_potion",

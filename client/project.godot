@@ -22,7 +22,7 @@ Network="*res://scripts/network/NetworkManager.gd"
 ApiClient="*res://scripts/network/ApiClient.gd"
 JsonData="*res://JSONData.gd"
 PlayerInventory="*res://PlayerInventory.gd"
-Localization="*res://autoload/Localization.gd"
+LocalizationManager="*res://autoload/LocalizationManager.gd"
 AppState="*res://autoload/AppState.gd"
 UIUtils="*res://autoload/UIUtils.gd"
 Nav="*res://autoload/NavigationManager.gd"
@@ -30,6 +30,7 @@ HeroManager="*res://autoload/HeroManager.gd"
 InventoryManager="*res://autoload/InventoryManager.gd"
 AuctionManager="*res://autoload/AuctionManager.gd"
 WebSocketManager="*res://autoload/WebSocketManager.gd"
+AuthManager="*res://autoload/AuthManager.gd"
 
 [dotnet]
 
@@ -38,7 +39,7 @@ project/solution_directory="E:\\GOG Games\\arena\\client"
 
 [internationalization]
 
-locale/translations=PackedStringArray("res://locales/en.json", "res://locales/pl.json", "res://locales/uk.json")
+locale/translations=PackedStringArray("res://locales/en.translation", "res://locales/pl.translation", "res://locales/uk.translation")
 
 [mono]
 
