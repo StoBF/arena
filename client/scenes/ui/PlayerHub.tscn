@@ -186,12 +186,11 @@ layout_mode = 2
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="MessageList" type="RichTextLabel" parent="ChatPanel/VBox/Messages"]
+[node name="MessageList" type="VBoxContainer" parent="ChatPanel/VBox/Messages"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-bbcode_enabled = true
-scroll_following = true
+theme_override_constants/separation = 4
 
 [node name="InputBar" type="HBoxContainer" parent="ChatPanel/VBox"]
 layout_mode = 2

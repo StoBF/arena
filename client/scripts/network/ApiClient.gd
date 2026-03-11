@@ -4,6 +4,46 @@ extends Node
 ## Safe migration path: existing scripts can continue using Network directly,
 ## while new/updated services move to ApiClient incrementally.
 
+func login(email: String, password: String) -> Dictionary:
+	return await request_post("/auth/login", {
+		"login": email,
+		"password": password,
+	})
+
+func register(email: String, username: String, password: String) -> Dictionary:
+	return await request_post("/auth/register", {
+		"email": email,
+		"username": username,
+		"password": password,
+	})
+
+func get_user() -> Dictionary:
+	return await request_get("/auth/me")
+
+func get_heroes() -> Dictionary:
+	return await request_get("/heroes")
+
+func create_hero(hero_name: String, investment: int) -> Dictionary:
+	return await request_post("/heroes/create", {
+		"name": hero_name,
+		"investment": investment,
+	})
+
+func get_auction_lots(filters: Dictionary = {}) -> Dictionary:
+	var query: String = _build_query_string(filters)
+	var path := "/auction/lots"
+	if query.is_empty() == false:
+		path = "%s?%s" % [path, query]
+	return await request_get(path)
+
+func get_chat_messages(channel: String = "global", limit: int = 50, offset: int = 0) -> Dictionary:
+	var query := {
+		"channel": channel,
+		"limit": maxi(1, limit),
+		"offset": maxi(0, offset),
+	}
+	return await request_get("/chat/messages?%s" % _build_query_string(query))
+
 func request_get(path: String, headers: PackedStringArray = PackedStringArray()) -> Dictionary:
 	return await request_json(path, HTTPClient.METHOD_GET, {}, headers)
 
@@ -90,3 +130,13 @@ func _extract_error_message(parsed: Variant, raw_body: String, code: int, result
 	if result != HTTPRequest.RESULT_SUCCESS:
 		return "Request failed (result=%d)" % result
 	return "HTTP %d" % code
+
+func _build_query_string(params: Dictionary) -> String:
+	if params.is_empty():
+		return ""
+	var parts: PackedStringArray = []
+	for key_variant in params.keys():
+		var key: String = str(key_variant)
+		var value: Variant = params[key_variant]
+		parts.append("%s=%s" % [key.uri_encode(), str(value).uri_encode()])
+	return "&".join(parts)

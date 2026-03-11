@@ -21,10 +21,18 @@ var _current_view: Control = null
 func _ready() -> void:
 	inventory_controller.bind_player_data(player_data)
 	craft_controller.bind_controllers(player_data, inventory_controller)
+	if has_node("/root/SceneManager"):
+		SceneManager.bind_ui_root(self)
 	if AuthManager.is_authenticated():
-		open_view("PlayerHub")
+		if has_node("/root/SceneManager"):
+			SceneManager.open_playerhub()
+		else:
+			open_view("PlayerHub")
 	else:
-		open_view("LoginScene")
+		if has_node("/root/SceneManager"):
+			SceneManager.open_auth()
+		else:
+			open_view("LoginScene")
 
 func open_view(view_name: String) -> void:
 	if _current_view != null and _current_view.is_inside_tree():
@@ -64,15 +72,15 @@ func _bind_view(view: Node) -> void:
 	if view.has_method("bind_controllers"):
 		view.bind_controllers(player_data, inventory_controller, craft_controller)
 
-	_connect_if_exists(view, "open_player_hub", func(): open_view("PlayerHub"))
-	_connect_if_exists(view, "open_register", func(): open_view("RegisterScene"))
-	_connect_if_exists(view, "open_login", func(): open_view("LoginScene"))
-	_connect_if_exists(view, "login_success", func(): open_view("PlayerHub"))
-	_connect_if_exists(view, "open_hero_creation", func(): open_view("HeroCreation"))
-	_connect_if_exists(view, "open_storage", func(): open_view("Storage"))
-	_connect_if_exists(view, "open_auction", func(): open_view("Auction"))
-	_connect_if_exists(view, "open_battle_room", func(): open_view("BattleRoom"))
-	_connect_if_exists(view, "open_settings", func(): open_view("Settings"))
+	_connect_if_exists(view, "open_player_hub", func(): SceneManager.open_playerhub())
+	_connect_if_exists(view, "open_register", func(): SceneManager.open_register())
+	_connect_if_exists(view, "open_login", func(): SceneManager.open_auth())
+	_connect_if_exists(view, "login_success", func(): SceneManager.open_playerhub())
+	_connect_if_exists(view, "open_hero_creation", func(): SceneManager.open_hero_creation())
+	_connect_if_exists(view, "open_storage", func(): SceneManager.open_inventory())
+	_connect_if_exists(view, "open_auction", func(): SceneManager.open_auction())
+	_connect_if_exists(view, "open_battle_room", func(): SceneManager.open_battle_room())
+	_connect_if_exists(view, "open_settings", func(): SceneManager.open_settings())
 
 func _connect_if_exists(node: Object, signal_name: StringName, callback: Callable) -> void:
 	if node.has_signal(signal_name):

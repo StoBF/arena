@@ -27,7 +27,7 @@ var _max_refresh_attempts: int = 1  # Try refresh only once
 # ====== Public methods ======
 func set_auth_header(token: String) -> void:
 	"""Legacy method for backwards compatibility"""
-	AppState.access_token = token
+	AppState.set_access_token(token)
 	_update_default_headers()
 
 func _update_default_headers() -> void:
@@ -283,7 +283,7 @@ func _refresh_access_token() -> bool:
 			if json.parse(body_text) == OK:
 				var data = json.data
 				if data and data.has("access_token"):
-					AppState.access_token = data["access_token"]
+					AppState.set_access_token(str(data["access_token"]))
 					_update_default_headers()
 					print("[AUTH_TOKEN_UPDATED] new access token obtained")
 					refresh_success = true

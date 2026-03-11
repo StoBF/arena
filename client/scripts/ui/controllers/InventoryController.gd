@@ -146,7 +146,7 @@ func _is_valid_for_slot(item: Dictionary, slot_name: String) -> bool:
 func _on_hero_selected(hero: Dictionary) -> void:
 	_selected_hero_id = str(hero.get("id", ""))
 	if hero.has("id"):
-		AppState.current_hero_id = int(hero.get("id", AppState.current_hero_id))
+		HeroManager.set_active_hero_id(int(hero.get("id", AppState.current_hero_id)))
 	equipment_changed.emit(get_selected_hero_equipment())
 
 func refresh_items_from_server() -> void:

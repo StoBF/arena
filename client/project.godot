@@ -31,6 +31,7 @@ InventoryManager="*res://autoload/InventoryManager.gd"
 AuctionManager="*res://autoload/AuctionManager.gd"
 WebSocketManager="*res://autoload/WebSocketManager.gd"
 AuthManager="*res://autoload/AuthManager.gd"
+SceneManager="*res://autoload/SceneManager.gd"
 
 [dotnet]
 

@@ -5,8 +5,10 @@ signal open_auction
 signal open_battle_room
 signal open_settings
 signal open_hero_creation
+signal hero_selected(hero_id: int)
 
-const DEFAULT_HERO_ICON: Texture2D = preload("res://icon.svg")
+const HERO_CARD_SCRIPT := preload("res://scripts/ui/components/hero_card/HeroCard.gd")
+const CHAT_MESSAGE_SCRIPT := preload("res://scripts/ui/components/chat_message/ChatMessage.gd")
 const CHAT_CHANNELS: PackedStringArray = ["global", "trade"]
 const CHAT_SOCKET_PATH_BY_UI_CHANNEL := {
 	"global": "general",
@@ -26,13 +28,17 @@ const CHAT_SOCKET_PATH_BY_UI_CHANNEL := {
 @onready var hero_losses_label: Label = $Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroLosses
 @onready var hero_attributes_label: RichTextLabel = $Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroAttributes
 @onready var chat_tabs: TabContainer = $ChatPanel/VBox/Tabs
-@onready var message_list: RichTextLabel = $ChatPanel/VBox/Messages/MessageList
+@onready var messages_scroll: ScrollContainer = $ChatPanel/VBox/Messages
+@onready var message_list: VBoxContainer = $ChatPanel/VBox/Messages/MessageList
 @onready var message_input: LineEdit = $ChatPanel/VBox/InputBar/MessageInput
 @onready var send_button: Button = $ChatPanel/VBox/InputBar/SendButton
 
 var _player_data: Node = null
 var _heroes: Array = []
 var _selected_hero_index: int = -1
+var _hero_card_pool: Array = []
+var _hero_empty_label: Label = null
+var _chat_message_pool: Array = []
 var _chat_ws: Dictionary = {}
 var _chat_ws_connected: Dictionary = {}
 var _chat_ws_reconnect_timers: Dictionary = {}
@@ -51,6 +57,8 @@ func _ready() -> void:
 		AppState.user_data_updated.connect(_on_user_data_updated)
 	if AppState.chat_message_received.is_connected(_on_chat_message_received) == false:
 		AppState.chat_message_received.connect(_on_chat_message_received)
+	if AppState.chat_updated.is_connected(_on_chat_updated) == false:
+		AppState.chat_updated.connect(_on_chat_updated)
 	if LocalizationManager.locale_changed.is_connected(_on_locale_changed) == false:
 		LocalizationManager.locale_changed.connect(_on_locale_changed)
 	set_process(true)
@@ -70,7 +78,7 @@ func _refresh_hub_data() -> void:
 	_load_heroes_from_api()
 
 func _load_profile_from_api() -> void:
-	var response: Dictionary = await ApiClient.request_get("/auth/me")
+	var response: Dictionary = await ApiClient.get_user()
 	if bool(response.get("ok", false)) == false:
 		_render_currency(AppState.balance)
 		return
@@ -93,7 +101,7 @@ func _extract_profile(parsed: Variant) -> Dictionary:
 	return {}
 
 func _load_heroes_from_api() -> void:
-	var response: Dictionary = await ApiClient.request_get("/heroes/")
+	var response: Dictionary = await ApiClient.get_heroes()
 	if bool(response.get("ok", false)):
 		var parsed: Variant = response.get("data", {})
 		_heroes = _extract_heroes(parsed)
@@ -153,27 +161,30 @@ func _apply_local_heroes_fallback() -> void:
 	_render_hero_details(_heroes[_selected_hero_index] as Dictionary)
 
 func _render_hero_bar() -> void:
-	for child in hero_slots_container.get_children():
-		child.queue_free()
-
 	if _heroes.is_empty():
-		var empty_label := Label.new()
-		empty_label.text = tr("ui.playerhub.no_heroes")
-		hero_slots_container.add_child(empty_label)
+		_set_hero_empty_visible(true)
+		for card in _hero_card_pool:
+			if card is Control:
+				(card as Control).visible = false
 		return
 
+	_set_hero_empty_visible(false)
 	for i: int in range(_heroes.size()):
 		var hero := _heroes[i] as Dictionary
-		var icon_button := Button.new()
-		icon_button.custom_minimum_size = Vector2(140, 56)
-		icon_button.icon = DEFAULT_HERO_ICON
-		icon_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		icon_button.text = str(hero.get("name", "Hero"))
-		icon_button.tooltip_text = tr("ui.playerhub.open_hero_details")
-		icon_button.toggle_mode = true
-		icon_button.button_pressed = i == _selected_hero_index
-		icon_button.pressed.connect(func(): _on_hero_icon_pressed(i))
-		hero_slots_container.add_child(icon_button)
+		var card = _ensure_hero_card(i)
+		card.visible = true
+		card.set_hero_data(hero, i == _selected_hero_index)
+
+	for i: int in range(_heroes.size(), _hero_card_pool.size()):
+		if _hero_card_pool[i] is Control:
+			(_hero_card_pool[i] as Control).visible = false
+
+func _on_hero_card_selected(hero_id: int) -> void:
+	for i: int in range(_heroes.size()):
+		var hero := _heroes[i] as Dictionary
+		if int(hero.get("id", -1)) == hero_id:
+			_on_hero_icon_pressed(i)
+			return
 
 func _on_hero_icon_pressed(index: int) -> void:
 	if index < 0 or index >= _heroes.size():
@@ -183,6 +194,9 @@ func _on_hero_icon_pressed(index: int) -> void:
 	var hero := _heroes[index] as Dictionary
 	_render_hero_details(hero)
 	_sync_selected_hero_to_state(hero)
+	var hero_id: int = int(hero.get("id", -1))
+	if hero_id > 0:
+		hero_selected.emit(hero_id)
 
 func _sync_selected_hero_to_state(hero: Dictionary) -> void:
 	var hero_id_variant: Variant = hero.get("id", -1)
@@ -268,12 +282,18 @@ func _on_chat_send_pressed() -> void:
 func _append_chat_line(channel: String, message: String) -> void:
 	if channel != _current_chat_channel():
 		return
-	message_list.append_text(message + "\n")
+	_refresh_message_list()
+	_scroll_chat_to_bottom()
 
 func _on_chat_message_received(channel: String, message: String) -> void:
 	if channel != "trade" and channel != "global":
 		return
 	_append_chat_line(channel, message)
+
+func _on_chat_updated(channel: String, _messages: Array) -> void:
+	if channel != _current_chat_channel():
+		return
+	_refresh_message_list()
 
 func _on_local_heroes_changed(_new_heroes: Array) -> void:
 	if _heroes.is_empty():
@@ -417,9 +437,49 @@ func _current_chat_channel() -> String:
 	return CHAT_CHANNELS[index]
 
 func _refresh_message_list() -> void:
-	message_list.clear()
 	var channel: String = _current_chat_channel()
 	var messages: Array = AppState.chat_messages.get(channel, [])
-	for message in messages:
-		message_list.append_text(str(message) + "\n")
+	for i: int in range(messages.size()):
+		var entry: String = str(messages[i])
+		var msg_node = _ensure_chat_message(i)
+		msg_node.visible = true
+		msg_node.set_chat_message(entry)
+
+	for i: int in range(messages.size(), _chat_message_pool.size()):
+		if _chat_message_pool[i] is Control:
+			(_chat_message_pool[i] as Control).visible = false
+
+	_scroll_chat_to_bottom()
+
+func _scroll_chat_to_bottom() -> void:
+	call_deferred("_apply_scroll_to_bottom")
+
+func _apply_scroll_to_bottom() -> void:
+	messages_scroll.scroll_vertical = int(messages_scroll.get_v_scroll_bar().max_value)
+
+func _ensure_hero_card(index: int) -> Object:
+	if index < _hero_card_pool.size():
+		return _hero_card_pool[index]
+	var card = HERO_CARD_SCRIPT.new()
+	if card.has_signal("hero_selected") and card.hero_selected.is_connected(_on_hero_card_selected) == false:
+		card.hero_selected.connect(_on_hero_card_selected)
+	hero_slots_container.add_child(card)
+	_hero_card_pool.append(card)
+	return card
+
+func _set_hero_empty_visible(visible: bool) -> void:
+	if _hero_empty_label == null:
+		_hero_empty_label = Label.new()
+		_hero_empty_label.text = tr("ui.playerhub.no_heroes")
+		hero_slots_container.add_child(_hero_empty_label)
+	_hero_empty_label.text = tr("ui.playerhub.no_heroes")
+	_hero_empty_label.visible = visible
+
+func _ensure_chat_message(index: int) -> Object:
+	if index < _chat_message_pool.size():
+		return _chat_message_pool[index]
+	var message_node = CHAT_MESSAGE_SCRIPT.new()
+	message_list.add_child(message_node)
+	_chat_message_pool.append(message_node)
+	return message_node
 

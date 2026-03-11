@@ -19,12 +19,10 @@ var _last_error_message: String = ""
 func fetch_lots(filters: Dictionary) -> Array:
 	var sanitized: Dictionary = _sanitize_filters(filters)
 	_last_filters = sanitized.duplicate(true)
-	var endpoint_candidates: Array[String] = _build_endpoint_candidates(sanitized)
-	var response: Dictionary = {}
-	for endpoint in endpoint_candidates:
-		response = await _perform_request(HTTPClient.METHOD_GET, endpoint)
-		if bool(response.get("ok", false)):
-			break
+	var api_filters: Dictionary = _build_query_filter_dict(sanitized)
+	var response: Dictionary = await ApiClient.get_auction_lots(api_filters)
+	if bool(response.get("ok", false)) == false:
+		_set_error("request_failed", str(response.get("message", "Request failed")))
 	if not bool(response.get("ok", false)):
 		lots_fetch_failed.emit(_last_error_message)
 		return []
@@ -37,6 +35,34 @@ func fetch_lots(filters: Dictionary) -> Array:
 	AppState.set_auction_data(_last_items, _last_pagination)
 	lots_updated.emit(_last_items.duplicate(true), _last_pagination.duplicate(true))
 	return _last_items.duplicate(true)
+
+func _build_query_filter_dict(filters: Dictionary) -> Dictionary:
+	var query: Dictionary = {
+		"page": int(filters.get("page", 1)),
+		"page_size": int(filters.get("page_size", DEFAULT_PAGE_SIZE)),
+	}
+	var type_filter: String = str(filters.get("type", "heroes")).strip_edges()
+	if type_filter.is_empty() == false and type_filter.to_lower() != "all":
+		query["type"] = _map_category(type_filter)
+	var rarity_filter: String = str(filters.get("rarity", "All")).strip_edges()
+	if rarity_filter.is_empty() == false and rarity_filter.to_lower() != "all":
+		query["rarity"] = rarity_filter.to_lower()
+	var price_min: float = float(filters.get("price_min", 0.0))
+	if price_min > 0.0:
+		query["price_min"] = price_min
+	var price_max: float = float(filters.get("price_max", 0.0))
+	if price_max > 0.0:
+		query["price_max"] = price_max
+	var seller: String = str(filters.get("seller", "")).strip_edges()
+	if seller.is_empty() == false:
+		query["seller"] = seller
+	var search: String = str(filters.get("search", "")).strip_edges()
+	if search.is_empty() == false:
+		query["search"] = search
+	var sort_value: String = _sort_to_query(str(filters.get("sort", "Time Left")))
+	if sort_value.is_empty() == false:
+		query["sort"] = sort_value
+	return query
 
 func get_last_items() -> Array:
 	return _last_items.duplicate(true)
@@ -140,7 +166,6 @@ func _build_endpoint_candidates(filters: Dictionary) -> Array[String]:
 	var queries: PackedStringArray = _build_query_parts(filters)
 	return [
 		"/auction/lots?%s" % "&".join(queries),
-		"/auctions/lots?%s" % "&".join(queries),
 	]
 
 func _build_query_parts(filters: Dictionary) -> PackedStringArray:
@@ -299,7 +324,7 @@ func _perform_request(method: int, path: String, payload: Dictionary = {}, extra
 	return {"ok": true, "code": code, "data": data, "headers": PackedStringArray(response.get("headers", PackedStringArray()))}
 
 func _refresh_user_profile() -> void:
-	var profile_response: Dictionary = await ApiClient.request_get("/auth/me")
+	var profile_response: Dictionary = await ApiClient.get_user()
 	if bool(profile_response.get("ok", false)) == false:
 		return
 	var parsed: Variant = profile_response.get("data", {})

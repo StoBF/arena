@@ -72,6 +72,24 @@ func go_view(view_name: String) -> bool:
 		push_error("[Nav] Unknown view name: '%s'" % view_name)
 		return false
 
+	if has_node("/root/SceneManager"):
+		match view_name:
+			"PlayerHub":
+				SceneManager.open_playerhub()
+			"HeroCreation":
+				SceneManager.open_hero_creation()
+			"Storage":
+				SceneManager.open_inventory()
+			"Auction":
+				SceneManager.open_auction()
+			"BattleRoom":
+				SceneManager.open_battle_room()
+			"Settings":
+				SceneManager.open_settings()
+			_:
+				SceneManager.open_auth()
+		return true
+
 	if _current_scene_path != MAIN_MENU:
 		if _do_change(MAIN_MENU, "Main") == false:
 			return false

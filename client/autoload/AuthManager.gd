@@ -15,11 +15,7 @@ func is_authenticated() -> bool:
 	return jwt_token.is_empty() == false
 
 func login(email: String, password: String) -> Dictionary:
-	var payload := {
-		"login": email,
-		"password": password,
-	}
-	var response: Dictionary = await ApiClient.request_post("/auth/login", payload)
+	var response: Dictionary = await ApiClient.login(email, password)
 	if bool(response.get("ok", false)) == false:
 		var message := str(response.get("message", "Login failed"))
 		login_failed.emit(message)
@@ -38,12 +34,7 @@ func login(email: String, password: String) -> Dictionary:
 
 func register(email: String, password: String) -> Dictionary:
 	var username: String = _username_from_email(email)
-	var payload := {
-		"email": email,
-		"username": username,
-		"password": password,
-	}
-	var response: Dictionary = await ApiClient.request_post("/auth/register", payload)
+	var response: Dictionary = await ApiClient.register(email, username, password)
 	if bool(response.get("ok", false)) == false:
 		var message := str(response.get("message", "Register failed"))
 		register_failed.emit(message)
@@ -54,10 +45,7 @@ func register(email: String, password: String) -> Dictionary:
 
 func logout() -> void:
 	_set_token("")
-	AppState.username = ""
-	AppState.balance = 0.0
-	AppState.current_hero_id = -1
-	AppState.user_id = -1
+	AppState.clear_user_state()
 
 func _set_token(token: String) -> void:
 	jwt_token = token

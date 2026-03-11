@@ -22,7 +22,7 @@ func _ready() -> void:
 
 func _on_pressed() -> void:
 	if hero_id != null:
-		AppState.current_hero_id = hero_id
+		HeroManager.set_active_hero_id(int(hero_id))
 		# TODO: emit_signal("hero_selected", hero_id)
 
 func _on_mouse_enter() -> void:

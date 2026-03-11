@@ -2,7 +2,7 @@ extends VBoxContainer
 
 signal lot_selected(lot: Dictionary)
 
-const DEFAULT_ICON: Texture2D = preload("res://icon.svg")
+const AUCTION_ROW_SCRIPT := preload("res://scripts/ui/components/auction_row/AuctionRow.gd")
 
 @onready var rows_container: VBoxContainer = $Rows
 @onready var item_header: Label = $Header/ItemNameHeader
@@ -14,6 +14,8 @@ const DEFAULT_ICON: Texture2D = preload("res://icon.svg")
 var _selected_lot_id: int = -1
 var _time_cells: Array = []
 var _time_tick_accumulator: float = 0.0
+var _row_pool: Array = []
+var _empty_label: Label = null
 
 func _ready() -> void:
 	set_process(true)
@@ -24,93 +26,41 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_time_tick_accumulator += delta
 	if _time_tick_accumulator < 1.0:
-		return
-	_time_tick_accumulator = 0.0
 	_refresh_time_cells()
 
 func set_lots(lots: Array) -> void:
-	for child in rows_container.get_children():
-		child.queue_free()
-	_time_cells.clear()
+			_set_empty_visible(true)
+			for row in _row_pool:
+				if row is Control:
+					(row as Control).visible = false
 
 	if lots.is_empty():
+		_set_empty_visible(false)
 		var empty_label := Label.new()
-		empty_label.text = tr("ui.auction_table.empty")
+		for i: int in range(lots.size()):
+			var row = _ensure_row(i)
+			row.visible = true
+			row.disabled = false
+			var lot_variant = lots[i]
 		rows_container.add_child(empty_label)
 		_selected_lot_id = -1
-		return
+				row.set_auction_lot(lot)
+				row.set_selected(int(lot.get("id", -1)) == _selected_lot_id)
+				_time_cells.append({
+					"row": row,
+					"meta": _build_time_meta(lot),
+				})
+				_update_row_time(row, _time_cells[_time_cells.size() - 1]["meta"] as Dictionary)
+
+		for i: int in range(lots.size(), _row_pool.size()):
+			if _row_pool[i] is Control:
+				(_row_pool[i] as Control).visible = false
 
 	for lot_variant in lots:
 		if lot_variant is Dictionary:
-			var lot := lot_variant as Dictionary
-			rows_container.add_child(_create_row(lot))
-
-func clear_selection() -> void:
-	_selected_lot_id = -1
-	for child in rows_container.get_children():
-		if child is Button:
-			(child as Button).button_pressed = false
-
-func _create_row(lot: Dictionary) -> Control:
-	var row := Button.new()
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.flat = true
-	row.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	row.toggle_mode = true
-	row.button_pressed = int(lot.get("id", -1)) == _selected_lot_id
-	row.custom_minimum_size = Vector2(0, 34)
-	row.pressed.connect(func(): _on_row_pressed(lot))
-
-	var content := HBoxContainer.new()
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_theme_constant_override("separation", 8)
-
-	var icon := TextureRect.new()
-	icon.texture = DEFAULT_ICON
-	icon.custom_minimum_size = Vector2(24, 24)
-	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	content.add_child(icon)
-
-	content.add_child(_cell(_lot_item_name(lot), 180))
-	content.add_child(_cell(str(lot.get("seller", lot.get("seller_name", "-"))), 130))
-	content.add_child(_cell(_price_value(lot, ["current_price", "current_bid", "starting_price"]), 110))
-	content.add_child(_cell(_price_value(lot, ["buyout", "buyout_price"]), 110))
-	var time_label := _cell("-", 130)
-	content.add_child(time_label)
-	_time_cells.append({
-		"row": row,
-		"label": time_label,
-		"meta": _build_time_meta(lot),
-	})
-	_update_time_label(time_label, _time_cells[_time_cells.size() - 1]["meta"] as Dictionary)
-
-	row.add_child(content)
-	return row
-
-func _cell(text_value: String, width: int) -> Label:
-	var label := Label.new()
-	label.text = text_value
-	label.custom_minimum_size = Vector2(width, 0)
-	label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	return label
-
-func _lot_item_name(lot: Dictionary) -> String:
-	if lot.has("item_name"):
-		return str(lot.get("item_name", "-"))
-	if lot.has("name"):
-		return str(lot.get("name", "-"))
-	if lot.has("hero_name"):
-		return str(lot.get("hero_name", "-"))
-	if lot.has("hero") and lot["hero"] is Dictionary:
-		var hero := lot["hero"] as Dictionary
-		if hero.has("name"):
-			return str(hero.get("name", "-"))
-	return "-"
-
-func _price_value(lot: Dictionary, keys: Array) -> String:
+		for row in _row_pool:
+			if row.has_method("set_selected"):
+				row.set_selected(false)
 	for key_variant in keys:
 		var key := str(key_variant)
 		if lot.has(key):
@@ -176,34 +126,39 @@ func _refresh_time_cells() -> void:
 		if entry_variant is Dictionary == false:
 			continue
 		var entry := entry_variant as Dictionary
-		if entry.has("label") == false or entry.has("meta") == false:
+		if entry.has("row") == false or entry.has("meta") == false:
 			continue
-		var label_variant: Variant = entry["label"]
-		if label_variant is Label == false:
+		var row_variant: Variant = entry["row"]
+		if row_variant is Control == false:
+			continue
+		if (row_variant as Control).visible == false:
 			continue
 		var left_seconds: int = _seconds_left_from_meta(entry["meta"] as Dictionary)
-		_update_time_label(label_variant as Label, entry["meta"] as Dictionary)
-		if entry.has("row") and entry["row"] is Button:
-			var row_button := entry["row"] as Button
+		_update_row_time(row_variant, entry["meta"] as Dictionary)
+		if row_variant is Button:
+			var row_button := row_variant as Button
 			var expired: bool = left_seconds == 0 and _is_countdown_meta(entry["meta"] as Dictionary)
 			row_button.disabled = expired
 
-func _update_time_label(label: Label, meta: Dictionary) -> void:
+func _update_row_time(row: Object, meta: Dictionary) -> void:
 	var mode: String = str(meta.get("mode", "static"))
 	if mode == "absolute":
 		var end_unix: int = int(meta.get("end_unix", 0))
 		var now_unix: int = int(Time.get_unix_time_from_system())
 		var left_absolute: int = maxi(0, end_unix - now_unix)
-		label.text = tr("ui.auction_table.expired") if left_absolute == 0 else _format_remaining_with_urgency(left_absolute)
+		if row.has_method("set_time_text"):
+			row.set_time_text(tr("ui.auction_table.expired") if left_absolute == 0 else _format_remaining_with_urgency(left_absolute))
 		return
 	if mode == "relative":
 		var start_seconds: int = int(meta.get("start_seconds", 0))
 		var captured_unix: int = int(meta.get("captured_unix", int(Time.get_unix_time_from_system())))
 		var now_unix: int = int(Time.get_unix_time_from_system())
 		var left_relative: int = maxi(0, start_seconds - maxi(0, now_unix - captured_unix))
-		label.text = tr("ui.auction_table.expired") if left_relative == 0 else _format_remaining_with_urgency(left_relative)
+		if row.has_method("set_time_text"):
+			row.set_time_text(tr("ui.auction_table.expired") if left_relative == 0 else _format_remaining_with_urgency(left_relative))
 		return
-	label.text = str(meta.get("text", "-"))
+	if row.has_method("set_time_text"):
+		row.set_time_text(str(meta.get("text", "-")))
 
 func _format_remaining(seconds_left: int) -> String:
 	if seconds_left <= 0:
@@ -275,7 +230,28 @@ func _normalize_datetime_string(value: String) -> String:
 
 func _on_row_pressed(lot: Dictionary) -> void:
 	_selected_lot_id = int(lot.get("id", -1))
+	for row in _row_pool:
+		if row.has_method("get_lot_id") and row.has_method("set_selected"):
+			row.set_selected(row.get_lot_id() == _selected_lot_id)
 	lot_selected.emit(lot.duplicate(true))
+
+func _ensure_row(index: int) -> Object:
+	if index < _row_pool.size():
+		return _row_pool[index]
+	var row = AUCTION_ROW_SCRIPT.new()
+	if row.has_signal("row_selected") and row.row_selected.is_connected(_on_row_pressed) == false:
+		row.row_selected.connect(_on_row_pressed)
+	rows_container.add_child(row)
+	_row_pool.append(row)
+	return row
+
+func _set_empty_visible(visible: bool) -> void:
+	if _empty_label == null:
+		_empty_label = Label.new()
+		_empty_label.text = tr("ui.auction_table.empty")
+		rows_container.add_child(_empty_label)
+	_empty_label.text = tr("ui.auction_table.empty")
+	_empty_label.visible = visible
 
 func _on_locale_changed(_locale_code: String) -> void:
 	_apply_translations()

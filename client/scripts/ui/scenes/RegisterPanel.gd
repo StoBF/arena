@@ -50,7 +50,7 @@ func _localize_ui() -> void:
 
 func on_back_pressed():
 	print("Натиснуто кнопку 'Назад'")
-	get_tree().change_scene_to_file("res://scenes/login_screen.tscn")
+	_open_auth_view()
 
 func on_register_pressed():
 	print("Натиснуто кнопку реєстрації")
@@ -77,14 +77,26 @@ func _on_register_response(_result: int, code: int, _headers, body: PackedByteAr
 
 	if code == 200 or code == 201:
 		UIUtils.show_success(tr("ui.register.status.success"))
-		get_tree().change_scene_to_file("res://scenes/login_screen.tscn")
+		_open_auth_view()
 	else:
 		UIUtils.show_error(tr("ui.register.status.failed") + ": " + body_text)
 
 func _register_via_api(data: Dictionary) -> void:
-	var response: Dictionary = await ApiClient.request_post("/auth/register", data)
+	var email: String = str(data.get("email", ""))
+	var password: String = str(data.get("password", ""))
+	var username: String = email
+	if email.contains("@"):
+		username = email.split("@", false, 1)[0]
+	var response: Dictionary = await ApiClient.register(email, username, password)
 	if bool(response.get("ok", false)):
 		UIUtils.show_success(tr("ui.register.status.success"))
-		get_tree().change_scene_to_file("res://scenes/login_screen.tscn")
+		_open_auth_view()
 		return
 	UIUtils.show_error(tr("ui.register.status.failed") + ": " + str(response.get("message", "")))
+
+func _open_auth_view() -> void:
+	if has_node("/root/SceneManager"):
+		SceneManager.open_auth()
+		return
+	if has_node("/root/Nav"):
+		Nav.go_view("Login")

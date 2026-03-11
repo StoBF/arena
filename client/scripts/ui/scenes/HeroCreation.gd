@@ -95,10 +95,7 @@ func _refresh_balance_and_slider_limits() -> void:
 
 func _create_hero_via_api(hero_name: String, investment: int) -> Dictionary:
 	_last_create_response_data = {}
-	var response: Dictionary = await ApiClient.request_post("/heroes/create", {
-		"name": hero_name,
-		"investment": investment,
-	})
+	var response: Dictionary = await ApiClient.create_hero(hero_name, investment)
 
 	if bool(response.get("ok", false)):
 		var data_success: Variant = response.get("data", {})
@@ -106,18 +103,7 @@ func _create_hero_via_api(hero_name: String, investment: int) -> Dictionary:
 			_last_create_response_data = (data_success as Dictionary).duplicate(true)
 		return _extract_hero(data_success)
 
-	var fallback_response: Dictionary = await ApiClient.request_post("/heroes/generate", {
-		"generation": _generation_from_investment(investment),
-		"currency": float(investment),
-		"locale": "en",
-	})
-	if bool(fallback_response.get("ok", false)):
-		var data_fallback: Variant = fallback_response.get("data", {})
-		if data_fallback is Dictionary:
-			_last_create_response_data = (data_fallback as Dictionary).duplicate(true)
-		return _extract_hero(data_fallback)
-
-	var err_message := str(response.get("message", fallback_response.get("message", "Request failed")))
+	var err_message := str(response.get("message", "Request failed"))
 	status_label.text = tr("ui.hero_creation.status.failed_reason") % err_message
 	return {}
 
@@ -155,7 +141,7 @@ func _derive_rarity(hero: Dictionary, investment: int) -> String:
 	return "Common"
 
 func _refresh_profile_from_server() -> void:
-	var response: Dictionary = await ApiClient.request_get("/auth/me")
+	var response: Dictionary = await ApiClient.get_user()
 	if bool(response.get("ok", false)) == false:
 		return
 	var parsed: Variant = response.get("data", {})

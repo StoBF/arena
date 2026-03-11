@@ -44,7 +44,7 @@ func craft_recipe(recipe_id: String) -> void:
 	craft_result.emit(true, "Craft completed")
 
 func _refresh_profile_from_server() -> void:
-	var profile_response: Dictionary = await ApiClient.request_get("/auth/me")
+	var profile_response: Dictionary = await ApiClient.get_user()
 	if bool(profile_response.get("ok", false)) == false:
 		return
 	var parsed: Variant = profile_response.get("data", {})

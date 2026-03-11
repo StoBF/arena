@@ -12,6 +12,8 @@ signal user_data_updated
 signal heroes_updated(heroes)
 signal inventory_updated(items)
 signal auction_updated(items, pagination)
+signal chat_updated(channel, messages)
+signal selected_hero_changed(hero)
 
 # Authentication tokens
 var access_token: String = ""
@@ -19,13 +21,17 @@ var refresh_token: String = ""
 var token: String = ""
 
 # User data (cached after /auth/me)
+var user: Dictionary = {}
 var user_id: int = -1
 var username: String = ""
 var balance: float = 0.0
 var current_hero_id: int = -1
+var selected_hero: Dictionary = {}
 var last_created_hero: Dictionary = {}
 var heroes: Array = []
+var inventory: Array = []
 var inventory_items: Array = []
+var auction_lots: Array = []
 var auction_items: Array = []
 var auction_pagination: Dictionary = {"page": 1, "page_size": 20, "total": 0, "has_next": false, "has_prev": false}
 
@@ -48,6 +54,7 @@ func set_access_token(value: String) -> void:
 
 ## Cache user profile received from /auth/me. Emits user_data_updated.
 func set_user_data(data: Dictionary) -> void:
+	user = data.duplicate(true)
 	user_id = data.get("id", user_id)
 	username = data.get("username", username)
 	balance = float(data.get("balance", balance))
@@ -58,17 +65,50 @@ func set_user_data(data: Dictionary) -> void:
 func set_heroes_data(data: Array) -> void:
 	heroes = data.duplicate(true)
 	heroes_updated.emit(heroes.duplicate(true))
+	if selected_hero.is_empty() == false:
+		return
+	for hero_variant in heroes:
+		if hero_variant is Dictionary and int((hero_variant as Dictionary).get("id", -1)) == current_hero_id:
+			set_selected_hero((hero_variant as Dictionary).duplicate(true))
+			return
 
 
 func set_inventory_data(items: Array) -> void:
+	inventory = items.duplicate(true)
 	inventory_items = items.duplicate(true)
 	inventory_updated.emit(inventory_items.duplicate(true))
 
 
 func set_auction_data(items: Array, pagination: Dictionary) -> void:
+	auction_lots = items.duplicate(true)
 	auction_items = items.duplicate(true)
 	auction_pagination = pagination.duplicate(true)
 	auction_updated.emit(auction_items.duplicate(true), auction_pagination.duplicate(true))
+
+
+func clear_user_state() -> void:
+	user = {}
+	user_id = -1
+	username = ""
+	balance = 0.0
+	current_hero_id = -1
+	selected_hero = {}
+	last_created_hero = {}
+	heroes = []
+	inventory = []
+	inventory_items = []
+	auction_lots = []
+	auction_items = []
+	auction_pagination = {"page": 1, "page_size": 20, "total": 0, "has_next": false, "has_prev": false}
+	chat_messages = {}
+	active_chat_channel = "general"
+	selected_auction_lot_id = -1
+	user_data_updated.emit()
+	heroes_updated.emit([])
+	inventory_updated.emit([])
+	auction_updated.emit([], auction_pagination.duplicate(true))
+	chat_updated.emit("global", [])
+	selected_hero_changed.emit({})
 
 
 func update_battle_queue(queue_data: Array) -> void:
@@ -94,7 +134,20 @@ func push_chat_message(channel: String, message: String) -> void:
 	if not chat_messages.has(channel):
 		chat_messages[channel] = []
 	chat_messages[channel].append(message)
+	chat_updated.emit(channel, (chat_messages[channel] as Array).duplicate(true))
 	emit_signal("chat_message_received", channel, message)
+
+
+func set_chat_messages(channel: String, messages: Array) -> void:
+	chat_messages[channel] = messages.duplicate(true)
+	chat_updated.emit(channel, messages.duplicate(true))
+
+
+func set_selected_hero(hero: Dictionary) -> void:
+	selected_hero = hero.duplicate(true)
+	if selected_hero.has("id"):
+		current_hero_id = int(selected_hero.get("id", current_hero_id))
+	selected_hero_changed.emit(selected_hero.duplicate(true))
 
 
 func set_chat_connection_state(channel: String, connected: bool) -> void:

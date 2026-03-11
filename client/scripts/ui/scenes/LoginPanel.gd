@@ -126,7 +126,7 @@ func _on_login_pressed():
 	call_deferred("_login_via_api", data)
 
 func _on_create_account_pressed():
-	get_tree().change_scene_to_file("res://scenes/Register.tscn")
+	_open_register_view()
 
 func _on_request_completed(_result: int, code: int, _headers, body: PackedByteArray):
 	print("Отримано відповідь. Код:", code)
@@ -138,7 +138,7 @@ func _on_request_completed(_result: int, code: int, _headers, body: PackedByteAr
 
 		if typeof(parsed) == TYPE_DICTIONARY and parsed.has("access_token"):
 			var token = parsed["access_token"]
-			AppState.token = token
+			AppState.set_access_token(token)
 			Network.set_auth_header(token)
 			print("Token:", AppState.token)
 			
@@ -148,8 +148,7 @@ func _on_request_completed(_result: int, code: int, _headers, body: PackedByteAr
 				ConfigManager.save_token(token)
 			else:
 				ConfigManager.clear_all()
-			
-			get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+			_open_playerhub_view()
 			return
 		else:
 			print("⚠️ Відповідь без токена або невірна структура:", parsed)
@@ -157,7 +156,7 @@ func _on_request_completed(_result: int, code: int, _headers, body: PackedByteAr
 	UIUtils.show_error(tr("ui.login.status.failed"))
 
 func _login_via_api(data: Dictionary) -> void:
-	var response: Dictionary = await ApiClient.request_post("/auth/login", data)
+	var response: Dictionary = await ApiClient.login(str(data.get("login", "")), str(data.get("password", "")))
 	if bool(response.get("ok", false)) == false:
 		UIUtils.show_error(str(response.get("message", tr("ui.login.status.failed"))))
 		return
@@ -165,14 +164,14 @@ func _login_via_api(data: Dictionary) -> void:
 	if parsed is Dictionary and (parsed as Dictionary).has("access_token"):
 		var token: String = str((parsed as Dictionary).get("access_token", ""))
 		if token.is_empty() == false:
-			AppState.token = token
+			AppState.set_access_token(token)
 			Network.set_auth_header(token)
 			if remember_me_checkbox and remember_me_checkbox.button_pressed:
 				ConfigManager.save_username(username_field.text.strip_edges())
 				ConfigManager.save_token(token)
 			else:
 				ConfigManager.clear_all()
-			get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+			_open_playerhub_view()
 			return
 	UIUtils.show_error(tr("ui.login.status.failed"))
 
@@ -182,27 +181,41 @@ func _try_auto_login_with_token(token: String) -> void:
 		return
 	
 	# Валідуємо токен через запит до сервера
-	AppState.token = token
+	AppState.set_access_token(token)
 	Network.set_auth_header(token)
 	
 	# Перевіряємо валідність токену через запит до /user
 	call_deferred("_validate_token_via_api")
 
 func _validate_token_via_api() -> void:
-	var response: Dictionary = await ApiClient.request_get("/auth/me")
+	var response: Dictionary = await ApiClient.get_user()
 	if bool(response.get("ok", false)):
-		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+		_open_playerhub_view()
 	else:
 		ConfigManager.clear_all()
-		AppState.token = ""
+		AppState.set_access_token("")
 		UIUtils.show_error(tr("ui.auth.session_expired"))
 
 func _on_token_validation_completed(result: int, code: int, _headers, _body: PackedByteArray) -> void:
 	if result == HTTPRequest.RESULT_SUCCESS and code == 200:
 		# Токен валідний, переходимо до головного меню
-		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+		_open_playerhub_view()
 	else:
 		# Токен невалідний, очищаємо його
 		ConfigManager.clear_all()
-		AppState.token = ""
+		AppState.set_access_token("")
 		UIUtils.show_error(tr("ui.auth.session_expired"))
+
+func _open_playerhub_view() -> void:
+	if has_node("/root/SceneManager"):
+		SceneManager.open_playerhub()
+		return
+	if has_node("/root/Nav"):
+		Nav.go_view("PlayerHub")
+
+func _open_register_view() -> void:
+	if has_node("/root/SceneManager"):
+		SceneManager.open_register()
+		return
+	if has_node("/root/Nav"):
+		Nav.go_view("Register")

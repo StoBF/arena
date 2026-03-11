@@ -26,6 +26,7 @@ offset_left = 16.0
 offset_top = 12.0
 offset_right = -16.0
 offset_bottom = -12.0
+theme_override_constants/separation = 10
 
 [node name="Header" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
@@ -38,62 +39,148 @@ text = "Back"
 layout_mode = 2
 text = "Storage"
 
+[node name="HeaderSpacer" type="Control" parent="VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SelectedHeroLabel" type="Label" parent="VBox/Header"]
+layout_mode = 2
+text = "Selected Hero: -"
+
 [node name="Body" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="LeftSlotsPanel" type="PanelContainer" parent="VBox/Body"]
+layout_mode = 2
+custom_minimum_size = Vector2(210, 0)
 size_flags_vertical = 3
 
-[node name="Tabs" type="TabContainer" parent="VBox/Body"]
+[node name="LeftMargin" type="MarginContainer" parent="VBox/Body/LeftSlotsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="LeftSlots" type="VBoxContainer" parent="VBox/Body/LeftSlotsPanel/LeftMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HelmetSlot" parent="VBox/Body/LeftSlotsPanel/LeftMargin/LeftSlots" instance=ExtResource("2")]
+slot_name = "helmet"
+
+[node name="ArmorSlot" parent="VBox/Body/LeftSlotsPanel/LeftMargin/LeftSlots" instance=ExtResource("2")]
+slot_name = "armor"
+
+[node name="GlovesSlot" parent="VBox/Body/LeftSlotsPanel/LeftMargin/LeftSlots" instance=ExtResource("2")]
+slot_name = "gloves"
+
+[node name="WeaponSlot" parent="VBox/Body/LeftSlotsPanel/LeftMargin/LeftSlots" instance=ExtResource("2")]
+slot_name = "weapon"
+
+[node name="HeroPreviewPanel" type="PanelContainer" parent="VBox/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Items" type="VBoxContainer" parent="VBox/Body/Tabs"]
+[node name="HeroPreviewMargin" type="MarginContainer" parent="VBox/Body/HeroPreviewPanel"]
 layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
-[node name="ItemsGrid" type="GridContainer" parent="VBox/Body/Tabs/Items"]
-layout_mode = 2
-columns = 3
-theme_override_constants/h_separation = 6
-theme_override_constants/v_separation = 6
-
-[node name="Recipes" type="VBoxContainer" parent="VBox/Body/Tabs"]
-layout_mode = 2
-
-[node name="RecipesGrid" type="GridContainer" parent="VBox/Body/Tabs/Recipes"]
-layout_mode = 2
-columns = 2
-theme_override_constants/h_separation = 6
-theme_override_constants/v_separation = 6
-
-[node name="Heroes" type="VBoxContainer" parent="VBox/Body/Tabs"]
-layout_mode = 2
-
-[node name="HeroesGrid" type="GridContainer" parent="VBox/Body/Tabs/Heroes"]
-layout_mode = 2
-columns = 1
-theme_override_constants/h_separation = 6
-theme_override_constants/v_separation = 6
-
-[node name="EquipmentPanel" type="VBoxContainer" parent="VBox/Body"]
+[node name="HeroPreviewVBox" type="VBoxContainer" parent="VBox/Body/HeroPreviewPanel/HeroPreviewMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
 
-[node name="EquipmentTitle" type="Label" parent="VBox/Body/EquipmentPanel"]
+[node name="HeroPreviewTitle" type="Label" parent="VBox/Body/HeroPreviewPanel/HeroPreviewMargin/HeroPreviewVBox"]
 layout_mode = 2
-text = "Equipment"
+horizontal_alignment = 1
+text = "Hero Preview"
 
-[node name="EquipGrid" type="VBoxContainer" parent="VBox/Body/EquipmentPanel"]
+[node name="HeroPreviewBody" type="PanelContainer" parent="VBox/Body/HeroPreviewPanel/HeroPreviewMargin/HeroPreviewVBox"]
 layout_mode = 2
-theme_override_constants/separation = 6
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
-[node name="ShirtSlot" parent="VBox/Body/EquipmentPanel/EquipGrid" instance=ExtResource("2")]
-slot_name = "shirt"
+[node name="HeroPreviewBodyMargin" type="MarginContainer" parent="VBox/Body/HeroPreviewPanel/HeroPreviewMargin/HeroPreviewVBox/HeroPreviewBody"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
-[node name="PantsSlot" parent="VBox/Body/EquipmentPanel/EquipGrid" instance=ExtResource("2")]
-slot_name = "pants"
+[node name="HeroPreviewLabel" type="Label" parent="VBox/Body/HeroPreviewPanel/HeroPreviewMargin/HeroPreviewVBox/HeroPreviewBody/HeroPreviewBodyMargin"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "No hero selected"
 
-[node name="ShoesSlot" parent="VBox/Body/EquipmentPanel/EquipGrid" instance=ExtResource("2")]
-slot_name = "shoes"
+[node name="RightSlotsPanel" type="PanelContainer" parent="VBox/Body"]
+layout_mode = 2
+custom_minimum_size = Vector2(210, 0)
+size_flags_vertical = 3
+
+[node name="RightMargin" type="MarginContainer" parent="VBox/Body/RightSlotsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="RightSlots" type="VBoxContainer" parent="VBox/Body/RightSlotsPanel/RightMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ArtifactSlot" parent="VBox/Body/RightSlotsPanel/RightMargin/RightSlots" instance=ExtResource("2")]
+slot_name = "artifact"
+
+[node name="RingSlot" parent="VBox/Body/RightSlotsPanel/RightMargin/RightSlots" instance=ExtResource("2")]
+slot_name = "ring"
+
+[node name="BeltSlot" parent="VBox/Body/RightSlotsPanel/RightMargin/RightSlots" instance=ExtResource("2")]
+slot_name = "belt"
+
+[node name="BootsSlot" parent="VBox/Body/RightSlotsPanel/RightMargin/RightSlots" instance=ExtResource("2")]
+slot_name = "boots"
+
+[node name="InventoryPanel" type="PanelContainer" parent="VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="InventoryMargin" type="MarginContainer" parent="VBox/InventoryPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="InventoryVBox" type="VBoxContainer" parent="VBox/InventoryPanel/InventoryMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="InventoryTitle" type="Label" parent="VBox/InventoryPanel/InventoryMargin/InventoryVBox"]
+layout_mode = 2
+text = "Inventory"
+
+[node name="ItemsScroll" type="ScrollContainer" parent="VBox/InventoryPanel/InventoryMargin/InventoryVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ItemsGrid" type="GridContainer" parent="VBox/InventoryPanel/InventoryMargin/InventoryVBox/ItemsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 5
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
 
 [node name="Footer" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
@@ -102,6 +189,10 @@ layout_mode = 2
 layout_mode = 2
 text = "Delete Hero"
 disabled = true
+
+[node name="FooterSpacer" type="Control" parent="VBox/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="PopupRecipe" parent="." instance=ExtResource("3")]
 layout_mode = 1

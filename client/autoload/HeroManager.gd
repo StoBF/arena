@@ -24,7 +24,10 @@ func set_active_hero_id(hero_id: int) -> void:
 	if _active_hero_id == hero_id:
 		return
 	_active_hero_id = hero_id
-	AppState.current_hero_id = hero_id
+	var selected := get_hero_by_id(hero_id)
+	if selected.is_empty():
+		selected = {"id": hero_id}
+	AppState.set_selected_hero(selected)
 	active_hero_changed.emit(hero_id)
 
 func get_hero_by_id(hero_id: int) -> Dictionary:
@@ -50,10 +53,13 @@ func load_heroes() -> void:
 		_active_hero_id = AppState.current_hero_id
 	if _active_hero_id <= 0 and _heroes.size() > 0:
 		_active_hero_id = int(_heroes[0].get("id", -1))
-		if _active_hero_id > 0:
-			AppState.current_hero_id = _active_hero_id
 
 	AppState.set_heroes_data(_heroes)
+	if _active_hero_id > 0:
+		var selected: Dictionary = get_hero_by_id(_active_hero_id)
+		if selected.is_empty():
+			selected = {"id": _active_hero_id}
+		AppState.set_selected_hero(selected)
 	heroes_updated.emit(get_heroes())
 	if _active_hero_id > 0:
 		active_hero_changed.emit(_active_hero_id)
