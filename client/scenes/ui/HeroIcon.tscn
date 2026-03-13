@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://heroicon"]
+[gd_scene load_steps=2 format=3 uid="uid://cps4tyqjtuvw5"]
 
-[ext_resource type="Script" uid="uid://dr2vfhrne35cn" path="res://scripts/ui/HeroIcon.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/ui/scenes/HeroIcon.gd" id="1"]
 
 [node name="HeroIcon" type="TextureButton"]
 script = ExtResource("1")
@@ -11,7 +11,7 @@ expand_mode = 1
 stretch_mode = 1
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
-layout_mode = 2
+layout_mode = 0
 offset_right = 89.0
 offset_bottom = 50.0
 

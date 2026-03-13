@@ -1,7 +1,5 @@
 extends Control
 
-signal open_player_hub
-
 const PAGE_SIZE := 10
 const REFRESH_INTERVAL_SECONDS := 8.0
 const CATEGORIES: PackedStringArray = [
@@ -38,7 +36,7 @@ var _pending_buyout_lot_id: int = -1
 var _is_live_connected: bool = false
 
 func _ready() -> void:
-	$Margin/VBox/Header/BackButton.pressed.connect(func(): open_player_hub.emit())
+	$Margin/VBox/Header/BackButton.pressed.connect(func(): EventBus.emit_scene_changed("PlayerHub"))
 	$Margin/VBox/FilterMenu/RefreshButton.pressed.connect(_request_lots)
 	category_option.item_selected.connect(_on_category_changed)
 	prev_button.pressed.connect(_on_prev_page)
@@ -54,10 +52,10 @@ func _ready() -> void:
 		category_option.add_item(category)
 	category_option.select(0)
 
-	if AuctionManager.lots_updated.is_connected(_on_lots_updated) == false:
-		AuctionManager.lots_updated.connect(_on_lots_updated)
 	if AuctionManager.lots_fetch_failed.is_connected(_on_lots_failed) == false:
 		AuctionManager.lots_fetch_failed.connect(_on_lots_failed)
+	if has_node("/root/EventBus") and EventBus.auction_updated.is_connected(_on_eventbus_auction_updated) == false:
+		EventBus.auction_updated.connect(_on_eventbus_auction_updated)
 
 	if WebSocketManager.auction_socket_state_changed.is_connected(_on_auction_socket_state_changed) == false:
 		WebSocketManager.auction_socket_state_changed.connect(_on_auction_socket_state_changed)
@@ -136,6 +134,9 @@ func _on_lots_updated(items: Array, pagination: Dictionary) -> void:
 			return
 	_update_selected_lot_ui()
 
+func _on_eventbus_auction_updated() -> void:
+	_on_lots_updated(AppState.auction_lots, AppState.auction_pagination)
+
 func _on_lots_failed(message: String) -> void:
 	page_label.text = tr("ui.auction.load_failed")
 	live_status_label.text = tr("ui.auction.live_error")
@@ -177,7 +178,6 @@ func _on_place_bid_pressed() -> void:
 	var ok: bool = await AuctionManager.place_bid(lot_id, amount)
 	if ok:
 		action_status_label.text = tr("ui.auction.bid_placed")
-		_request_lots()
 	else:
 		action_status_label.text = tr("ui.auction.bid_failed") % AuctionManager.get_last_error_message()
 
@@ -204,7 +204,6 @@ func _on_buyout_confirmed() -> void:
 	if ok:
 		action_status_label.text = tr("ui.auction.buyout_success")
 		_clear_selected_lot(tr("ui.auction.buyout_success"))
-		_request_lots()
 	else:
 		action_status_label.text = tr("ui.auction.buyout_failed") % AuctionManager.get_last_error_message()
 
@@ -314,6 +313,8 @@ func _clear_selected_lot(status_text: String = "") -> void:
 		action_status_label.text = status_text
 
 func _exit_tree() -> void:
+	if has_node("/root/EventBus") and EventBus.auction_updated.is_connected(_on_eventbus_auction_updated):
+		EventBus.auction_updated.disconnect(_on_eventbus_auction_updated)
 	WebSocketManager.stop_auction_subscription()
 
 func _on_locale_changed(_locale_code: String) -> void:

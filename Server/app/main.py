@@ -32,6 +32,7 @@ from app.routers.craft import router as craft_router
 from app.routers.pvp import router as pvp_router
 from app.routers.tournaments import router as tournaments_router
 from app.routers.events import router as events_router
+from app.routers.server import router as server_router
 
 setup_logging()
 
@@ -230,6 +231,7 @@ app.include_router(craft_router)
 app.include_router(pvp_router)
 app.include_router(tournaments_router)
 app.include_router(events_router)
+app.include_router(server_router)
 
 if __name__ == "__main__":
     import uvicorn

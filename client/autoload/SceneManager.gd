@@ -45,6 +45,8 @@ func _open_view(view_name: String) -> void:
 		return
 	if target.has_method("open_view"):
 		target.call("open_view", view_name)
+	if has_node("/root/EventBus"):
+		EventBus.emit_scene_changed(view_name)
 
 
 func _resolve_ui_root() -> Node:

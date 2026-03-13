@@ -27,23 +27,23 @@ These are the guiding principles and conventions to follow when building the Are
 - Re-run `_localize_ui()` on `locale_changed` signal.
 
 ## 6. Chat Integration
-- Use a dedicated scene `ChatBox.tscn` with its own script (`ChatBox.gd`) and TabContainer.
-- Do not duplicate chat logic in the main menu; embed one instance of `ChatBox` (always visible).
-- Keep chat polling and send logic contained in `ChatBox.gd`.
+- Render chat inside the PlayerHub chat overlay (`PlayerHub.tscn` + `PlayerHub.gd`).
+- Use reusable chat row components (`chat_message/ChatMessage.gd`) and pooled rendering.
+- Keep chat state in `AppState` and update UI from `chat_updated`.
 
 ## 7. Hero Icons & Stats
-- Store hero icons dynamically in `HeroIconsContainer` (GridContainer) via script.
-- `HeroIcon.gd` exposes `func set_hero_data(data: Dictionary)` that populates icon, name, level.
-- Remove any placeholder/imported static icons from the scene.
+- Use reusable hero card components (`hero_card/HeroCard.gd`) for hero bar rendering.
+- Keep selected hero in `AppState` and update details panel via `selected_hero_changed`.
+- Avoid static hero placeholders in scenes; render from server-backed hero data.
 
 ## 8. Hero Creation Flow
-- Use a separate scene `GenerateHeroScene.tscn` and script to collect name and blessing.
-- On success, save result to `AppState.last_created_hero` and return to main menu.
-- In `MainMenuScreen.gd` `_ready()`, detect `last_created_hero` and show its details.
+- Use `HeroCreation.tscn` + `HeroCreation.gd`.
+- Submit to the create endpoint through `ApiClient` and refresh hero list from server.
+- Route back through centralized navigation (`SceneManager` / `UIManager`).
 
 ## 9. Global State Management
-- Keep minimal global state in `AppState` singleton: `current_hero_id`, `last_created_hero`, auth token.
-- All scenes and scripts read/write to this central state.
+- Use `AppState` as the canonical runtime state for user, heroes, inventory, auction, and chat.
+- Prefer AppState setters/signals over ad-hoc local caches in scenes.
 
 ## 10. UX & Error Handling
 - Show errors via `UIUtils.show_error(tr("error_key"))`, successes with `UIUtils.show_success()`.
@@ -51,7 +51,7 @@ These are the guiding principles and conventions to follow when building the Are
 
 ## 11. Code Style & Version Control
 - Use 4-space indentation, PascalCase nodes, camelCase vars/functions.
-- Commit frequently with descriptive messages: `feat(chat): integrate ChatBox in main menu`.
+- Commit frequently with descriptive messages: `feat(ui): update PlayerHub chat overlay rendering`.
 - Periodically run the editor's built-in linter and formatter.
 
 _By adhering to these guidelines, we ensure a clean, consistent, and maintainable codebase for the Arena client._ 

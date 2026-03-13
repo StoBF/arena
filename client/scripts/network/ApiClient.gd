@@ -34,7 +34,10 @@ func get_auction_lots(filters: Dictionary = {}) -> Dictionary:
 	var path := "/auction/lots"
 	if query.is_empty() == false:
 		path = "%s?%s" % [path, query]
-	return await request_get(path)
+	var response: Dictionary = await request_get(path)
+	if bool(response.get("ok", false)):
+		_sync_auction_to_appstate(response.get("data", {}), filters)
+	return response
 
 func get_chat_messages(channel: String = "global", limit: int = 50, offset: int = 0) -> Dictionary:
 	var query := {
@@ -42,7 +45,35 @@ func get_chat_messages(channel: String = "global", limit: int = 50, offset: int 
 		"limit": maxi(1, limit),
 		"offset": maxi(0, offset),
 	}
-	return await request_get("/chat/messages?%s" % _build_query_string(query))
+	var primary: Dictionary = await request_get("/chat/messages?%s" % _build_query_string(query))
+	if bool(primary.get("ok", false)):
+		_sync_chat_to_appstate(channel, primary.get("data", {}))
+		return primary
+
+	var legacy_channel := _legacy_chat_channel(channel)
+	var legacy_query := {
+		"channel": legacy_channel,
+		"limit": maxi(1, limit),
+	}
+	var fallback: Dictionary = await request_get("/chat/history?%s" % _build_query_string(legacy_query))
+	if bool(fallback.get("ok", false)):
+		_sync_chat_to_appstate(channel, fallback.get("data", {}))
+	return fallback
+
+func send_chat_message(channel: String, message: String) -> Dictionary:
+	return await request_post("/chat/send", {
+		"channel": channel,
+		"message": message,
+	})
+
+func _legacy_chat_channel(channel: String) -> String:
+	var normalized: String = channel.strip_edges().to_lower()
+	if normalized == "global":
+		return "general"
+	return normalized
+
+func get_server_status() -> Dictionary:
+	return await request_get("/server/status")
 
 func request_get(path: String, headers: PackedStringArray = PackedStringArray()) -> Dictionary:
 	return await request_json(path, HTTPClient.METHOD_GET, {}, headers)
@@ -140,3 +171,80 @@ func _build_query_string(params: Dictionary) -> String:
 		var value: Variant = params[key_variant]
 		parts.append("%s=%s" % [key.uri_encode(), str(value).uri_encode()])
 	return "&".join(parts)
+
+func _sync_chat_to_appstate(channel: String, parsed: Variant) -> void:
+	if has_node("/root/AppState") == false:
+		return
+	var lines: Array = _extract_chat_lines(parsed)
+	if lines.is_empty():
+		return
+	AppState.set_chat_messages(channel, lines)
+
+func _extract_chat_lines(parsed: Variant) -> Array:
+	var items: Array = []
+	if parsed is Array:
+		items = (parsed as Array).duplicate(true)
+	elif parsed is Dictionary:
+		var data := parsed as Dictionary
+		if data.has("result") and data["result"] is Array:
+			items = (data["result"] as Array).duplicate(true)
+		elif data.has("items") and data["items"] is Array:
+			items = (data["items"] as Array).duplicate(true)
+	var lines: Array = []
+	for message_variant in items:
+		if message_variant is Dictionary == false:
+			continue
+		var message := message_variant as Dictionary
+		var player: String = str(message.get("player", message.get("username", message.get("user", "Player %s" % str(message.get("sender_id", "?"))))))
+		var text: String = str(message.get("message", message.get("text", "")))
+		if text.is_empty():
+			continue
+		lines.append("[%s] %s" % [player, text])
+	return lines
+
+func _sync_auction_to_appstate(parsed: Variant, fallback_filters: Dictionary) -> void:
+	if has_node("/root/AppState") == false:
+		return
+	var items: Array = _extract_auction_items(parsed)
+	var pagination: Dictionary = _extract_auction_pagination(parsed, fallback_filters, items.size())
+	AppState.set_auction_data(items, pagination)
+
+func _extract_auction_items(parsed: Variant) -> Array:
+	if parsed is Array:
+		return (parsed as Array).duplicate(true)
+	if parsed is Dictionary:
+		var data := parsed as Dictionary
+		if data.has("result") and data["result"] is Array:
+			return (data["result"] as Array).duplicate(true)
+		if data.has("items") and data["items"] is Array:
+			return (data["items"] as Array).duplicate(true)
+	return []
+
+func _extract_auction_pagination(parsed: Variant, filters: Dictionary, item_count: int) -> Dictionary:
+	var page: int = maxi(1, int(filters.get("page", 1)))
+	var page_size: int = maxi(1, int(filters.get("page_size", 20)))
+	var total: int = item_count
+	var has_next: bool = item_count >= page_size
+	var has_prev: bool = page > 1
+	if parsed is Dictionary:
+		var data := parsed as Dictionary
+		if data.has("limit") and data.has("offset"):
+			var limit: int = maxi(1, int(data.get("limit", page_size)))
+			var offset: int = maxi(0, int(data.get("offset", 0)))
+			page = int(offset / limit) + 1
+			page_size = limit
+		if data.has("total"):
+			total = int(data.get("total", total))
+			has_next = page * page_size < total
+			has_prev = page > 1
+		if data.has("has_next"):
+			has_next = bool(data.get("has_next", has_next))
+		if data.has("has_prev"):
+			has_prev = bool(data.get("has_prev", has_prev))
+	return {
+		"page": page,
+		"page_size": page_size,
+		"total": total,
+		"has_next": has_next,
+		"has_prev": has_prev,
+	}

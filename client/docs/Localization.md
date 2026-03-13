@@ -105,7 +105,7 @@ In **every** locale file (`en.json`, `uk.json`, `pl.json`, and `de.json`), add a
 
 ### 3.4 Add the option to the language selector
 
-In **LoginPanel.gd** and **RegisterPanel.gd**, update the constant and the option list:
+In **LoginScene.gd** and **RegisterScene.gd**, update the constant and the option list:
 
 ```gdscript
 const LOCALE_ORDER = ["en", "uk", "pl", "de"]
@@ -190,10 +190,12 @@ locales/
 autoload/
   Localization.gd    # Singleton: load_locale(), t(), locale_changed
 
+scripts/ui/scenes/
+	LoginScene.gd      # Language OptionButton + _localize_ui
+	RegisterScene.gd   # Language OptionButton + _localize_ui
+
 scripts/ui/
-  LoginPanel.gd      # Language OptionButton + _localize_ui
-  RegisterPanel.gd   # Language OptionButton + _localize_ui
-  LocaleMenuPanel.gd # Settings → Language (from main menu)
+	LocaleMenuPanel.gd # Settings → Language (from main menu)
 ```
 
 ---

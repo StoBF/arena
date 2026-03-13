@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://bva3r6naptlvi"]
 
-[ext_resource type="Script" path="res://scripts/ui/scenes/PlayerHub.gd" id="1"]
+[ext_resource type="Script" uid="uid://b6wtwpa5tkqhe" path="res://scripts/ui/scenes/PlayerHub.gd" id="1"]
 
 [node name="PlayerHub" type="Control"]
 layout_mode = 3
@@ -29,128 +29,158 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="TopBar" type="HBoxContainer" parent="Margin/VBox"]
-layout_mode = 2
-
-[node name="Title" type="Label" parent="Margin/VBox/TopBar"]
-layout_mode = 2
-text = "Player Hub"
-
-[node name="TopSpacer" type="Control" parent="Margin/VBox/TopBar"]
+[node name="TopRow" type="HBoxContainer" parent="Margin/VBox"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 12
 
-[node name="CurrencyLabel" type="Label" parent="Margin/VBox/TopBar"]
-layout_mode = 2
-text = "Currency: --"
-
-[node name="HeroBarPanel" type="PanelContainer" parent="Margin/VBox"]
+[node name="HeroBarPanel" type="PanelContainer" parent="Margin/VBox/TopRow"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 0
 
-[node name="HeroBarMargin" type="MarginContainer" parent="Margin/VBox/HeroBarPanel"]
+[node name="HeroBarMargin" type="MarginContainer" parent="Margin/VBox/TopRow/HeroBarPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 6
 
-[node name="HeroBarScroll" type="ScrollContainer" parent="Margin/VBox/HeroBarPanel/HeroBarMargin"]
+[node name="HeroBarScroll" type="ScrollContainer" parent="Margin/VBox/TopRow/HeroBarPanel/HeroBarMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
-horizontal_scroll_mode = 1
 vertical_scroll_mode = 0
 
-[node name="HeroSlots" type="HBoxContainer" parent="Margin/VBox/HeroBarPanel/HeroBarMargin/HeroBarScroll"]
+[node name="HeroSlots" type="HBoxContainer" parent="Margin/VBox/TopRow/HeroBarPanel/HeroBarMargin/HeroBarScroll"]
+custom_minimum_size = Vector2(5, 5)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="Body" type="HSplitContainer" parent="Margin/VBox"]
+[node name="CurrencyPanel" type="PanelContainer" parent="Margin/VBox/TopRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+
+[node name="CurrencyMargin" type="MarginContainer" parent="Margin/VBox/TopRow/CurrencyPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="CurrencyLabel" type="Label" parent="Margin/VBox/TopRow/CurrencyPanel/CurrencyMargin"]
+layout_mode = 2
+text = "Currency: --"
+horizontal_alignment = 2
+
+[node name="CenterRow" type="HSplitContainer" parent="Margin/VBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 split_offset = 700
 
-[node name="LeftColumn" type="VBoxContainer" parent="Margin/VBox/Body"]
+[node name="MainContentPanel" type="PanelContainer" parent="Margin/VBox/CenterRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 0
-theme_override_constants/separation = 10
-
-[node name="Buttons" type="GridContainer" parent="Margin/VBox/Body/LeftColumn"]
-layout_mode = 2
-columns = 3
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
-
-[node name="StorageButton" type="Button" parent="Margin/VBox/Body/LeftColumn/Buttons"]
-layout_mode = 2
-text = "Storage"
-
-[node name="AuctionButton" type="Button" parent="Margin/VBox/Body/LeftColumn/Buttons"]
-layout_mode = 2
-text = "Auction"
-
-[node name="BattleButton" type="Button" parent="Margin/VBox/Body/LeftColumn/Buttons"]
-layout_mode = 2
-text = "BattleRoom"
-
-[node name="SettingsButton" type="Button" parent="Margin/VBox/Body/LeftColumn/Buttons"]
-layout_mode = 2
-text = "Settings"
-
-[node name="HeroCreationButton" type="Button" parent="Margin/VBox/Body/LeftColumn/Buttons"]
-layout_mode = 2
-text = "HeroCreation"
-
-[node name="HeroDetailsPanel" type="PanelContainer" parent="Margin/VBox/Body"]
-custom_minimum_size = Vector2(320, 0)
-layout_mode = 2
 size_flags_vertical = 3
 
-[node name="DetailsMargin" type="MarginContainer" parent="Margin/VBox/Body/HeroDetailsPanel"]
+[node name="MainContentMargin" type="MarginContainer" parent="Margin/VBox/CenterRow/MainContentPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="DetailsVBox" type="VBoxContainer" parent="Margin/VBox/Body/HeroDetailsPanel/DetailsMargin"]
+[node name="MainContentVBox" type="VBoxContainer" parent="Margin/VBox/CenterRow/MainContentPanel/MainContentMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="MainContentTitle" type="Label" parent="Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox"]
+layout_mode = 2
+text = "Player Hub"
+
+[node name="Buttons" type="GridContainer" parent="Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 3
+
+[node name="StorageButton" type="Button" parent="Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons"]
+layout_mode = 2
+text = "Storage"
+
+[node name="AuctionButton" type="Button" parent="Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons"]
+layout_mode = 2
+text = "Auction"
+
+[node name="BattleButton" type="Button" parent="Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons"]
+layout_mode = 2
+text = "BattleRoom"
+
+[node name="SettingsButton" type="Button" parent="Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons"]
+layout_mode = 2
+text = "Settings"
+
+[node name="HeroCreationButton" type="Button" parent="Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons"]
+layout_mode = 2
+text = "HeroCreation"
+
+[node name="MainContentSpacer" type="Control" parent="Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HeroDetailsPanel" type="PanelContainer" parent="Margin/VBox/CenterRow"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 3
+
+[node name="DetailsMargin" type="MarginContainer" parent="Margin/VBox/CenterRow/HeroDetailsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="DetailsVBox" type="VBoxContainer" parent="Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="DetailsTitle" type="Label" parent="Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
+[node name="DetailsTitle" type="Label" parent="Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
 layout_mode = 2
 text = "Hero Details"
 
-[node name="HeroName" type="Label" parent="Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
+[node name="HeroName" type="Label" parent="Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
 layout_mode = 2
 text = "Name: -"
 
-[node name="HeroGeneration" type="Label" parent="Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
+[node name="HeroGeneration" type="Label" parent="Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
 layout_mode = 2
 text = "Generation: -"
 
-[node name="HeroLevel" type="Label" parent="Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
+[node name="HeroLevel" type="Label" parent="Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
 layout_mode = 2
 text = "Level: -"
 
-[node name="HeroWins" type="Label" parent="Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
+[node name="HeroWins" type="Label" parent="Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
 layout_mode = 2
 text = "Wins: -"
 
-[node name="HeroLosses" type="Label" parent="Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
+[node name="HeroLosses" type="Label" parent="Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
 layout_mode = 2
 text = "Losses: -"
 
-[node name="AttributesTitle" type="Label" parent="Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
+[node name="AttributesTitle" type="Label" parent="Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
 layout_mode = 2
 text = "Attributes"
 
-[node name="HeroAttributes" type="RichTextLabel" parent="Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
+[node name="HeroAttributes" type="RichTextLabel" parent="Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -159,7 +189,7 @@ text = "-"
 
 [node name="ChatPanel" type="PanelContainer" parent="."]
 layout_mode = 1
-anchors_preset = 0
+anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 12.0
@@ -177,10 +207,12 @@ current_tab = 0
 
 [node name="Global" type="Control" parent="ChatPanel/VBox/Tabs"]
 layout_mode = 2
+metadata/_tab_index = 0
 
 [node name="Trade" type="Control" parent="ChatPanel/VBox/Tabs"]
 visible = false
 layout_mode = 2
+metadata/_tab_index = 1
 
 [node name="Messages" type="ScrollContainer" parent="ChatPanel/VBox"]
 layout_mode = 2

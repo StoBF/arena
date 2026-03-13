@@ -17,24 +17,29 @@ const SETTINGS_SCENE := preload("res://scenes/ui/Settings.tscn")
 @onready var current_view_root: Control = $UIRoot/CurrentView
 
 var _current_view: Control = null
+var _current_view_name: String = ""
 
 func _ready() -> void:
 	inventory_controller.bind_player_data(player_data)
 	craft_controller.bind_controllers(player_data, inventory_controller)
 	if has_node("/root/SceneManager"):
 		SceneManager.bind_ui_root(self)
+	if has_node("/root/EventBus") and EventBus.scene_changed.is_connected(_on_eventbus_scene_changed) == false:
+		EventBus.scene_changed.connect(_on_eventbus_scene_changed)
 	if AuthManager.is_authenticated():
-		if has_node("/root/SceneManager"):
-			SceneManager.open_playerhub()
+		if has_node("/root/EventBus"):
+			EventBus.emit_scene_changed("PlayerHub")
 		else:
 			open_view("PlayerHub")
 	else:
-		if has_node("/root/SceneManager"):
-			SceneManager.open_auth()
+		if has_node("/root/EventBus"):
+			EventBus.emit_scene_changed("LoginScene")
 		else:
 			open_view("LoginScene")
 
 func open_view(view_name: String) -> void:
+	if view_name == _current_view_name and _current_view != null and _current_view.is_inside_tree():
+		return
 	if _current_view != null and _current_view.is_inside_tree():
 		_current_view.queue_free()
 		_current_view = null
@@ -45,6 +50,7 @@ func open_view(view_name: String) -> void:
 	_current_view = scene.instantiate()
 	current_view_root.add_child(_current_view)
 	_bind_view(_current_view)
+	_current_view_name = view_name
 	view_changed.emit(view_name)
 
 func _scene_for_view(view_name: String) -> PackedScene:
@@ -72,17 +78,5 @@ func _bind_view(view: Node) -> void:
 	if view.has_method("bind_controllers"):
 		view.bind_controllers(player_data, inventory_controller, craft_controller)
 
-	_connect_if_exists(view, "open_player_hub", func(): SceneManager.open_playerhub())
-	_connect_if_exists(view, "open_register", func(): SceneManager.open_register())
-	_connect_if_exists(view, "open_login", func(): SceneManager.open_auth())
-	_connect_if_exists(view, "login_success", func(): SceneManager.open_playerhub())
-	_connect_if_exists(view, "open_hero_creation", func(): SceneManager.open_hero_creation())
-	_connect_if_exists(view, "open_storage", func(): SceneManager.open_inventory())
-	_connect_if_exists(view, "open_auction", func(): SceneManager.open_auction())
-	_connect_if_exists(view, "open_battle_room", func(): SceneManager.open_battle_room())
-	_connect_if_exists(view, "open_settings", func(): SceneManager.open_settings())
-
-func _connect_if_exists(node: Object, signal_name: StringName, callback: Callable) -> void:
-	if node.has_signal(signal_name):
-		if node.is_connected(signal_name, callback) == false:
-			node.connect(signal_name, callback)
+func _on_eventbus_scene_changed() -> void:
+	open_view(EventBus.last_scene_name)

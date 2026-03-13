@@ -5,6 +5,7 @@ from app.schemas.user import UserCreate, UserLogin, UserOut, UserWithBalance, To
 from app.services.auth import AuthService
 from app.auth import get_current_user
 from app.core.config import settings
+from app.services.session_registry import active_session_registry
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -52,6 +53,14 @@ def _extract_refresh_token(request: Request, body_token: str | None) -> str | No
 
     return None
 
+
+def _extract_access_token(request: Request) -> str | None:
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+        return token or None
+    return None
+
 @router.post(
     "/register",
     response_model=UserOut,
@@ -82,6 +91,7 @@ async def login(login_data: UserLogin, request: Request, response: Response, db:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     tokens = AuthService(db).generate_tokens(user)
+    active_session_registry.register_access_token(tokens["access_token"])
     
     # Set refresh token in HTTP-only secure cookie (more secure than including in response body)
     # HttpOnly prevents JavaScript from accessing it
@@ -114,6 +124,7 @@ async def google_login(request: Request, response: Response, google_token: str =
         user = await AuthService(db).create_user(email=email, username=base_username, password=None, is_google=True)
     
     tokens = AuthService(db).generate_tokens(user)
+    active_session_registry.register_access_token(tokens["access_token"])
     
     # Set refresh token in HTTP-only secure cookie
     _set_refresh_cookie(response, tokens["refresh_token"])
@@ -160,6 +171,11 @@ async def refresh_token(request: Request, response: Response, db: AsyncSession =
     # Set NEW refresh token in HTTP-only cookie (token rotation)
     # This invalidates the old cookie and provides a new one
     _set_refresh_cookie(response, result["refresh_token"])
+    active_session_registry.register_access_token(result["access_token"])
+
+    old_access_token = _extract_access_token(request)
+    if old_access_token:
+        active_session_registry.unregister_access_token(old_access_token)
     
     logger.info(f"[AUTH_REFRESH_SUCCESS] user_id={result.get('user_id')} family={result.get('family')}")
     
@@ -168,6 +184,25 @@ async def refresh_token(request: Request, response: Response, db: AsyncSession =
         "access_token": result["access_token"],
         "token_type": "bearer"
     }
+
+
+@router.post(
+    "/logout",
+    summary="User logout",
+    description="Logs out current user, clears refresh cookie, and removes active access token from in-memory registry."
+)
+async def logout(request: Request, response: Response, _user=Depends(get_current_user)):
+    access_token = _extract_access_token(request)
+    if access_token:
+        active_session_registry.unregister_access_token(access_token)
+
+    response.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+    )
+    return {"status": "ok"}
 
 
 @router.get(

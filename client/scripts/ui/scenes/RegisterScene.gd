@@ -1,7 +1,5 @@
 extends Control
 
-signal open_login
-
 @onready var email_input: LineEdit = $VBox/EmailInput
 @onready var password_input: LineEdit = $VBox/PasswordInput
 @onready var confirm_input: LineEdit = $VBox/ConfirmPasswordInput
@@ -10,7 +8,7 @@ signal open_login
 
 func _ready() -> void:
 	register_button.pressed.connect(_on_register_pressed)
-	$VBox/Actions/BackToLoginButton.pressed.connect(func(): open_login.emit())
+	$VBox/Actions/BackToLoginButton.pressed.connect(func(): EventBus.emit_scene_changed("LoginScene"))
 	if LocalizationManager.locale_changed.is_connected(_on_locale_changed) == false:
 		LocalizationManager.locale_changed.connect(_on_locale_changed)
 	_apply_translations()

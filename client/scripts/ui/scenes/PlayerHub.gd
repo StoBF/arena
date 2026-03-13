@@ -1,12 +1,5 @@
 extends Control
 
-signal open_storage
-signal open_auction
-signal open_battle_room
-signal open_settings
-signal open_hero_creation
-signal hero_selected(hero_id: int)
-
 const HERO_CARD_SCRIPT := preload("res://scripts/ui/components/hero_card/HeroCard.gd")
 const CHAT_MESSAGE_SCRIPT := preload("res://scripts/ui/components/chat_message/ChatMessage.gd")
 const CHAT_CHANNELS: PackedStringArray = ["global", "trade"]
@@ -14,19 +7,23 @@ const CHAT_SOCKET_PATH_BY_UI_CHANNEL := {
 	"global": "general",
 	"trade": "trade",
 }
+const CHAT_API_CHANNEL_BY_UI_CHANNEL := {
+	"global": "global",
+	"trade": "trade",
+}
 
-@onready var hero_slots_container: HBoxContainer = $Margin/VBox/HeroBarPanel/HeroBarMargin/HeroBarScroll/HeroSlots
-@onready var currency_label: Label = $Margin/VBox/TopBar/CurrencyLabel
-@onready var title_label: Label = $Margin/VBox/TopBar/Title
-@onready var details_title_label: Label = $Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox/DetailsTitle
-@onready var attributes_title_label: Label = $Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox/AttributesTitle
+@onready var hero_slots_container: HBoxContainer = $Margin/VBox/TopRow/HeroBarPanel/HeroBarMargin/HeroBarScroll/HeroSlots
+@onready var currency_label: Label = $Margin/VBox/TopRow/CurrencyPanel/CurrencyMargin/CurrencyLabel
+@onready var title_label: Label = $Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/MainContentTitle
+@onready var details_title_label: Label = $Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox/DetailsTitle
+@onready var attributes_title_label: Label = $Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox/AttributesTitle
 @onready var chat_panel: PanelContainer = $ChatPanel
-@onready var hero_name_label: Label = $Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroName
-@onready var hero_generation_label: Label = $Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroGeneration
-@onready var hero_level_label: Label = $Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroLevel
-@onready var hero_wins_label: Label = $Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroWins
-@onready var hero_losses_label: Label = $Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroLosses
-@onready var hero_attributes_label: RichTextLabel = $Margin/VBox/Body/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroAttributes
+@onready var hero_name_label: Label = $Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroName
+@onready var hero_generation_label: Label = $Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroGeneration
+@onready var hero_level_label: Label = $Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroLevel
+@onready var hero_wins_label: Label = $Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroWins
+@onready var hero_losses_label: Label = $Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroLosses
+@onready var hero_attributes_label: RichTextLabel = $Margin/VBox/CenterRow/HeroDetailsPanel/DetailsMargin/DetailsVBox/HeroAttributes
 @onready var chat_tabs: TabContainer = $ChatPanel/VBox/Tabs
 @onready var messages_scroll: ScrollContainer = $ChatPanel/VBox/Messages
 @onready var message_list: VBoxContainer = $ChatPanel/VBox/Messages/MessageList
@@ -44,21 +41,29 @@ var _chat_ws_connected: Dictionary = {}
 var _chat_ws_reconnect_timers: Dictionary = {}
 
 func _ready() -> void:
-	$Margin/VBox/Body/LeftColumn/Buttons/StorageButton.pressed.connect(func(): open_storage.emit())
-	$Margin/VBox/Body/LeftColumn/Buttons/AuctionButton.pressed.connect(func(): open_auction.emit())
-	$Margin/VBox/Body/LeftColumn/Buttons/BattleButton.pressed.connect(func(): open_battle_room.emit())
-	$Margin/VBox/Body/LeftColumn/Buttons/SettingsButton.pressed.connect(func(): open_settings.emit())
-	$Margin/VBox/Body/LeftColumn/Buttons/HeroCreationButton.pressed.connect(func(): open_hero_creation.emit())
+	$Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons/StorageButton.pressed.connect(func(): EventBus.emit_scene_changed("Storage"))
+	$Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons/AuctionButton.pressed.connect(func(): EventBus.emit_scene_changed("Auction"))
+	$Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons/BattleButton.pressed.connect(func(): EventBus.emit_scene_changed("BattleRoom"))
+	$Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons/SettingsButton.pressed.connect(func(): EventBus.emit_scene_changed("Settings"))
+	$Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons/HeroCreationButton.pressed.connect(func(): EventBus.emit_scene_changed("HeroCreation"))
 
 	_setup_chat_ui()
 	_apply_translations()
+	_update_server_status_ui()
 	_render_currency(AppState.balance)
-	if AppState.user_data_updated.is_connected(_on_user_data_updated) == false:
-		AppState.user_data_updated.connect(_on_user_data_updated)
-	if AppState.chat_message_received.is_connected(_on_chat_message_received) == false:
-		AppState.chat_message_received.connect(_on_chat_message_received)
-	if AppState.chat_updated.is_connected(_on_chat_updated) == false:
-		AppState.chat_updated.connect(_on_chat_updated)
+	if has_node("/root/EventBus"):
+		if EventBus.user_data_updated.is_connected(_on_user_data_updated) == false:
+			EventBus.user_data_updated.connect(_on_user_data_updated)
+		if EventBus.heroes_updated.is_connected(_on_eventbus_heroes_updated) == false:
+			EventBus.heroes_updated.connect(_on_eventbus_heroes_updated)
+		if EventBus.chat_message_received.is_connected(_on_eventbus_chat_message_received) == false:
+			EventBus.chat_message_received.connect(_on_eventbus_chat_message_received)
+		if EventBus.chat_updated.is_connected(_on_eventbus_chat_updated) == false:
+			EventBus.chat_updated.connect(_on_eventbus_chat_updated)
+		if EventBus.hero_selected.is_connected(_on_hero_selected_signal) == false:
+			EventBus.hero_selected.connect(_on_hero_selected_signal)
+		if EventBus.server_status_updated.is_connected(_on_eventbus_server_status_updated) == false:
+			EventBus.server_status_updated.connect(_on_eventbus_server_status_updated)
 	if LocalizationManager.locale_changed.is_connected(_on_locale_changed) == false:
 		LocalizationManager.locale_changed.connect(_on_locale_changed)
 	set_process(true)
@@ -104,15 +109,36 @@ func _load_heroes_from_api() -> void:
 	var response: Dictionary = await ApiClient.get_heroes()
 	if bool(response.get("ok", false)):
 		var parsed: Variant = response.get("data", {})
-		_heroes = _extract_heroes(parsed)
-		if _heroes.is_empty() == false:
-			if _selected_hero_index < 0 or _selected_hero_index >= _heroes.size():
-				_selected_hero_index = 0
-			_render_hero_bar()
-			_render_hero_details(_heroes[_selected_hero_index] as Dictionary)
+		var extracted: Array = _extract_heroes(parsed)
+		AppState.set_heroes_data(extracted)
+		if extracted.is_empty() == false:
 			return
 
+	_on_eventbus_heroes_updated()
+	if _heroes.is_empty() == false:
+		return
+
 	_apply_local_heroes_fallback()
+
+func _on_appstate_heroes_updated(heroes: Array) -> void:
+	_heroes.clear()
+	for hero_variant in heroes:
+		if hero_variant is Dictionary:
+			_heroes.append((hero_variant as Dictionary).duplicate(true))
+
+	if _heroes.is_empty():
+		_selected_hero_index = -1
+		_render_hero_bar()
+		_render_empty_details()
+		return
+
+	if _selected_hero_index < 0 or _selected_hero_index >= _heroes.size():
+		_selected_hero_index = 0
+	_render_hero_bar()
+	_render_hero_details(_heroes[_selected_hero_index] as Dictionary)
+
+func _on_eventbus_heroes_updated() -> void:
+	_on_appstate_heroes_updated(AppState.heroes)
 
 func _extract_heroes(parsed: Variant) -> Array:
 	var output: Array = []
@@ -180,23 +206,32 @@ func _render_hero_bar() -> void:
 			(_hero_card_pool[i] as Control).visible = false
 
 func _on_hero_card_selected(hero_id: int) -> void:
-	for i: int in range(_heroes.size()):
-		var hero := _heroes[i] as Dictionary
-		if int(hero.get("id", -1)) == hero_id:
-			_on_hero_icon_pressed(i)
-			return
+	if has_node("/root/EventBus"):
+		EventBus.emit_hero_selected(hero_id)
 
 func _on_hero_icon_pressed(index: int) -> void:
 	if index < 0 or index >= _heroes.size():
+		return
+	if index == _selected_hero_index:
 		return
 	_selected_hero_index = index
 	_render_hero_bar()
 	var hero := _heroes[index] as Dictionary
 	_render_hero_details(hero)
 	_sync_selected_hero_to_state(hero)
-	var hero_id: int = int(hero.get("id", -1))
-	if hero_id > 0:
-		hero_selected.emit(hero_id)
+
+func _on_hero_selected_signal(hero_id: int) -> void:
+	for i: int in range(_heroes.size()):
+		var hero := _heroes[i] as Dictionary
+		if int(hero.get("id", -1)) != hero_id:
+			continue
+		if i == _selected_hero_index:
+			return
+		_selected_hero_index = i
+		_render_hero_bar()
+		_render_hero_details(hero)
+		_sync_selected_hero_to_state(hero)
+		return
 
 func _sync_selected_hero_to_state(hero: Dictionary) -> void:
 	var hero_id_variant: Variant = hero.get("id", -1)
@@ -252,6 +287,8 @@ func _setup_chat_ui() -> void:
 	message_input.text_submitted.connect(func(_v: String): _on_chat_send_pressed())
 	chat_tabs.tab_changed.connect(_on_chat_tab_changed)
 	_load_existing_chat_messages()
+	for channel in CHAT_CHANNELS:
+		_load_chat_history_from_api(channel)
 	_connect_chat_sockets()
 
 func _process(_delta: float) -> void:
@@ -263,6 +300,7 @@ func _load_existing_chat_messages() -> void:
 
 func _on_chat_tab_changed(index: int) -> void:
 	chat_tabs.current_tab = index
+	_load_chat_history_from_api(_current_chat_channel())
 	_refresh_message_list()
 
 func _on_chat_send_pressed() -> void:
@@ -274,9 +312,13 @@ func _on_chat_send_pressed() -> void:
 	if _send_ws_message(channel, text):
 		pass
 	else:
-		var username := AppState.username if AppState.username.is_empty() == false else tr("ui.playerhub.you")
-		var payload := "[%s] %s" % [username, text]
-		AppState.push_chat_message(channel, payload)
+		var sent: Dictionary = await ApiClient.send_chat_message(channel, text)
+		if bool(sent.get("ok", false)):
+			var username := AppState.username if AppState.username.is_empty() == false else tr("ui.playerhub.you")
+			var payload := "[%s] %s" % [username, text]
+			AppState.push_chat_message(channel, payload)
+		else:
+			AppState.push_chat_message(channel, "[System] %s" % tr("ui.playerhub.chat_unavailable"))
 	message_input.clear()
 
 func _append_chat_line(channel: String, message: String) -> void:
@@ -290,10 +332,16 @@ func _on_chat_message_received(channel: String, message: String) -> void:
 		return
 	_append_chat_line(channel, message)
 
+func _on_eventbus_chat_message_received() -> void:
+	_on_chat_message_received(EventBus.last_chat_channel, EventBus.last_chat_message)
+
 func _on_chat_updated(channel: String, _messages: Array) -> void:
 	if channel != _current_chat_channel():
 		return
 	_refresh_message_list()
+
+func _on_eventbus_chat_updated() -> void:
+	_on_chat_updated(EventBus.last_chat_channel, EventBus.last_chat_messages)
 
 func _on_local_heroes_changed(_new_heroes: Array) -> void:
 	if _heroes.is_empty():
@@ -351,14 +399,14 @@ func _poll_chat_socket(channel: String) -> void:
 	if state == WebSocketPeer.STATE_OPEN:
 		if bool(_chat_ws_connected.get(channel, false)) == false:
 			_chat_ws_connected[channel] = true
-			AppState.push_chat_message(channel, tr("ui.playerhub.chat_connected"))
+			AppState.push_chat_message(channel, "[System] %s" % tr("ui.playerhub.chat_connected"))
 		while ws.get_available_packet_count() > 0:
 			var packet_text: String = ws.get_packet().get_string_from_utf8()
 			var rendered: String = _parse_chat_packet(packet_text)
 			AppState.push_chat_message(channel, rendered)
 	elif state == WebSocketPeer.STATE_CLOSED:
 		if bool(_chat_ws_connected.get(channel, false)):
-			AppState.push_chat_message(channel, tr("ui.playerhub.chat_disconnected"))
+			AppState.push_chat_message(channel, "[System] %s" % tr("ui.playerhub.chat_disconnected"))
 		_chat_ws_connected[channel] = false
 		_chat_ws.erase(channel)
 		_schedule_chat_reconnect(channel)
@@ -366,26 +414,39 @@ func _poll_chat_socket(channel: String) -> void:
 func _on_locale_changed(_locale_code: String) -> void:
 	_apply_translations()
 	_render_currency(AppState.balance)
+	_update_server_status_ui()
 	if _selected_hero_index >= 0 and _selected_hero_index < _heroes.size():
 		_render_hero_details(_heroes[_selected_hero_index] as Dictionary)
 	else:
 		_render_empty_details()
 	_render_hero_bar()
 
+func _on_eventbus_server_status_updated() -> void:
+	_update_server_status_ui()
+
 func _apply_translations() -> void:
 	title_label.text = tr("ui.playerhub.title")
-	$Margin/VBox/Body/LeftColumn/Buttons/StorageButton.text = tr("ui.playerhub.storage")
-	$Margin/VBox/Body/LeftColumn/Buttons/AuctionButton.text = tr("ui.playerhub.auction")
-	$Margin/VBox/Body/LeftColumn/Buttons/BattleButton.text = tr("ui.playerhub.battle")
-	$Margin/VBox/Body/LeftColumn/Buttons/SettingsButton.text = tr("ui.playerhub.settings")
-	$Margin/VBox/Body/LeftColumn/Buttons/HeroCreationButton.text = tr("ui.playerhub.hero_creation")
+	$Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons/StorageButton.text = tr("ui.playerhub.storage")
+	$Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons/AuctionButton.text = tr("ui.playerhub.auction")
+	$Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons/BattleButton.text = tr("ui.playerhub.battle")
+	$Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons/SettingsButton.text = tr("ui.playerhub.settings")
+	$Margin/VBox/CenterRow/MainContentPanel/MainContentMargin/MainContentVBox/Buttons/HeroCreationButton.text = tr("ui.playerhub.hero_creation")
 	message_input.placeholder_text = tr("ui.playerhub.chat_placeholder")
 	send_button.text = tr("ui.playerhub.send")
 	chat_tabs.set_tab_title(0, tr("ui.playerhub.chat_global"))
 	chat_tabs.set_tab_title(1, tr("ui.playerhub.chat_trade"))
 	details_title_label.text = tr("ui.playerhub.hero_details")
 	attributes_title_label.text = tr("ui.playerhub.attributes")
+	_update_server_status_ui()
 	_refresh_message_list()
+
+func _update_server_status_ui() -> void:
+	var status_text: String = AppState.server_status.to_upper()
+	title_label.text = "%s (%s: %d)" % [
+		tr("ui.playerhub.title"),
+		status_text,
+		AppState.online_players,
+	]
 
 func _send_ws_message(channel: String, text: String) -> bool:
 	if _chat_ws.has(channel) == false:
@@ -412,6 +473,10 @@ func _parse_chat_packet(packet_text: String) -> String:
 		return parsed as String
 	return packet_text
 
+func _load_chat_history_from_api(channel: String) -> void:
+	var api_channel: String = str(CHAT_API_CHANNEL_BY_UI_CHANNEL.get(channel, channel))
+	await ApiClient.get_chat_messages(api_channel, 200, 0)
+
 func _schedule_chat_reconnect(channel: String) -> void:
 	if _chat_ws_reconnect_timers.has(channel):
 		return
@@ -429,6 +494,19 @@ func _exit_tree() -> void:
 	_chat_ws.clear()
 	_chat_ws_connected.clear()
 	_chat_ws_reconnect_timers.clear()
+	if has_node("/root/EventBus"):
+		if EventBus.user_data_updated.is_connected(_on_user_data_updated):
+			EventBus.user_data_updated.disconnect(_on_user_data_updated)
+		if EventBus.heroes_updated.is_connected(_on_eventbus_heroes_updated):
+			EventBus.heroes_updated.disconnect(_on_eventbus_heroes_updated)
+		if EventBus.chat_message_received.is_connected(_on_eventbus_chat_message_received):
+			EventBus.chat_message_received.disconnect(_on_eventbus_chat_message_received)
+		if EventBus.chat_updated.is_connected(_on_eventbus_chat_updated):
+			EventBus.chat_updated.disconnect(_on_eventbus_chat_updated)
+		if EventBus.hero_selected.is_connected(_on_hero_selected_signal):
+			EventBus.hero_selected.disconnect(_on_hero_selected_signal)
+		if EventBus.server_status_updated.is_connected(_on_eventbus_server_status_updated):
+			EventBus.server_status_updated.disconnect(_on_eventbus_server_status_updated)
 
 func _current_chat_channel() -> String:
 	var index: int = chat_tabs.current_tab
@@ -443,7 +521,7 @@ func _refresh_message_list() -> void:
 		var entry: String = str(messages[i])
 		var msg_node = _ensure_chat_message(i)
 		msg_node.visible = true
-		msg_node.set_chat_message(entry)
+		msg_node.set_chat_message(entry, channel)
 
 	for i: int in range(messages.size(), _chat_message_pool.size()):
 		if _chat_message_pool[i] is Control:

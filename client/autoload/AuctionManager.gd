@@ -32,7 +32,6 @@ func fetch_lots(filters: Dictionary) -> Array:
 	var pagination: Dictionary = _extract_pagination(parsed, sanitized, items.size())
 	_last_items = items.duplicate(true)
 	_last_pagination = pagination.duplicate(true)
-	AppState.set_auction_data(_last_items, _last_pagination)
 	lots_updated.emit(_last_items.duplicate(true), _last_pagination.duplicate(true))
 	return _last_items.duplicate(true)
 
@@ -100,8 +99,7 @@ func place_bid(lot_id: int, amount: int) -> bool:
 		return false
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_POST, "/auctions/%d/bid" % lot_id, {"amount": amount})
 	if bool(response.get("ok", false)):
-		await fetch_lots(_last_filters)
-		await _refresh_user_profile()
+		await _sync_after_auction_mutation(false)
 		sig_lot_updated.emit(lot_id)
 		bid_received.emit(lot_id, float(amount))
 		return true
@@ -115,8 +113,7 @@ func buy_now(lot_id: int) -> bool:
 		return false
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_POST, "/auctions/%d/buy" % lot_id, {})
 	if bool(response.get("ok", false)):
-		await fetch_lots(_last_filters)
-		await _refresh_user_profile()
+		await _sync_after_auction_mutation(true)
 		sig_lot_closed.emit(lot_id)
 		return true
 	if _last_error_code == "lot_closed":
@@ -131,7 +128,7 @@ func create_lot(data: Dictionary) -> bool:
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_POST, "/auctions", payload)
 	if not bool(response.get("ok", false)):
 		return false
-	await fetch_lots(_last_filters)
+	await _sync_after_auction_mutation(true)
 	var created_lot: Dictionary = _extract_lot_from_response(response.get("data", {}), payload)
 	sig_new_lot.emit(created_lot)
 	return true
@@ -143,9 +140,15 @@ func cancel_lot(lot_id: int) -> bool:
 	var response: Dictionary = await _perform_request(HTTPClient.METHOD_DELETE, "/auctions/%d" % lot_id)
 	if not bool(response.get("ok", false)):
 		return false
-	await fetch_lots(_last_filters)
+	await _sync_after_auction_mutation(true)
 	sig_lot_closed.emit(lot_id)
 	return true
+
+func _sync_after_auction_mutation(refresh_inventory: bool) -> void:
+	await fetch_lots(_last_filters)
+	await _refresh_user_profile()
+	if refresh_inventory and has_node("/root/InventoryManager"):
+		await InventoryManager.get_items()
 
 func _sanitize_filters(filters: Dictionary) -> Dictionary:
 	var page: int = maxi(1, int(filters.get("page", 1)))

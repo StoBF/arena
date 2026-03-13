@@ -1,7 +1,5 @@
 extends Control
 
-signal open_player_hub
-
 @onready var status_label: Label = $VBox/Status
 @onready var name_input: LineEdit = $VBox/NameInput
 @onready var balance_label: Label = $VBox/BalanceLabel
@@ -14,12 +12,12 @@ var _last_create_response_data: Dictionary = {}
 
 func _ready() -> void:
 	create_button.pressed.connect(_on_create_pressed)
-	$VBox/Actions/BackButton.pressed.connect(func(): open_player_hub.emit())
+	$VBox/Actions/BackButton.pressed.connect(func(): EventBus.emit_scene_changed("PlayerHub"))
 	investment_slider.value_changed.connect(_on_investment_changed)
 	if LocalizationManager.locale_changed.is_connected(_on_locale_changed) == false:
 		LocalizationManager.locale_changed.connect(_on_locale_changed)
-	if AppState.user_data_updated.is_connected(_on_user_data_updated) == false:
-		AppState.user_data_updated.connect(_on_user_data_updated)
+	if has_node("/root/EventBus") and EventBus.user_data_updated.is_connected(_on_user_data_updated) == false:
+		EventBus.user_data_updated.connect(_on_user_data_updated)
 	_apply_translations()
 	_refresh_balance_and_slider_limits()
 	_on_investment_changed(investment_slider.value)

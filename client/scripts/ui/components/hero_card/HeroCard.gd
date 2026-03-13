@@ -23,4 +23,6 @@ func set_hero_data(hero: Dictionary, selected: bool) -> void:
 
 func _on_pressed() -> void:
 	if _hero_id > 0:
+		if has_node("/root/EventBus"):
+			EventBus.emit_hero_selected(_hero_id)
 		hero_selected.emit(_hero_id)

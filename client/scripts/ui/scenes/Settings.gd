@@ -1,10 +1,7 @@
 extends Control
 
-signal open_player_hub
-signal open_login
-
 func _ready() -> void:
-	$VBox/Header/BackButton.pressed.connect(func(): open_player_hub.emit())
+	$VBox/Header/BackButton.pressed.connect(func(): EventBus.emit_scene_changed("PlayerHub"))
 	$VBox/Body/VolumeSlider.value_changed.connect(_on_volume_changed)
 	$VBox/Body/FullscreenToggle.toggled.connect(_on_fullscreen_toggled)
 	$VBox/Body/LanguageOption.item_selected.connect(_on_language_selected)
@@ -34,7 +31,7 @@ func _on_locale_changed(_locale_code: String) -> void:
 
 func _on_logout_pressed() -> void:
 	AuthManager.logout()
-	open_login.emit()
+	EventBus.emit_scene_changed("LoginScene")
 
 func _apply_translations() -> void:
 	$VBox/Header/BackButton.text = tr("ui.common.back")

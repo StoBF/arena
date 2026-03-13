@@ -36,7 +36,6 @@ func craft_recipe(recipe_id: String) -> void:
 		craft_result.emit(false, str(response.get("message", "Craft failed")))
 		return
 
-	await InventoryManager.get_items()
 	await HeroManager.load_heroes()
 	await _refresh_profile_from_server()
 	if _inventory_controller.has_method("refresh_items_from_server"):

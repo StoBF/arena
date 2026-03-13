@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_session
 from app.database.models.user import User
 from app.utils.jwt import decode_access_token
+from app.services.session_registry import active_session_registry
 from sqlalchemy.future import select
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -12,6 +13,8 @@ async def get_current_user_info(token: str = Depends(oauth2_scheme)):
     payload = decode_access_token(token)
     if not payload or "sub" not in payload or "role" not in payload:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    active_session_registry.register_access_token(token)
+    active_session_registry.touch_access_token(token)
     user_id = int(payload["sub"])
     return {"user_id": user_id, "role": payload["role"]}
 
@@ -26,6 +29,8 @@ async def get_current_user(
     payload = decode_access_token(token)
     if not payload or "sub" not in payload or "role" not in payload:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    active_session_registry.register_access_token(token)
+    active_session_registry.touch_access_token(token)
     user_id = int(payload["sub"])
     role = payload["role"]
     if required_role == "admin" and role != "admin":

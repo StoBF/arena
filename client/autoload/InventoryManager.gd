@@ -166,6 +166,7 @@ func dismantle_item(item_id: int) -> bool:
 		return false
 
 	await get_items()
+	await _refresh_user_profile()
 	sig_item_removed.emit(item_id)
 	return true
 
@@ -212,8 +213,21 @@ func sell_item_on_auction(item_id: int, price: float = -1.0) -> bool:
 	if not bool(response.get("ok", false)):
 		return false
 	await get_items()
+	await _refresh_user_profile()
 	sig_item_removed.emit(item_id)
 	return true
+
+func _refresh_user_profile() -> void:
+	var profile_response: Dictionary = await ApiClient.get_user()
+	if bool(profile_response.get("ok", false)) == false:
+		return
+	var parsed: Variant = profile_response.get("data", {})
+	if parsed is Dictionary:
+		var data := parsed as Dictionary
+		if data.has("result") and data["result"] is Dictionary:
+			AppState.set_user_data((data["result"] as Dictionary).duplicate(true))
+			return
+		AppState.set_user_data(data.duplicate(true))
 
 func is_item_valid_for_slot(item_id: int, slot_type: String, hero_id: int = -1) -> bool:
 	if slot_type.is_empty() or not EQUIPMENT_SLOTS.has(slot_type):
