@@ -42,7 +42,7 @@ project/solution_directory="E:\\GOG Games\\arena\\client"
 
 [internationalization]
 
-locale/translations=PackedStringArray("res://locales/en.translation", "res://locales/pl.translation", "res://locales/uk.translation")
+locale/translations=PackedStringArray()
 
 [mono]
 

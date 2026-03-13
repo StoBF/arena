@@ -1,11 +1,11 @@
-extends KinematicBody2D
+extends CharacterBody2D
 
 const ACCELERATION = 960
 const MAX_SPEED = 155
 const FRICTION = 900
-var velocity = Vector2.ZERO
-onready var animPlayer = $AnimationPlayer
-onready var sprite = $Sprite
+
+@onready var animPlayer = $AnimationPlayer
+@onready var sprite = $Sprite
 	
 func _physics_process(delta):
 	var input_x = Input.get_action_strength("ui_right") - Input.get_action_strength("ui_left")
@@ -21,7 +21,7 @@ func _physics_process(delta):
 		velocity = velocity.move_toward(Vector2.ZERO, FRICTION * delta)
 		animPlayer.play("Idle")
 	
-	velocity = move_and_slide(velocity, Vector2.UP)
+	move_and_slide()
 
 
 func _input(event):
