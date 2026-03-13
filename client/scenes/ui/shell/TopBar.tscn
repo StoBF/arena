@@ -1,0 +1,46 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/shell/TopBarController.gd" id="1"]
+
+[node name="TopBar" type="Control"]
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 56.0
+script = ExtResource("1")
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="AccountButton" type="Button" parent="HBox"]
+layout_mode = 2
+text = "Account"
+
+[node name="HeroesButton" type="Button" parent="HBox"]
+layout_mode = 2
+text = "Heroes"
+
+[node name="InventoryButton" type="Button" parent="HBox"]
+layout_mode = 2
+text = "Inventory"
+
+[node name="AuctionButton" type="Button" parent="HBox"]
+layout_mode = 2
+text = "Auction"
+
+[node name="WorkshopButton" type="Button" parent="HBox"]
+layout_mode = 2
+text = "Workshop"
+
+[node name="RaidButton" type="Button" parent="HBox"]
+layout_mode = 2
+text = "Raid"
+
+[node name="ChatButton" type="Button" parent="HBox"]
+layout_mode = 2
+text = "Chat"
