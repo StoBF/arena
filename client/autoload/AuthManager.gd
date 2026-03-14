@@ -7,9 +7,11 @@ signal register_failed(message: String)
 signal auth_state_changed(is_authenticated: bool)
 
 var jwt_token: String = ""
+var refresh_token: String = ""
 
 func _ready() -> void:
 	jwt_token = AppState.access_token
+	refresh_token = AppState.refresh_token
 
 func is_authenticated() -> bool:
 	return jwt_token.is_empty() == false
@@ -23,12 +25,13 @@ func login(email: String, password: String) -> Dictionary:
 
 	var data: Dictionary = _extract_dict(response.get("data", {}))
 	var token: String = str(data.get("access_token", ""))
+	var refresh: String = str(data.get("refresh_token", ""))
 	if token.is_empty():
 		var no_token_message := "Login failed: access token missing"
 		login_failed.emit(no_token_message)
 		return {"ok": false, "message": no_token_message}
 
-	_set_token(token)
+	_set_tokens(token, refresh)
 	login_succeeded.emit()
 	return {"ok": true, "data": data}
 
@@ -44,12 +47,14 @@ func register(email: String, password: String) -> Dictionary:
 	return {"ok": true, "data": _extract_dict(response.get("data", {}))}
 
 func logout() -> void:
-	_set_token("")
+	_set_tokens("", "")
 	AppState.clear_user_state()
 
-func _set_token(token: String) -> void:
+func _set_tokens(token: String, refresh: String = "") -> void:
 	jwt_token = token
+	refresh_token = refresh
 	AppState.set_access_token(token)
+	AppState.refresh_token = refresh
 	Network.set_auth_header(token)
 	auth_state_changed.emit(is_authenticated())
 

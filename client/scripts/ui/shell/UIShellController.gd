@@ -29,6 +29,6 @@ func _ensure_core_singletons() -> void:
 		bus.name = "EventBus"
 		root.add_child(bus)
 	if root.has_node("ApiClient") == false:
-		var api := UIApiClient.new()
+		var api := preload("res://scripts/network/ApiClient.gd").new()
 		api.name = "ApiClient"
 		root.add_child(api)

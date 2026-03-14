@@ -44,6 +44,9 @@ else:
     redis_pubsub = _StubPubSub()
 
 # Канали: general, trade, private:{user_id}
+AUCTIONS_UPDATES_CHANNEL = "auctions:updates"
+
+
 def get_channel_name(channel: str, user_id: Optional[int] = None) -> str:
     if channel in ("general", "trade"):
         return f"chat:{channel}"
@@ -66,3 +69,19 @@ async def subscribe_channel(channel: str, user_id: Optional[int] = None) -> Asyn
     finally:
         await pubsub.unsubscribe(chan)
         await pubsub.close() 
+
+
+async def publish_auction_update(message: dict):
+    await redis_pubsub.publish(AUCTIONS_UPDATES_CHANNEL, json.dumps(message))
+
+
+async def subscribe_auction_updates() -> AsyncGenerator[dict, None]:
+    pubsub = redis_pubsub.pubsub()
+    await pubsub.subscribe(AUCTIONS_UPDATES_CHANNEL)
+    try:
+        async for msg in pubsub.listen():
+            if msg["type"] == "message":
+                yield json.loads(msg["data"])
+    finally:
+        await pubsub.unsubscribe(AUCTIONS_UPDATES_CHANNEL)
+        await pubsub.close()

@@ -5,10 +5,19 @@ extends Node
 ## while new/updated services move to ApiClient incrementally.
 
 func login(email: String, password: String) -> Dictionary:
-	return await request_post("/auth/login", {
+	var response: Dictionary = await request_post("/auth/login", {
 		"login": email,
 		"password": password,
 	})
+	if bool(response.get("ok", false)):
+		var payload: Dictionary = _extract_dict(response.get("data", {}))
+		var access: String = str(payload.get("access_token", ""))
+		var refresh: String = str(payload.get("refresh_token", ""))
+		if not access.is_empty():
+			AppState.set_access_token(access)
+		if not refresh.is_empty():
+			AppState.refresh_token = refresh
+	return response
 
 func register(email: String, username: String, password: String) -> Dictionary:
 	return await request_post("/auth/register", {
@@ -21,50 +30,46 @@ func get_user() -> Dictionary:
 	return await request_get("/auth/me")
 
 func get_heroes() -> Dictionary:
-	return await request_get("/heroes")
+	return await request_get("/heroes/")
 
 func create_hero(hero_name: String, investment: int) -> Dictionary:
-	return await request_post("/heroes/create", {
+	return await request_post("/heroes/generate", {
+		"generation": 1,
+		"currency": maxf(0.0, float(investment)),
+		"locale": _resolve_locale(),
 		"name": hero_name,
-		"investment": investment,
 	})
 
 func get_auction_lots(filters: Dictionary = {}) -> Dictionary:
-	var query: String = _build_query_string(filters)
-	var path := "/auction/lots"
+	var normalized: Dictionary = _normalize_auction_filters(filters)
+	var query: String = _build_query_string(normalized)
+	var path := "/auctions/lots"
 	if query.is_empty() == false:
 		path = "%s?%s" % [path, query]
 	var response: Dictionary = await request_get(path)
 	if bool(response.get("ok", false)):
-		_sync_auction_to_appstate(response.get("data", {}), filters)
+		_sync_auction_to_appstate(response.get("data", {}), normalized)
 	return response
 
 func get_chat_messages(channel: String = "global", limit: int = 50, offset: int = 0) -> Dictionary:
 	var query := {
-		"channel": channel,
-		"limit": maxi(1, limit),
-		"offset": maxi(0, offset),
-	}
-	var primary: Dictionary = await request_get("/chat/messages?%s" % _build_query_string(query))
-	if bool(primary.get("ok", false)):
-		_sync_chat_to_appstate(channel, primary.get("data", {}))
-		return primary
-
-	var legacy_channel := _legacy_chat_channel(channel)
-	var legacy_query := {
-		"channel": legacy_channel,
+		"channel": _legacy_chat_channel(channel),
 		"limit": maxi(1, limit),
 	}
-	var fallback: Dictionary = await request_get("/chat/history?%s" % _build_query_string(legacy_query))
-	if bool(fallback.get("ok", false)):
-		_sync_chat_to_appstate(channel, fallback.get("data", {}))
-	return fallback
+	var response: Dictionary = await request_get("/chat/history?%s" % _build_query_string(query))
+	if bool(response.get("ok", false)):
+		_sync_chat_to_appstate(channel, response.get("data", {}))
+	return response
 
 func send_chat_message(channel: String, message: String) -> Dictionary:
-	return await request_post("/chat/send", {
-		"channel": channel,
-		"message": message,
-	})
+	return {
+		"ok": false,
+		"code": 0,
+		"result": HTTPRequest.RESULT_UNAUTHORIZED,
+		"headers": PackedStringArray(),
+		"data": {},
+		"message": "Chat send is websocket-only on this backend"
+	}
 
 func _legacy_chat_channel(channel: String) -> String:
 	var normalized: String = channel.strip_edges().to_lower()
@@ -74,6 +79,36 @@ func _legacy_chat_channel(channel: String) -> String:
 
 func get_server_status() -> Dictionary:
 	return await request_get("/server/status")
+
+func get_account() -> Dictionary:
+	return await get_user()
+
+func get_inventory(hero_id: int) -> Dictionary:
+	return await request_get("/inventory/%d" % hero_id)
+
+func get_auctions() -> Dictionary:
+	return await request_get("/auction")
+
+func place_bid(lot_id: int, amount: int) -> Dictionary:
+	return await request_post("/auction/bid", {
+		"lot_id": lot_id,
+		"amount": amount,
+	})
+
+func buyout(lot_id: int) -> Dictionary:
+	return await request_post("/auction/buy", {
+		"lot_id": lot_id,
+	})
+
+func connect_chat() -> Dictionary:
+	return {
+		"ok": true,
+		"code": 200,
+		"result": HTTPRequest.RESULT_SUCCESS,
+		"headers": PackedStringArray(),
+		"data": {},
+		"message": "Chat connection managed by scene websocket flow"
+	}
 
 func request_get(path: String, headers: PackedStringArray = PackedStringArray()) -> Dictionary:
 	return await request_json(path, HTTPClient.METHOD_GET, {}, headers)
@@ -98,69 +133,19 @@ func request_json(path: String, method: int, payload: Dictionary = {}, headers: 
 			"message": "Network autoload is not available"
 		}
 
-	var req_headers: Array = []
-	for h: String in headers:
-		req_headers.append(h)
+	return await Network.request_json(path, method, payload, headers)
 
-	var req: HTTPRequest = Network.request(path, method, payload, req_headers)
-	if req == null:
-		return {
-			"ok": false,
-			"code": 0,
-			"result": HTTPRequest.RESULT_CANT_CONNECT,
-			"headers": PackedStringArray(),
-			"data": {},
-			"message": "Failed to create request"
-		}
+func _extract_dict(data: Variant) -> Dictionary:
+	if data is Dictionary:
+		return (data as Dictionary).duplicate(true)
+	return {}
 
-	var response: Array = await req.request_completed
-	if response.size() < 4:
-		return {
-			"ok": false,
-			"code": 0,
-			"result": HTTPRequest.RESULT_CANT_CONNECT,
-			"headers": PackedStringArray(),
-			"data": {},
-			"message": "Unexpected response"
-		}
-
-	var result: int = int(response[0])
-	var code: int = int(response[1])
-	var response_headers: PackedStringArray = response[2]
-	var body: PackedByteArray = response[3]
-	var body_text: String = body.get_string_from_utf8()
-	var parsed: Variant = _parse_json(body_text)
-	var ok: bool = result == HTTPRequest.RESULT_SUCCESS and code >= 200 and code < 300
-
-	return {
-		"ok": ok,
-		"code": code,
-		"result": result,
-		"headers": response_headers,
-		"data": parsed,
-		"message": "" if ok else _extract_error_message(parsed, body_text, code, result)
-	}
-
-func _parse_json(body_text: String) -> Variant:
-	if body_text.is_empty():
-		return {}
-	var json: JSON = JSON.new()
-	if json.parse(body_text) != OK:
-		return {}
-	return json.data
-
-func _extract_error_message(parsed: Variant, raw_body: String, code: int, result: int) -> String:
-	if parsed is Dictionary:
-		var data: Dictionary = parsed
-		if data.has("detail"):
-			return str(data.get("detail", "Request failed"))
-		if data.has("message"):
-			return str(data.get("message", "Request failed"))
-	if not raw_body.is_empty():
-		return raw_body.left(200)
-	if result != HTTPRequest.RESULT_SUCCESS:
-		return "Request failed (result=%d)" % result
-	return "HTTP %d" % code
+func _resolve_locale() -> String:
+	if has_node("/root/LocalizationManager") and LocalizationManager.has_method("get_current_locale"):
+		var locale: String = str(LocalizationManager.get_current_locale()).strip_edges().to_lower()
+		if locale in ["en", "pl", "uk"]:
+			return locale
+	return "en"
 
 func _build_query_string(params: Dictionary) -> String:
 	if params.is_empty():
@@ -169,8 +154,19 @@ func _build_query_string(params: Dictionary) -> String:
 	for key_variant in params.keys():
 		var key: String = str(key_variant)
 		var value: Variant = params[key_variant]
+		if value == null:
+			continue
 		parts.append("%s=%s" % [key.uri_encode(), str(value).uri_encode()])
 	return "&".join(parts)
+
+func _normalize_auction_filters(filters: Dictionary) -> Dictionary:
+	var page: int = maxi(1, int(filters.get("page", 1)))
+	var page_size: int = maxi(1, int(filters.get("page_size", filters.get("limit", 20))))
+	var offset: int = maxi(0, int(filters.get("offset", (page - 1) * page_size)))
+	return {
+		"limit": page_size,
+		"offset": offset
+	}
 
 func _sync_chat_to_appstate(channel: String, parsed: Variant) -> void:
 	if has_node("/root/AppState") == false:

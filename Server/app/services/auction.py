@@ -11,8 +11,19 @@ from app.services.base_service import BaseService
 from app.core.events import emit
 from sqlalchemy.orm import joinedload, selectinload
 from decimal import Decimal
+from app.core.redis_pubsub import publish_auction_update
 
 logger = logging.getLogger(__name__)
+
+
+async def _broadcast_auction_event(event_type: str, auction_id: int, current_price: Decimal | int | float | None, bidder_id: int | None) -> None:
+    await publish_auction_update({
+        "type": event_type,
+        "auction_id": int(auction_id),
+        "current_price": float(current_price or 0),
+        "bidder_id": bidder_id,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    })
 
 class AuctionService(BaseService):
     # use BaseService._txn inherited
@@ -56,6 +67,7 @@ class AuctionService(BaseService):
         from app.core.events import emit
         # wildcard invalidation removes any paginated entries as well
         await emit("cache_invalidate", "auctions:active*")
+        await _broadcast_auction_event("new_auction", auction.id, auction.current_price, None)
         return auction
 
     async def get_auction(self, auction_id: int):
@@ -142,6 +154,7 @@ class AuctionService(BaseService):
         
         from app.core.events import emit
         await emit("cache_invalidate", "auctions:active*")
+        await _broadcast_auction_event("auction_closed", auction.id, auction.current_price, auction.winner_id)
         return auction
 
     async def close_auction(self, auction_id: int):

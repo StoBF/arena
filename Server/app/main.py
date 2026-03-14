@@ -33,6 +33,7 @@ from app.routers.pvp import router as pvp_router
 from app.routers.tournaments import router as tournaments_router
 from app.routers.events import router as events_router
 from app.routers.server import router as server_router
+from app.routers.auctions_ws import router as auctions_ws_router
 
 setup_logging()
 
@@ -232,6 +233,7 @@ app.include_router(pvp_router)
 app.include_router(tournaments_router)
 app.include_router(events_router)
 app.include_router(server_router)
+app.include_router(auctions_ws_router, tags=["Auction WS"])
 
 if __name__ == "__main__":
     import uvicorn

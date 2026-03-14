@@ -23,7 +23,7 @@ func _start_polling() -> void:
 	_poll_timer.start()
 
 func request_status_update() -> void:
-	if has_node("/root/ApiClient") == false or has_node("/root/AppState") == false:
+	if has_node("/root/AppState") == false:
 		return
 
 	var response: Dictionary = await ApiClient.get_server_status()

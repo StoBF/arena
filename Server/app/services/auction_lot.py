@@ -12,8 +12,19 @@ from app.database.models.hero import Hero
 from app.database.models.user import User
 from app.services.base_service import BaseService
 from app.core.events import emit
+from app.core.redis_pubsub import publish_auction_update
 
 logger = logging.getLogger(__name__)
+
+
+async def _broadcast_lot_event(event_type: str, lot_id: int, current_price: Decimal | int | float | None, bidder_id: int | None) -> None:
+    await publish_auction_update({
+        "type": event_type,
+        "auction_id": int(lot_id),
+        "current_price": float(current_price or 0),
+        "bidder_id": bidder_id,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    })
 
 class AuctionLotService(BaseService):
     """Separated service containing only hero-auction methods."""
@@ -59,6 +70,7 @@ class AuctionLotService(BaseService):
             await self.session.flush()
         await self.session.refresh(lot)
         await emit("cache_invalidate", "auctions:active*")
+        await _broadcast_lot_event("new_auction", lot.id, lot.current_price, None)
         return lot
 
     async def get_auction_lot(self, lot_id: int):
@@ -102,6 +114,7 @@ class AuctionLotService(BaseService):
             hero.is_on_auction = False
             await self.session.delete(lot)
         await emit("cache_invalidate", "auctions:active*")
+        await _broadcast_lot_event("auction_closed", lot.id, lot.current_price, lot.winner_id)
         return lot
 
     async def close_auction_lot(self, lot_id: int):

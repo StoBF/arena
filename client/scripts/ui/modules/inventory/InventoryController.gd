@@ -14,27 +14,38 @@ func _ready() -> void:
 	refresh_button.pressed.connect(_refresh_inventory)
 	if has_node("/root/EventBus"):
 		var bus := get_node("/root/EventBus") as UIEventBus
-		if bus.hero_selected.is_connected(_on_hero_selected) == false:
-			bus.hero_selected.connect(_on_hero_selected)
+		if bus.hero_changed.is_connected(_on_hero_changed) == false:
+			bus.hero_changed.connect(_on_hero_changed)
+		if bus.inventory_updated.is_connected(_on_inventory_updated) == false:
+			bus.inventory_updated.connect(_on_inventory_updated)
 	if has_node("/root/AppState"):
 		set_hero((get_node("/root/AppState") as UIAppState).selected_hero_id)
 	_refresh_inventory()
 
-func _on_hero_selected(hero_id: int) -> void:
+func _on_hero_changed(hero_id: int) -> void:
 	set_hero(hero_id)
 	_refresh_inventory()
+
+func _on_inventory_updated(hero_id: int) -> void:
+	if hero_id != _hero_id:
+		return
+	_refresh_item_grid()
 
 func _refresh_inventory() -> void:
 	if _hero_id <= 0:
 		count_label.text = "Items: 0"
 		return
-	if has_node("/root/ApiClient") == false or has_node("/root/AppState") == false:
+	if has_node("/root/AppState") == false:
 		return
-	var response: Dictionary = await (get_node("/root/ApiClient") as UIApiClient).get_inventory(_hero_id)
+	var response: Dictionary = await ApiClient.get_inventory(_hero_id)
 	if bool(response.get("ok", false)) == false:
 		return
-	var items: Array = response.get("data", []) as Array
-	(get_node("/root/AppState") as UIAppState).set_inventory(items)
+
+func _refresh_item_grid() -> void:
+	if _hero_id <= 0 or has_node("/root/AppState") == false:
+		count_label.text = "Items: 0"
+		return
+	var state := get_node("/root/AppState") as UIAppState
+	var items_variant: Variant = state.inventory.get(_hero_id, [])
+	var items: Array = items_variant as Array if items_variant is Array else []
 	count_label.text = "Items: %d" % items.size()
-	if has_node("/root/EventBus"):
-		(get_node("/root/EventBus") as UIEventBus).inventory_updated.emit()

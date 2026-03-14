@@ -9,6 +9,17 @@ from fastapi import HTTPException
 from app.services.base_service import BaseService
 from datetime import datetime
 from decimal import Decimal
+from app.core.redis_pubsub import publish_auction_update
+
+
+async def _broadcast_bid_event(auction_id: int, current_price: Decimal | int | float, bidder_id: int) -> None:
+    await publish_auction_update({
+        "type": "new_bid",
+        "auction_id": int(auction_id),
+        "current_price": float(current_price or 0),
+        "bidder_id": int(bidder_id),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    })
 
 class BidService(BaseService):
     async def _create_bid(self, lot_id: int, bidder_id: int, bid_amount: int):
@@ -161,6 +172,7 @@ class BidService(BaseService):
         # transaction complete; clear related caches
         from app.core.events import emit
         await emit("cache_invalidate", "auctions:active*")
+        await _broadcast_bid_event(auction.id, auction.current_price, bidder_id)
         return bid
 
     async def place_lot_bid(self, bidder_id: int, lot_id: int, amount: Decimal, request_id: str = None):
@@ -251,6 +263,7 @@ class BidService(BaseService):
         from app.core.events import emit
         await emit("cache_invalidate", "auctions:active*")
         await emit("cache_invalidate", "auctions:active_lots*")
+        await _broadcast_bid_event(lot.id, lot.current_price, bidder_id)
         return bid
 
     async def set_auto_bid(self, user_id: int, auction_id: int = None, lot_id: int = None, max_amount: Decimal = Decimal('0.00')):

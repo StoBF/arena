@@ -9,6 +9,7 @@ signal chat_message_received
 signal chat_updated
 signal server_status_updated
 signal scene_changed
+signal network_error(message: String)
 
 var last_hero_id: int = -1
 var last_scene_name: String = ""

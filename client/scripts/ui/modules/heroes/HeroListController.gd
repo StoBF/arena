@@ -1,7 +1,5 @@
 extends Control
 
-signal hero_selected(hero_id: int)
-
 @onready var hero_one_button: Button = $VBox/HeroButtons/HeroOneButton
 @onready var hero_two_button: Button = $VBox/HeroButtons/HeroTwoButton
 @onready var selected_label: Label = $VBox/SelectedLabel
@@ -14,14 +12,11 @@ func _ready() -> void:
 func select_hero(hero_id: int) -> void:
 	if has_node("/root/AppState"):
 		(get_node("/root/AppState") as UIAppState).set_selected_hero(hero_id)
-	if has_node("/root/EventBus"):
-		(get_node("/root/EventBus") as UIEventBus).hero_selected.emit(hero_id)
-	hero_selected.emit(hero_id)
 	selected_label.text = "Selected Hero ID: %d" % hero_id
 
 func _load_heroes() -> void:
-	if has_node("/root/ApiClient") == false or has_node("/root/AppState") == false:
+	if has_node("/root/AppState") == false:
 		return
-	var response: Dictionary = await (get_node("/root/ApiClient") as UIApiClient).get_heroes()
+	var response: Dictionary = await ApiClient.get_heroes()
 	if bool(response.get("ok", false)):
 		(get_node("/root/AppState") as UIAppState).set_heroes(response.get("data", []) as Array)
