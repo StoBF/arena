@@ -40,10 +40,6 @@ ServerStatusManager="*res://autoload/ServerStatusManager.gd"
 project/assembly_name="Arena_manager"
 project/solution_directory="E:\\GOG Games\\arena\\client"
 
-[internationalization]
-
-locale/translations=PackedStringArray()
-
 [mono]
 
 project_type="c#"

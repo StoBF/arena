@@ -55,11 +55,22 @@ func get_chat_messages(channel: String = "global", limit: int = 50, offset: int 
 	var query := {
 		"channel": _legacy_chat_channel(channel),
 		"limit": maxi(1, limit),
+		"offset": maxi(0, offset),
 	}
-	var response: Dictionary = await request_get("/chat/history?%s" % _build_query_string(query))
-	if bool(response.get("ok", false)):
-		_sync_chat_to_appstate(channel, response.get("data", {}))
-	return response
+	var response_variant: Variant = await request_get("/chat/history?%s" % _build_query_string(query))
+	if response_variant is Dictionary:
+		var response: Dictionary = (response_variant as Dictionary)
+		if bool(response.get("ok", false)):
+			_sync_chat_to_appstate(channel, response.get("data", {}))
+		return response
+	return {
+		"ok": false,
+		"code": 0,
+		"result": HTTPRequest.RESULT_CANT_CONNECT,
+		"headers": PackedStringArray(),
+		"data": {},
+		"message": "Unexpected chat response"
+	}
 
 func send_chat_message(channel: String, message: String) -> Dictionary:
 	return {

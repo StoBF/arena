@@ -1,0 +1,125 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/modules_mmo/HeroesModule.gd" id="1"]
+
+[node name="HeroesModule" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Root/Header"]
+layout_mode = 2
+text = "Heroes"
+
+[node name="HeaderSpacer" type="Control" parent="Root/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RefreshButton" type="Button" parent="Root/Header"]
+layout_mode = 2
+text = "Refresh"
+
+[node name="Body" type="HSplitContainer" parent="Root"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+split_offset = 620
+
+[node name="RosterPanel" type="PanelContainer" parent="Root/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RosterMargin" type="MarginContainer" parent="Root/Body/RosterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 12
+
+[node name="CardsScroll" type="ScrollContainer" parent="Root/Body/RosterPanel/RosterMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CardsGrid" type="GridContainer" parent="Root/Body/RosterPanel/RosterMargin/CardsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 10
+
+[node name="DetailPanel" type="PanelContainer" parent="Root/Body"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DetailMargin" type="MarginContainer" parent="Root/Body/DetailPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 14
+
+[node name="DetailVBox" type="VBoxContainer" parent="Root/Body/DetailPanel/DetailMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+theme_override_constants/separation = 10
+
+[node name="DetailTitle" type="Label" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+layout_mode = 2
+text = "Hero Details"
+
+[node name="DetailName" type="Label" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+layout_mode = 2
+text = "Name: -"
+
+[node name="DetailStats" type="RichTextLabel" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Stats: -"
+
+[node name="EquipmentTitle" type="Label" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+layout_mode = 2
+text = "Equipment"
+
+[node name="EquipmentList" type="ItemList" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActionRow" type="HBoxContainer" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+layout_mode = 2
+
+[node name="PromoteButton" type="Button" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox/ActionRow"]
+layout_mode = 2
+text = "Promote"
+
+[node name="ManageGearButton" type="Button" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox/ActionRow"]
+layout_mode = 2
+text = "Manage Gear"
+
+[node name="StatusLabel" type="Label" parent="Root"]
+layout_mode = 2
+text = ""

@@ -1,0 +1,138 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/modules_mmo/AuctionModule.gd" id="1"]
+
+[node name="AuctionModule" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Root/Header"]
+layout_mode = 2
+text = "Auction"
+
+[node name="HeaderSpacer" type="Control" parent="Root/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RefreshButton" type="Button" parent="Root/Header"]
+layout_mode = 2
+text = "Refresh"
+
+[node name="FiltersPanel" type="PanelContainer" parent="Root"]
+layout_mode = 2
+
+[node name="FiltersMargin" type="MarginContainer" parent="Root/FiltersPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="FiltersRow" type="HBoxContainer" parent="Root/FiltersPanel/FiltersMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+theme_override_constants/separation = 10
+
+[node name="SearchInput" type="LineEdit" parent="Root/FiltersPanel/FiltersMargin/FiltersRow"]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+placeholder_text = "Search item..."
+
+[node name="RarityFilter" type="OptionButton" parent="Root/FiltersPanel/FiltersMargin/FiltersRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+
+[node name="MinPriceInput" type="LineEdit" parent="Root/FiltersPanel/FiltersMargin/FiltersRow"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+placeholder_text = "Min bid"
+
+[node name="ApplyFilterButton" type="Button" parent="Root/FiltersPanel/FiltersMargin/FiltersRow"]
+layout_mode = 2
+text = "Apply"
+
+[node name="Body" type="HSplitContainer" parent="Root"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+split_offset = 700
+
+[node name="ListPanel" type="PanelContainer" parent="Root/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ListMargin" type="MarginContainer" parent="Root/Body/ListPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 12
+
+[node name="LotsTree" type="Tree" parent="Root/Body/ListPanel/ListMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="DetailPanel" type="PanelContainer" parent="Root/Body"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DetailMargin" type="MarginContainer" parent="Root/Body/DetailPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 14
+
+[node name="DetailVBox" type="VBoxContainer" parent="Root/Body/DetailPanel/DetailMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+theme_override_constants/separation = 10
+
+[node name="DetailTitle" type="Label" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+layout_mode = 2
+text = "Auction Item"
+
+[node name="DetailName" type="Label" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+layout_mode = 2
+text = "Name: -"
+
+[node name="DetailSeller" type="Label" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+layout_mode = 2
+text = "Seller: -"
+
+[node name="DetailBid" type="Label" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+layout_mode = 2
+text = "Current Bid: -"
+
+[node name="DetailDescription" type="RichTextLabel" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Select a lot"
+
+[node name="StatusLabel" type="Label" parent="Root"]
+layout_mode = 2
+text = ""

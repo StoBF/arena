@@ -1,0 +1,75 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/components/ChatPanel.gd" id="1"]
+
+[node name="ChatPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Root"]
+layout_mode = 2
+text = "Chat"
+
+[node name="Tabs" type="TabContainer" parent="Root"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Global" type="Control" parent="Root/Tabs"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="Trade" type="Control" parent="Root/Tabs"]
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="System" type="Control" parent="Root/Tabs"]
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="Messages" type="ItemList" parent="Root"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="InputRow" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+
+[node name="MessageInput" type="LineEdit" parent="Root/InputRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Type message..."
+
+[node name="SendButton" type="Button" parent="Root/InputRow"]
+layout_mode = 2
+text = "Send"
+
+[node name="SystemTitle" type="Label" parent="Root"]
+layout_mode = 2
+text = "System Messages"
+
+[node name="SystemMessages" type="ItemList" parent="Root"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AnnouncementsTitle" type="Label" parent="Root"]
+layout_mode = 2
+text = "Global Announcements"
+
+[node name="Announcements" type="ItemList" parent="Root"]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+size_flags_horizontal = 3

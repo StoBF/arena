@@ -103,7 +103,7 @@ func _apply_translations() -> void:
 	$VBox/Body/HeroPreviewPanel/HeroPreviewMargin/HeroPreviewVBox/HeroPreviewTitle.text = tr("ui.storage.hero_preview")
 	$VBox/InventoryPanel/InventoryMargin/InventoryVBox/InventoryTitle.text = tr("ui.storage.items")
 	delete_hero_button.text = tr("ui.storage.delete_hero")
- 	selected_hero_label.text = tr("ui.storage.selected_hero") % _selected_hero_name()
+	selected_hero_label.text = tr("ui.storage.selected_hero") % _selected_hero_name()
 	if _selected_hero_id <= 0:
 		hero_preview_label.text = tr("ui.storage.no_hero_selected")
 
