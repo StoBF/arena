@@ -5,17 +5,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from fastapi import HTTPException
-from app.database.models.hero import Hero, HeroPerk
+from app.database.models.hero import Hero, HeroPerk, HeroAbility, HeroHistory
 from app.database.models.perk import Perk
 from app.database.models.models import Auction
 from app.database.models.user import User
 from decimal import Decimal
 from app.services.base_service import BaseService
 from app.services.hero_generation import generate_hero
-from app.schemas.hero import HeroCreate, HeroOut, HeroRead, HeroGenerateRequest, PerkOut
+from app.schemas.hero import HeroCreate, HeroOut, HeroRead, HeroGenerateRequest, PerkOut, HeroAbilityOut, DerivedStats
+from app.core.derived_stats import compute_derived_for_hero
 from app.auth import get_current_user
 from app.database.session import get_session, AsyncSessionLocal
-from app.core.hero_config import MAX_HEROES
+from app.core.hero_config import MAX_HEROES, PRIMARY_STATS
 from app.core.events import emit
 import json
 import asyncio
@@ -170,13 +171,14 @@ class HeroService(BaseService):
             
             # Ensure currency is Decimal for safe arithmetic
             currency = Decimal(req.currency)
-            # Generate hero data (generates attributes, perks, nickname)
+            # Generate hero data (generates attributes, perks, nickname, archetype, abilities)
             new_hero = await generate_hero(
                 self.session,
                 owner_id,
                 req.generation,
                 currency,
-                req.locale
+                req.locale,
+                preferred_archetype=getattr(req, "archetype", None),
             )
             
             # Deduct currency from user balance (WITHIN TRANSACTION)
@@ -213,43 +215,29 @@ class HeroService(BaseService):
         return hero, leveled_up
 
     async def get_total_stats(self, hero_id: int):
-        hero = await self.get_hero(hero_id)
+        """Return primary stats + equipment bonuses + derived stats."""
+        hero = await self.get_hero(hero_id, load_equipment=True)
         if not hero:
             raise HTTPException(status_code=404, detail="Hero not found")
-        # Базові атрибути
-        stats = {
-            "strength": hero.strength,
-            "agility": hero.agility,
-            "intelligence": hero.intelligence,
-            "endurance": hero.endurance,
-            "speed": hero.speed,
-            "health": hero.health,
-            "defense": hero.defense,
-            "luck": hero.luck,
-            "field_of_view": hero.field_of_view,
-        }
-        # Додаємо бонуси від екіпіровки
+        # Base primary attributes
+        stats = {stat: getattr(hero, stat, 0) or 0 for stat in PRIMARY_STATS}
+        # Equipment bonuses
+        equipment_bonuses: dict[str, int] = {}
         for eq in hero.equipment_items:
             item = eq.item
-            stats["strength"] += getattr(item, "bonus_strength", 0)
-            stats["agility"] += getattr(item, "bonus_agility", 0)
-            stats["intelligence"] += getattr(item, "bonus_intelligence", 0)
-            # Можна додати бонуси для інших атрибутів, якщо вони є у Item
+            for stat in PRIMARY_STATS:
+                bonus = getattr(item, f"bonus_{stat}", 0)
+                if bonus:
+                    equipment_bonuses[stat] = equipment_bonuses.get(stat, 0) + bonus
+                    stats[stat] += bonus
+        # Compute derived
+        derived = compute_derived_for_hero(hero, equipment_bonuses)
+        stats["derived"] = derived.model_dump()
         return stats
 
     def get_nickname(self, hero, perks=None, locale="en"):
         from app.core.hero_config import NICKNAME_MAP
-        attrs = {
-            "strength": hero.strength,
-            "agility": hero.agility,
-            "intelligence": hero.intelligence,
-            "endurance": hero.endurance,
-            "speed": hero.speed,
-            "health": hero.health,
-            "defense": hero.defense,
-            "luck": hero.luck,
-            "field_of_view": hero.field_of_view,
-        }
+        attrs = {stat: getattr(hero, stat, 0) or 0 for stat in PRIMARY_STATS}
         max_attr = max(attrs.items(), key=lambda x: x[1])
         trait_key = max_attr[0]
         if perks:
@@ -258,14 +246,24 @@ class HeroService(BaseService):
                 trait_key = max_perk[0]
         return NICKNAME_MAP.get(locale, NICKNAME_MAP["en"]).get(trait_key, "the Hero")
 
-    async def start_training(self, hero_id: int, duration_minutes: int = 60):
+    async def start_training(self, hero_id: int, training_stat: str, duration_minutes: int = 60):
+        if training_stat not in PRIMARY_STATS:
+            raise HTTPException(status_code=400, detail=f"Invalid training stat. Must be one of: {PRIMARY_STATS}")
         hero = await self.get_hero(hero_id)
         if not hero:
             raise HTTPException(status_code=404, detail="Hero not found")
         if hero.is_training:
             raise HTTPException(status_code=400, detail="Hero is already training")
+        if hero.is_dead or hero.is_permadead:
+            raise HTTPException(status_code=400, detail="Dead heroes cannot train")
         hero.is_training = True
+        hero.training_stat = training_stat
         hero.training_end_time = datetime.utcnow() + timedelta(minutes=duration_minutes)
+        self.session.add(HeroHistory(
+            hero_id=hero.id,
+            event_type="training_started",
+            event_data=json.dumps({"stat": training_stat, "duration_minutes": duration_minutes}),
+        ))
         await self.commit_or_rollback()
         await self.session.refresh(hero)
         await emit("cache_invalidate", f"heroes:{hero.owner_id}*")
@@ -279,20 +277,40 @@ class HeroService(BaseService):
             raise HTTPException(status_code=400, detail="Hero is not in training")
         if not hero.training_end_time or hero.training_end_time > datetime.utcnow():
             raise HTTPException(status_code=400, detail="Training not finished yet")
+
+        # Increment the trained stat by +1
+        trained_stat = hero.training_stat
+        if trained_stat and trained_stat in PRIMARY_STATS:
+            current_val = getattr(hero, trained_stat, 0) or 0
+            setattr(hero, trained_stat, current_val + 1)
+
         hero.is_training = False
         hero.training_end_time = None
+        hero.training_stat = None
+        hero.training_sessions_completed = (hero.training_sessions_completed or 0) + 1
         await self.add_experience(hero.id, xp_reward)
+
+        self.session.add(HeroHistory(
+            hero_id=hero.id,
+            event_type="training_completed",
+            event_data=json.dumps({
+                "stat": trained_stat,
+                "stat_bonus": 1,
+                "xp_reward": xp_reward,
+                "sessions_completed": hero.training_sessions_completed,
+            }),
+        ))
         await self.commit_or_rollback()
         await self.session.refresh(hero)
         await emit("cache_invalidate", f"heroes:{hero.owner_id}*")
         return hero
 
     async def get_hero_with_perks(self, hero_id: int) -> HeroRead:
-        # use helper that eagerly loads relationships so we can iterate safely
+        """Return a hero with perks, abilities, and derived stats."""
         hero = await self.get_hero(hero_id, load_perks=True)
         if not hero:
             raise HTTPException(status_code=404, detail="Hero not found")
-        # perks list is already available thanks to joinedload
+        # Perks
         perks = []
         for hp in hero.perks:
             perk = await self.session.get(Perk, hp.perk_id)
@@ -307,8 +325,17 @@ class HeroService(BaseService):
                     affected=perk.affected or [],
                     perk_level=hp.perk_level
                 ))
+        # Abilities (selectin loaded by default)
+        abilities_out = [
+            HeroAbilityOut.model_validate(ab, from_attributes=True)
+            for ab in (hero.abilities or [])
+        ]
+        # Derived stats
+        derived = compute_derived_for_hero(hero)
         hero_dict = HeroRead.model_validate(hero, from_attributes=True).model_dump()
         hero_dict["perks"] = perks
+        hero_dict["abilities"] = abilities_out
+        hero_dict["derived_stats"] = derived
         return HeroRead(**hero_dict)
 
     async def upgrade_perk(self, hero_id: int, perk_id: int, user_id: int, max_level: int = 100):

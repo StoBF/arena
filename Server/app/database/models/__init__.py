@@ -2,7 +2,7 @@
 # This package initializer ensures all sub-modules (models) are imported,
 # so that SQLAlchemy's metadata includes every model.
 from app.database.base import Base
-from .hero import Hero, HeroPerk
+from .hero import Hero, HeroPerk, HeroAbility, HeroHistory, HeroBodyPart, HeroTrainingQueue, HeroCombatStats, HeroTitle, HeroResurrectionEvent, HeroArchetype, AbilityType, AbilityDomain, BodyPartStatus, TrainingType, TrainingStatus, HeroCondition
 from .user import User
 from .perk import Perk
 from .resource import GameResource
