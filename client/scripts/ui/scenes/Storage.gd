@@ -15,9 +15,6 @@ const ITEM_SLOT_SCENE := preload("res://scenes/ui/components/ItemSlot.tscn")
 @onready var equip_boots = $VBox/Body/RightSlotsPanel/RightMargin/RightSlots/BootsSlot
 @onready var delete_hero_button: Button = $VBox/Footer/DeleteHeroButton
 
-var _player_data: Node = null
-var _inventory_controller: Node = null
-var _craft_controller: Node = null
 var _selected_item_id: String = ""
 var _selected_hero_id: int = -1
 
@@ -36,24 +33,12 @@ func _ready() -> void:
 		LocalizationManager.locale_changed.connect(_on_locale_changed)
 	if has_node("/root/EventBus") and EventBus.inventory_updated.is_connected(_on_eventbus_inventory_updated) == false:
 		EventBus.inventory_updated.connect(_on_eventbus_inventory_updated)
+	if HeroManager.active_hero_changed.is_connected(_on_active_hero_changed) == false:
+		HeroManager.active_hero_changed.connect(_on_active_hero_changed)
 	_apply_translations()
-
-func bind_controllers(player_data: Node, inventory_controller: Node, craft_controller: Node) -> void:
-	_player_data = player_data
-	_inventory_controller = inventory_controller
-	_craft_controller = craft_controller
-
-	_connect_if_needed(_inventory_controller.equipment_changed, _refresh_equipment)
-	_connect_if_needed(HeroManager.active_hero_changed, _on_active_hero_changed)
-
 	_refresh_items(AppState.inventory)
-	_refresh_equipment(_inventory_controller.get_selected_hero_equipment())
 	_on_active_hero_changed(HeroManager.get_active_hero_id())
 	call_deferred("_refresh_from_server")
-
-func _connect_if_needed(signal_ref: Signal, callback: Callable) -> void:
-	if signal_ref.is_connected(callback) == false:
-		signal_ref.connect(callback)
 
 func _refresh_items(items: Array) -> void:
 	_clear_children(items_grid)
@@ -82,10 +67,12 @@ func _on_item_selected(item_id: String) -> void:
 func _on_equip_slot_selected(slot_name: String) -> void:
 	if _selected_item_id.is_empty():
 		return
-	var equipped: bool = await _inventory_controller.equip_item_to_selected_hero(_selected_item_id, slot_name)
-	if equipped == false:
-		return
-	_refresh_equipment(_inventory_controller.get_selected_hero_equipment())
+	if InventoryManager.has_method("equip_item"):
+		var equipped: bool = await InventoryManager.equip_item(_selected_item_id, slot_name)
+		if equipped:
+			_refresh_from_server()
+	else:
+		UIUtils.show_warning("Equip not available yet")
 
 func _on_delete_hero() -> void:
 	delete_hero_button.disabled = true
@@ -110,19 +97,26 @@ func _apply_translations() -> void:
 func _refresh_from_server() -> void:
 	await HeroManager.load_heroes()
 	_on_active_hero_changed(HeroManager.get_active_hero_id())
-	if _inventory_controller != null and _inventory_controller.has_method("refresh_items_from_server"):
-		await _inventory_controller.refresh_items_from_server()
+	if InventoryManager.has_method("refresh_inventory"):
+		await InventoryManager.refresh_inventory()
+
 
 func _on_active_hero_changed(hero_id: int) -> void:
 	_selected_hero_id = hero_id
 	delete_hero_button.disabled = hero_id <= 0
 	selected_hero_label.text = tr("ui.storage.selected_hero") % _selected_hero_name()
 	hero_preview_label.text = _hero_preview_text()
-	if _inventory_controller != null and _inventory_controller.has_method("refresh_items_from_server"):
-		call_deferred("_refresh_inventory_after_hero_change")
+	if InventoryManager.has_method("refresh_inventory"):
+		call_deferred("_deferred_refresh_inventory")
+
+
+func _deferred_refresh_inventory() -> void:
+	await InventoryManager.refresh_inventory()
+
 
 func _refresh_inventory_after_hero_change() -> void:
-	await _inventory_controller.refresh_items_from_server()
+	if InventoryManager.has_method("refresh_inventory"):
+		await InventoryManager.refresh_inventory()
 
 func _on_eventbus_inventory_updated() -> void:
 	_refresh_items(AppState.inventory)

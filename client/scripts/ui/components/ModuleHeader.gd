@@ -1,0 +1,60 @@
+## ModuleHeader — standard header bar for every module.
+## Shows breadcrumb-style title, optional refresh button, optional status text.
+class_name ModuleHeader
+extends PanelContainer
+
+signal refresh_pressed
+
+var _title_label: Label
+var _status_label: Label
+var _refresh_button: Button
+var _content: HBoxContainer
+
+
+func _ready() -> void:
+	custom_minimum_size = Vector2(0, 44)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.09, 0.12, 0.85)
+	style.border_color = Color(0.3, 0.33, 0.4, 0.6)
+	style.border_width_bottom = 1
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	add_theme_stylebox_override("panel", style)
+
+	_content = HBoxContainer.new()
+	_content.add_theme_constant_override("separation", 12)
+	add_child(_content)
+
+	_title_label = Label.new()
+	_title_label.add_theme_font_size_override("font_size", 18)
+	_title_label.add_theme_color_override("font_color", Color(0.92, 0.88, 0.72))
+	_content.add_child(_title_label)
+
+	_status_label = Label.new()
+	_status_label.add_theme_font_size_override("font_size", 13)
+	_status_label.add_theme_color_override("font_color", Color(0.6, 0.63, 0.7))
+	_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_content.add_child(_status_label)
+
+	_refresh_button = Button.new()
+	_refresh_button.text = tr("ui.common.refresh")
+	_refresh_button.custom_minimum_size = Vector2(80, 30)
+	_refresh_button.pressed.connect(func() -> void: refresh_pressed.emit())
+	_content.add_child(_refresh_button)
+
+
+func set_title(text: String) -> void:
+	if _title_label:
+		_title_label.text = text
+
+
+func set_status(text: String) -> void:
+	if _status_label:
+		_status_label.text = text
+
+
+func set_refresh_visible(visible: bool) -> void:
+	if _refresh_button:
+		_refresh_button.visible = visible

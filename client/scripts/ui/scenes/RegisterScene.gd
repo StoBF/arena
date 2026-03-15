@@ -13,9 +13,6 @@ func _ready() -> void:
 		LocalizationManager.locale_changed.connect(_on_locale_changed)
 	_apply_translations()
 
-func bind_controllers(_player_data: Node, _inventory_controller: Node, _craft_controller: Node) -> void:
-	pass
-
 func _on_register_pressed() -> void:
 	var email: String = email_input.text.strip_edges()
 	var password: String = password_input.text.strip_edges()

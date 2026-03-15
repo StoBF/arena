@@ -7,7 +7,6 @@ extends Control
 @onready var investment_value_label: Label = $VBox/InvestmentValue
 @onready var create_button: Button = $VBox/Actions/CreateButton
 
-var _player_data: Node = null
 var _last_create_response_data: Dictionary = {}
 
 func _ready() -> void:
@@ -21,9 +20,6 @@ func _ready() -> void:
 	_apply_translations()
 	_refresh_balance_and_slider_limits()
 	_on_investment_changed(investment_slider.value)
-
-func bind_controllers(player_data: Node, _inventory_controller: Node, _craft_controller: Node) -> void:
-	_player_data = player_data
 
 func _on_create_pressed() -> void:
 	var hero_name: String = name_input.text.strip_edges()

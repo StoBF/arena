@@ -20,9 +20,6 @@ func _exit_tree() -> void:
 	if has_node("/root/EventBus") and EventBus.server_status_updated.is_connected(_on_server_status_updated):
 		EventBus.server_status_updated.disconnect(_on_server_status_updated)
 
-func bind_controllers(_player_data: Node, _inventory_controller: Node, _craft_controller: Node) -> void:
-	pass
-
 func _on_login_pressed() -> void:
 	var email: String = email_input.text.strip_edges()
 	var password: String = password_input.text.strip_edges()

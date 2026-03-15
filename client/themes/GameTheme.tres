@@ -1,32 +1,4 @@
-[gd_resource type="Theme" load_steps=8 format=3]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.06, 0.07, 0.09, 0.9)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.43, 0.47, 0.58, 0.98)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-shadow_color = Color(0, 0, 0, 0.45)
-shadow_size = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
-bg_color = Color(0.14, 0.16, 0.21, 0.98)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.45, 0.5, 0.62, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-shadow_color = Color(0, 0, 0, 0.35)
-shadow_size = 3
+[gd_resource type="Theme" load_steps=8 format=3 uid="uid://bbhmoihm5w7tb"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
 bg_color = Color(0.2, 0.24, 0.32, 1)
@@ -42,6 +14,20 @@ corner_radius_bottom_left = 8
 shadow_color = Color(0, 0, 0, 0.45)
 shadow_size = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+bg_color = Color(0.14, 0.16, 0.21, 0.98)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.45, 0.5, 0.62, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.35)
+shadow_size = 3
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
 bg_color = Color(0.11, 0.13, 0.17, 1)
 border_width_left = 1
@@ -49,6 +35,18 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.9, 0.77, 0.42, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_itemlist"]
+bg_color = Color(0.05, 0.06, 0.08, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.33, 0.41, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -66,17 +64,19 @@ corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_itemlist"]
-bg_color = Color(0.05, 0.06, 0.08, 0.95)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.06, 0.07, 0.09, 0.9)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.3, 0.33, 0.41, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+border_color = Color(0.43, 0.47, 0.58, 0.98)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.45)
+shadow_size = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tree"]
 bg_color = Color(0.05, 0.06, 0.08, 0.98)
@@ -93,23 +93,23 @@ corner_radius_bottom_left = 8
 [resource]
 default_base_scale = 1.0
 default_font_size = 16
-PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
-Button/styles/normal = SubResource("StyleBoxFlat_button_normal")
-Button/styles/hover = SubResource("StyleBoxFlat_button_hover")
-Button/styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 Button/colors/font_color = Color(0.89, 0.92, 0.98, 1)
 Button/colors/font_hover_color = Color(1, 0.96, 0.85, 1)
 Button/colors/font_pressed_color = Color(1, 0.92, 0.74, 1)
 Button/constants/h_separation = 8
 Button/constants/outline_size = 0
 Button/font_sizes/font_size = 16
+Button/styles/hover = SubResource("StyleBoxFlat_button_hover")
+Button/styles/normal = SubResource("StyleBoxFlat_button_normal")
+Button/styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+ItemList/colors/font_color = Color(0.88, 0.9, 0.95, 1)
+ItemList/styles/panel = SubResource("StyleBoxFlat_itemlist")
 Label/colors/font_color = Color(0.9, 0.92, 0.95, 1)
 Label/font_sizes/font_size = 17
-LineEdit/styles/normal = SubResource("StyleBoxFlat_line_edit")
-LineEdit/styles/focus = SubResource("StyleBoxFlat_line_edit")
 LineEdit/colors/font_color = Color(0.9, 0.93, 0.98, 1)
 LineEdit/font_sizes/font_size = 15
-ItemList/styles/panel = SubResource("StyleBoxFlat_itemlist")
-ItemList/colors/font_color = Color(0.88, 0.9, 0.95, 1)
-Tree/styles/panel = SubResource("StyleBoxFlat_tree")
+LineEdit/styles/focus = SubResource("StyleBoxFlat_line_edit")
+LineEdit/styles/normal = SubResource("StyleBoxFlat_line_edit")
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
 Tree/colors/font_color = Color(0.9, 0.93, 0.98, 1)
+Tree/styles/panel = SubResource("StyleBoxFlat_tree")

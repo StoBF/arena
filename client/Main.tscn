@@ -1,9 +1,6 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/controllers/UIManager.gd" id="1"]
-[ext_resource type="Script" path="res://scripts/ui/controllers/PlayerData.gd" id="2"]
-[ext_resource type="Script" path="res://scripts/ui/controllers/InventoryController.gd" id="3"]
-[ext_resource type="Script" path="res://scripts/ui/controllers/CraftController.gd" id="4"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -13,15 +10,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
-
-[node name="PlayerData" type="Node" parent="."]
-script = ExtResource("2")
-
-[node name="InventoryController" type="Node" parent="."]
-script = ExtResource("3")
-
-[node name="CraftController" type="Node" parent="."]
-script = ExtResource("4")
 
 [node name="UIRoot" type="MarginContainer" parent="."]
 layout_mode = 1

@@ -10,9 +10,6 @@ func _ready() -> void:
 		LocalizationManager.locale_changed.connect(_on_locale_changed)
 	_apply_translations()
 
-func bind_controllers(_player_data: Node, _inventory_controller: Node, _craft_controller: Node) -> void:
-	pass
-
 func _on_volume_changed(value: float) -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(clamp(value, 0.0, 1.0)))
 

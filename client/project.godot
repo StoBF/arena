@@ -26,14 +26,16 @@ LocalizationManager="*res://autoload/LocalizationManager.gd"
 AppState="*res://autoload/AppState.gd"
 EventBus="*res://autoload/EventBus.gd"
 UIUtils="*res://autoload/UIUtils.gd"
-Nav="*res://autoload/NavigationManager.gd"
 HeroManager="*res://autoload/HeroManager.gd"
 InventoryManager="*res://autoload/InventoryManager.gd"
 AuctionManager="*res://autoload/AuctionManager.gd"
 WebSocketManager="*res://autoload/WebSocketManager.gd"
 AuthManager="*res://autoload/AuthManager.gd"
-SceneManager="*res://autoload/SceneManager.gd"
 ServerStatusManager="*res://autoload/ServerStatusManager.gd"
+
+[gui]
+
+theme/custom="res://themes/GameTheme.tres"
 
 [dotnet]
 

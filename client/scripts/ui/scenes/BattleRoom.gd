@@ -4,8 +4,6 @@ extends Control
 @onready var enemy_hero_label: Label = $VBox/Body/EnemyHeroPanel/EnemyHeroLabel
 @onready var start_button: Button = $VBox/Footer/StartBattleButton
 
-var _player_data: Node = null
-
 func _ready() -> void:
 	$VBox/Header/BackButton.pressed.connect(func(): EventBus.emit_scene_changed("PlayerHub"))
 	start_button.pressed.connect(_on_start_pressed)
@@ -15,9 +13,6 @@ func _ready() -> void:
 		EventBus.hero_selected.connect(_on_eventbus_hero_selected)
 	_apply_translations()
 	enemy_hero_label.text = tr("ui.battle.enemy_training")
-
-func bind_controllers(player_data: Node, _inventory_controller: Node, _craft_controller: Node) -> void:
-	_player_data = player_data
 	_on_hero_selected(AppState.selected_hero)
 
 func _on_eventbus_hero_selected(_hero_id: int) -> void:
@@ -36,7 +31,7 @@ func _on_start_pressed() -> void:
 
 func _on_locale_changed(_locale_code: String) -> void:
 	_apply_translations()
-	_on_hero_selected(_player_data.get_selected_hero() if _player_data != null else {})
+	_on_hero_selected(AppState.selected_hero)
 	enemy_hero_label.text = tr("ui.battle.enemy_training")
 
 func _apply_translations() -> void:

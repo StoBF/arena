@@ -111,6 +111,92 @@ func buyout(lot_id: int) -> Dictionary:
 		"lot_id": lot_id,
 	})
 
+# ---------------------------------------------------------------------------
+# Training
+# ---------------------------------------------------------------------------
+
+func start_training(hero_id: int, duration_minutes: int = 60) -> Dictionary:
+	return await request_post("/heroes/%d/train" % hero_id, {
+		"duration_minutes": duration_minutes,
+	})
+
+func complete_training(hero_id: int) -> Dictionary:
+	return await request_post("/heroes/%d/complete_training" % hero_id)
+
+# ---------------------------------------------------------------------------
+# Healing (no dedicated server endpoint yet — uses hero status)
+# ---------------------------------------------------------------------------
+
+func start_healing(hero_id: int) -> Dictionary:
+	# TODO: Wire to a real endpoint when the server adds one
+	return {
+		"ok": true,
+		"code": 200,
+		"result": HTTPRequest.RESULT_SUCCESS,
+		"headers": PackedStringArray(),
+		"data": {"hero_id": hero_id, "status": "healing"},
+		"message": "Healing started (mock)"
+	}
+
+# ---------------------------------------------------------------------------
+# PvP / Arena
+# ---------------------------------------------------------------------------
+
+func get_leaderboard() -> Dictionary:
+	return await request_get("/pvp/leaderboard")
+
+func pvp_match(player1_id: int, player2_id: int) -> Dictionary:
+	return await request_post("/pvp/match", {
+		"player1_id": player1_id,
+		"player2_id": player2_id,
+	})
+
+func team_battle(hero_ids: Array, enemy_ids: Array) -> Dictionary:
+	return await request_post("/battle/team", {
+		"hero_ids": hero_ids,
+		"enemy_ids": enemy_ids,
+	})
+
+func queue_arena(mode: String, hero_ids: Array) -> Dictionary:
+	# Arena queue is client-side concept; matchmaking finds an opponent then
+	# calls pvp_match or team_battle. For now mock the queue step.
+	return {
+		"ok": true,
+		"code": 200,
+		"result": HTTPRequest.RESULT_SUCCESS,
+		"headers": PackedStringArray(),
+		"data": {"mode": mode, "hero_ids": hero_ids, "status": "queued"},
+		"message": "Entered %s queue" % mode
+	}
+
+# ---------------------------------------------------------------------------
+# Boss Raids
+# ---------------------------------------------------------------------------
+
+func get_bosses() -> Dictionary:
+	return await request_get("/raid/bosses")
+
+func start_boss_raid(boss_id: int, hero_ids: Array) -> Dictionary:
+	return await request_post("/raid/start", {
+		"boss_id": boss_id,
+		"hero_ids": hero_ids,
+	})
+
+func raid_battle(instance_id: int) -> Dictionary:
+	return await request_post("/raid/battle/%d" % instance_id)
+
+func raid_rewards(instance_id: int) -> Dictionary:
+	return await request_post("/raid/rewards/%d" % instance_id)
+
+# ---------------------------------------------------------------------------
+# Hero Perks
+# ---------------------------------------------------------------------------
+
+func upgrade_perk(hero_id: int, perk_id: int) -> Dictionary:
+	return await request_post("/heroes/%d/perks/upgrade" % hero_id, {
+		"perk_id": perk_id,
+	})
+
 func connect_chat() -> Dictionary:
 	return {
 		"ok": true,

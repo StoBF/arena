@@ -74,10 +74,6 @@ func _ready() -> void:
 	_update_selected_lot_ui()
 	_request_lots()
 
-func bind_controllers(_player_data: Node, inventory_controller: Node, _craft_controller: Node) -> void:
-	# controllers are not required for table-first auction interface
-	pass
-
 func _process(delta: float) -> void:
 	if _selected_lot.is_empty() == false and _lot_is_expired(_selected_lot):
 		_clear_selected_lot(tr("ui.auction.lot_expired"))
