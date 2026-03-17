@@ -208,6 +208,7 @@ func _rebuild_team_slots() -> void:
 # ---------------------------------------------------------------------------
 func _load_data() -> void:
 	_loading_overlay.show_loading()
+	_empty_state.visible = false
 	_boss_list.clear()
 	_hero_list.clear()
 	_bosses.clear()
@@ -231,6 +232,8 @@ func _load_data() -> void:
 				_tx("ui.boss_raid.unavailable_title", "No Boss Raids Available"),
 				_tx("ui.boss_raid.unavailable_hint", "Boss raid data is currently unavailable.")
 			)
+	else:
+		_empty_state.visible = false
 
 	# Load heroes — H8: Use HeroManager (canonical cache, avoids direct ApiClient)
 	await HeroManager.load_heroes()

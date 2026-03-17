@@ -9,6 +9,12 @@ extends Control
 
 var _last_create_response_data: Dictionary = {}
 
+func _tx(key: String, fallback: String) -> String:
+	return CabinetStyle.text(key, fallback)
+
+func _txf(key: String, fallback: String, args: Array = []) -> String:
+	return CabinetStyle.textf(key, fallback, args)
+
 func _ready() -> void:
 	create_button.pressed.connect(_on_create_pressed)
 	$VBox/Actions/BackButton.pressed.connect(func(): EventBus.navigate_to(EventBus.SCENE_PLAYER_HUB))
@@ -50,16 +56,16 @@ func _on_create_pressed() -> void:
 	var rarity_text: String = _derive_rarity(created, investment)
 	await HeroManager.load_heroes()
 	await _refresh_profile_from_server()
-	status_label.text = tr("ui.hero_creation.status.generated") % [
+	status_label.text = _txf("ui.hero_creation.status.generated", "Generated: %s | Rarity: %s | Balance: %.2f -> %.2f", [
 		str(created.get("name", hero_name)),
 		rarity_text,
 		previous_balance,
 		AppState.balance,
-	]
+	])
 	name_input.clear()
 
 func _on_investment_changed(value: float) -> void:
-	investment_value_label.text = tr("ui.hero_creation.investment_value") % int(value)
+	investment_value_label.text = _txf("ui.hero_creation.investment_value", "Investment: %d", [int(value)])
 
 func _on_locale_changed(_locale_code: String) -> void:
 	_apply_translations()
@@ -78,7 +84,7 @@ func _on_user_data_updated() -> void:
 
 func _refresh_balance_and_slider_limits() -> void:
 	var balance_value: float = maxi(0.0, AppState.balance)
-	balance_label.text = tr("ui.hero_creation.balance") % balance_value
+	balance_label.text = _txf("ui.hero_creation.balance", "Balance: %.2f", [balance_value])
 	if balance_value <= 0.0:
 		investment_slider.max_value = 0.0
 		investment_slider.value = 0.0
@@ -98,7 +104,7 @@ func _create_hero_via_api(hero_name: String, investment: int) -> Dictionary:
 		return _extract_hero(data_success)
 
 	var err_message := str(response.get("message", "Request failed"))
-	status_label.text = tr("ui.hero_creation.status.failed_reason") % err_message
+	status_label.text = _txf("ui.hero_creation.status.failed_reason", "Generation failed: %s", [err_message])
 	return {}
 
 func _extract_hero(data: Variant) -> Dictionary:

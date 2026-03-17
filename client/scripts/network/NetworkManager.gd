@@ -101,6 +101,11 @@ func _send_once(endpoint: String, method: int, payload: Dictionary, headers: Pac
 		body = JSON.stringify(payload)
 
 	var url: String = ServerConfig.get_instance().get_http_endpoint(endpoint)
+	print("[Network] Request method=%s endpoint=%s url=%s" % [
+		http_method_to_string(method),
+		endpoint,
+		url,
+	])
 	var err: int = req.request(url, final_headers, method, body)
 	if err != OK:
 		req.queue_free()
@@ -134,6 +139,23 @@ func _send_once(endpoint: String, method: int, payload: Dictionary, headers: Pac
 	var body_text: String = response_body.get_string_from_utf8()
 	var parsed: Variant = _parse_json(body_text)
 	var ok: bool = result == HTTPRequest.RESULT_SUCCESS and code >= 200 and code < 300
+	if not ok:
+		print("[Network] Non-OK response method=%s endpoint=%s url=%s status=%d result=%d headers=%s" % [
+			http_method_to_string(method),
+			endpoint,
+			url,
+			code,
+			result,
+			JSON.stringify(response_headers),
+		])
+	if code == 307 or code == 308:
+		var location_header: String = _find_header_value(response_headers, "location")
+		print("[Network] Redirect response endpoint=%s url=%s status=%d location=%s" % [
+			endpoint,
+			url,
+			code,
+			location_header if not location_header.is_empty() else "<none>",
+		])
 
 	return {
 		"ok": ok,
@@ -179,6 +201,37 @@ func _has_header(headers: PackedStringArray, key: String) -> bool:
 		if h.to_lower().begins_with(lower_key + ":"):
 			return true
 	return false
+
+
+func _find_header_value(headers: PackedStringArray, key: String) -> String:
+	var lower_key: String = key.to_lower() + ":"
+	for h: String in headers:
+		var lower_header: String = h.to_lower()
+		if lower_header.begins_with(lower_key):
+			var separator_index: int = h.find(":")
+			if separator_index >= 0:
+				return h.substr(separator_index + 1).strip_edges()
+	return ""
+
+
+func http_method_to_string(method: int) -> String:
+	match method:
+		HTTPClient.METHOD_GET:
+			return "GET"
+		HTTPClient.METHOD_POST:
+			return "POST"
+		HTTPClient.METHOD_PUT:
+			return "PUT"
+		HTTPClient.METHOD_PATCH:
+			return "PATCH"
+		HTTPClient.METHOD_DELETE:
+			return "DELETE"
+		HTTPClient.METHOD_HEAD:
+			return "HEAD"
+		HTTPClient.METHOD_OPTIONS:
+			return "OPTIONS"
+		_:
+			return str(method)
 
 
 func _should_retry(response: Dictionary) -> bool:

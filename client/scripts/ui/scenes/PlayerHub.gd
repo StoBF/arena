@@ -93,6 +93,12 @@ func _ready() -> void:
 	_apply_announcements()
 	_update_quick_status()
 
+func _exit_tree() -> void:
+	_disconnect_top_bar()
+	_disconnect_sidebar()
+	_disconnect_bottom_bar()
+	_disconnect_events()
+
 func _apply_cabinet_visuals() -> void:
 	CabinetStyle.style_screen(self)
 	CabinetStyle.style_status_label(status_label)
@@ -132,28 +138,63 @@ func _create_activity_feed() -> void:
 func _connect_sidebar() -> void:
 	for btn: Button in _sidebar_map.keys():
 		var key: String = _sidebar_map[btn]
-		btn.pressed.connect(_load_module.bind(key))
-	settings_button.pressed.connect(func() -> void: EventBus.navigate_to(EventBus.SCENE_SETTINGS))
-	logout_button.pressed.connect(_on_logout_pressed)
+		var cb: Callable = Callable(self, "_on_sidebar_module_pressed").bind(key)
+		if not btn.pressed.is_connected(cb):
+			btn.pressed.connect(cb)
+	if not settings_button.pressed.is_connected(_on_settings_pressed):
+		settings_button.pressed.connect(_on_settings_pressed)
+	if not logout_button.pressed.is_connected(_on_logout_pressed):
+		logout_button.pressed.connect(_on_logout_pressed)
 	# Chat signals
 	if chat_panel.has_signal("message_submitted"):
-		chat_panel.message_submitted.connect(_on_chat_message_submitted)
+		if not chat_panel.message_submitted.is_connected(_on_chat_message_submitted):
+			chat_panel.message_submitted.connect(_on_chat_message_submitted)
 	if chat_panel.has_signal("channel_changed"):
-		chat_panel.channel_changed.connect(_on_chat_channel_changed)
+		if not chat_panel.channel_changed.is_connected(_on_chat_channel_changed):
+			chat_panel.channel_changed.connect(_on_chat_channel_changed)
+
+func _disconnect_sidebar() -> void:
+	for btn: Button in _sidebar_map.keys():
+		var key: String = _sidebar_map[btn]
+		var cb: Callable = Callable(self, "_on_sidebar_module_pressed").bind(key)
+		if btn.pressed.is_connected(cb):
+			btn.pressed.disconnect(cb)
+	if settings_button != null and settings_button.pressed.is_connected(_on_settings_pressed):
+		settings_button.pressed.disconnect(_on_settings_pressed)
+	if logout_button != null and logout_button.pressed.is_connected(_on_logout_pressed):
+		logout_button.pressed.disconnect(_on_logout_pressed)
+	if chat_panel != null and chat_panel.has_signal("message_submitted") and chat_panel.message_submitted.is_connected(_on_chat_message_submitted):
+		chat_panel.message_submitted.disconnect(_on_chat_message_submitted)
+	if chat_panel != null and chat_panel.has_signal("channel_changed") and chat_panel.channel_changed.is_connected(_on_chat_channel_changed):
+		chat_panel.channel_changed.disconnect(_on_chat_channel_changed)
 
 func _connect_top_bar() -> void:
 	if notifications_button != null and notifications_button.pressed.is_connected(_on_notifications_pressed) == false:
 		notifications_button.pressed.connect(_on_notifications_pressed)
 
+func _disconnect_top_bar() -> void:
+	if notifications_button != null and notifications_button.pressed.is_connected(_on_notifications_pressed):
+		notifications_button.pressed.disconnect(_on_notifications_pressed)
+
 func _connect_bottom_bar() -> void:
-	action_create_hero.pressed.connect(func() -> void:
-		EventBus.navigate_to(EventBus.SCENE_HERO_CREATION))
-	action_queue_pvp.pressed.connect(func() -> void:
-		_load_module("arena"))
-	action_boss_raid.pressed.connect(func() -> void:
-		_load_module("boss_raid"))
-	action_market.pressed.connect(func() -> void:
-		_load_module("auction"))
+	if not action_create_hero.pressed.is_connected(_on_action_create_hero_pressed):
+		action_create_hero.pressed.connect(_on_action_create_hero_pressed)
+	if not action_queue_pvp.pressed.is_connected(_on_action_queue_pvp_pressed):
+		action_queue_pvp.pressed.connect(_on_action_queue_pvp_pressed)
+	if not action_boss_raid.pressed.is_connected(_on_action_boss_raid_pressed):
+		action_boss_raid.pressed.connect(_on_action_boss_raid_pressed)
+	if not action_market.pressed.is_connected(_on_action_market_pressed):
+		action_market.pressed.connect(_on_action_market_pressed)
+
+func _disconnect_bottom_bar() -> void:
+	if action_create_hero != null and action_create_hero.pressed.is_connected(_on_action_create_hero_pressed):
+		action_create_hero.pressed.disconnect(_on_action_create_hero_pressed)
+	if action_queue_pvp != null and action_queue_pvp.pressed.is_connected(_on_action_queue_pvp_pressed):
+		action_queue_pvp.pressed.disconnect(_on_action_queue_pvp_pressed)
+	if action_boss_raid != null and action_boss_raid.pressed.is_connected(_on_action_boss_raid_pressed):
+		action_boss_raid.pressed.disconnect(_on_action_boss_raid_pressed)
+	if action_market != null and action_market.pressed.is_connected(_on_action_market_pressed):
+		action_market.pressed.disconnect(_on_action_market_pressed)
 
 func _connect_events() -> void:
 	if not has_node("/root/EventBus"):
@@ -164,6 +205,16 @@ func _connect_events() -> void:
 		EventBus.server_status_updated.connect(_on_server_status_updated)
 	if not EventBus.chat_updated.is_connected(_on_chat_updated):
 		EventBus.chat_updated.connect(_on_chat_updated)
+
+func _disconnect_events() -> void:
+	if not has_node("/root/EventBus"):
+		return
+	if EventBus.user_data_updated.is_connected(_on_user_data_updated):
+		EventBus.user_data_updated.disconnect(_on_user_data_updated)
+	if EventBus.server_status_updated.is_connected(_on_server_status_updated):
+		EventBus.server_status_updated.disconnect(_on_server_status_updated)
+	if EventBus.chat_updated.is_connected(_on_chat_updated):
+		EventBus.chat_updated.disconnect(_on_chat_updated)
 
 # ---------------------------------------------------------------------------
 # Top bar
@@ -313,6 +364,24 @@ func _on_notifications_pressed() -> void:
 		notification_badge.set_count(_notification_count)
 	if _activity_feed != null and _activity_feed.has_method("add_entry"):
 		_activity_feed.add_entry(_tx("ui.playerhub.notifications_cleared", "Notifications cleared"), "system")
+
+func _on_sidebar_module_pressed(module_name: String) -> void:
+	_load_module(module_name)
+
+func _on_settings_pressed() -> void:
+	EventBus.navigate_to(EventBus.SCENE_SETTINGS)
+
+func _on_action_create_hero_pressed() -> void:
+	EventBus.navigate_to(EventBus.SCENE_HERO_CREATION)
+
+func _on_action_queue_pvp_pressed() -> void:
+	_load_module("arena")
+
+func _on_action_boss_raid_pressed() -> void:
+	_load_module("boss_raid")
+
+func _on_action_market_pressed() -> void:
+	_load_module("auction")
 
 func _on_user_data_updated() -> void:
 	_apply_top_bar()

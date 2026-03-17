@@ -9,6 +9,9 @@ extends Control
 const STATUS_ONLINE_COLOR := Color(0.1, 0.75, 0.2, 1.0)
 const STATUS_OFFLINE_COLOR := Color(0.8, 0.1, 0.1, 1.0)
 
+func _tx(key: String, fallback: String) -> String:
+	return CabinetStyle.text(key, fallback)
+
 func _ready() -> void:
 	login_button.pressed.connect(_on_login_pressed)
 	$VBox/Actions/RegisterButton.pressed.connect(func(): EventBus.navigate_to(EventBus.SCENE_REGISTER))
@@ -16,6 +19,8 @@ func _ready() -> void:
 		AuthManager.login_succeeded.connect(_on_login_succeeded)
 	if AuthManager.login_failed.is_connected(_on_login_failed) == false:
 		AuthManager.login_failed.connect(_on_login_failed)
+	if LocalizationManager.locale_changed.is_connected(_on_locale_changed) == false:
+		LocalizationManager.locale_changed.connect(_on_locale_changed)
 	_apply_translations()
 	_subscribe_status_updates()
 	_set_status_ui(AppState.server_status == "online", AppState.online_players)
@@ -27,6 +32,11 @@ func _exit_tree() -> void:
 		AuthManager.login_succeeded.disconnect(_on_login_succeeded)
 	if AuthManager.login_failed.is_connected(_on_login_failed):
 		AuthManager.login_failed.disconnect(_on_login_failed)
+	if LocalizationManager.locale_changed.is_connected(_on_locale_changed):
+		LocalizationManager.locale_changed.disconnect(_on_locale_changed)
+
+func _on_locale_changed(_locale_code: String) -> void:
+	_apply_translations()
 
 func _on_login_pressed() -> void:
 	var email: String = email_input.text.strip_edges()
@@ -71,4 +81,9 @@ func _on_server_status_updated() -> void:
 
 func _set_status_ui(is_online: bool, players_online: int) -> void:
 	server_status_indicator.color = STATUS_ONLINE_COLOR if is_online else STATUS_OFFLINE_COLOR
-	server_status_label.text = "Server: %s | Players online: %d" % ["ONLINE" if is_online else "OFFLINE", maxi(0, players_online)]
+	var state_text: String = _tx("ui.login.server_online", "Server online") if is_online else _tx("ui.login.server_offline", "Server offline")
+	server_status_label.text = CabinetStyle.textf(
+		"ui.login.server_players",
+		"%s | Players online: %d",
+		[state_text, maxi(0, players_online)]
+	)

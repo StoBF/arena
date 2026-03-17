@@ -4,6 +4,11 @@ extends Node
 ## Safe migration path: existing scripts can continue using Network directly,
 ## while new/updated services move to ApiClient incrementally.
 
+const HERO_COLLECTION_PATH := "/heroes/"
+
+func get_hero_collection_path() -> String:
+	return HERO_COLLECTION_PATH
+
 func login(email: String, password: String) -> Dictionary:
 	var response: Dictionary = await request_post("/auth/login", {
 		"login": email,
@@ -30,7 +35,7 @@ func get_user() -> Dictionary:
 	return await request_get("/auth/me")
 
 func get_heroes() -> Dictionary:
-	return await request_get("/heroes/")
+	return await request_get(get_hero_collection_path())
 
 func create_hero(hero_name: String, investment: int) -> Dictionary:
 	return await request_post("/heroes/generate", {

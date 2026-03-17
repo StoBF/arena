@@ -6,7 +6,7 @@ const PANEL_MUTED_COLOR := Color(0.6, 0.63, 0.7)
 const PANEL_ACCENT_COLOR := Color(0.45, 0.5, 0.62)
 
 static func text(key: String, fallback: String) -> String:
-	var value: String = tr(key)
+	var value: String = TranslationServer.translate(key)
 	if value == key:
 		return fallback
 	return value

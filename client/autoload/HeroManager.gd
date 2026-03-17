@@ -37,7 +37,7 @@ func get_hero_by_id(hero_id: int) -> Dictionary:
 	return {}
 
 func load_heroes() -> void:
-	var response: Dictionary = await _perform_request(HTTPClient.METHOD_GET, "/heroes")
+	var response: Dictionary = await _perform_request(HTTPClient.METHOD_GET, ApiClient.get_hero_collection_path())
 	if not bool(response.get("ok", false)):
 		var msg: String = str(response.get("error", "Failed to load heroes"))
 		var status: int = int(response.get("status", 0))

@@ -1,5 +1,8 @@
 extends Control
 
+func _tx(key: String, fallback: String) -> String:
+	return CabinetStyle.text(key, fallback)
+
 func _ready() -> void:
 	$VBox/Header/BackButton.pressed.connect(func(): EventBus.navigate_to(EventBus.SCENE_PLAYER_HUB))
 	$VBox/Body/VolumeSlider.value_changed.connect(_on_volume_changed)
@@ -24,7 +27,11 @@ func _on_fullscreen_toggled(enabled: bool) -> void:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 
 func _on_language_selected(index: int) -> void:
-	var locale: String = LocalizationManager.get_supported_locales()[index]
+	var locales: Array = LocalizationManager.get_supported_locales()
+	if index < 0 or index >= locales.size():
+		UIUtils.show_warning(_tx("ui.settings.invalid_language_index", "Invalid language selection"))
+		return
+	var locale: String = str(locales[index])
 	LocalizationManager.set_locale(locale)
 
 func _on_locale_changed(_locale_code: String) -> void:

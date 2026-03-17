@@ -22,6 +22,7 @@ var _empty_state: Node = null
 var _bid_input: LineEdit = null
 var _bid_button: Button = null
 var _buy_button: Button = null
+var _is_action_in_flight: bool = false
 
 func _tx(key: String, fallback: String) -> String:
 	return CabinetStyle.text(key, fallback)
@@ -74,6 +75,13 @@ func _create_bid_controls() -> void:
 	_buy_button.pressed.connect(_on_buy_pressed)
 	action_row.add_child(_buy_button)
 	detail_vbox.add_child(action_row)
+	_set_action_controls_disabled(false)
+
+func _set_action_controls_disabled(disabled: bool) -> void:
+	if _bid_button != null:
+		_bid_button.disabled = disabled
+	if _buy_button != null:
+		_buy_button.disabled = disabled
 
 func _load_lots() -> void:
 	status_label.text = _tx("ui.auction.loading", "Loading...")
@@ -173,6 +181,8 @@ func _on_lot_selected() -> void:
 	]
 
 func _on_bid_pressed() -> void:
+	if _is_action_in_flight:
+		return
 	if _selected_lot_id < 0:
 		UIUtils.show_warning(_tx("ui.auction.select_lot_first", "Select a lot first"))
 		return
@@ -185,8 +195,12 @@ func _on_bid_pressed() -> void:
 		UIUtils.show_warning(_tx("ui.auction.bid_valid_amount", "Enter a valid bid amount"))
 		return
 	status_label.text = _tx("ui.auction.placing_bid", "Placing bid...")
+	_is_action_in_flight = true
+	_set_action_controls_disabled(true)
 	# H7: Use AuctionManager (routes to /auctions/{id}/bid)
 	var bid_ok: bool = await AuctionManager.place_bid(_selected_lot_id, amount)
+	_is_action_in_flight = false
+	_set_action_controls_disabled(false)
 	if bid_ok:
 		UIUtils.show_success("Bid placed: %s" % DateTimeUtils.format_price(float(amount)))
 		_bid_input.text = ""
@@ -199,12 +213,18 @@ func _on_bid_pressed() -> void:
 		status_label.text = msg
 
 func _on_buy_pressed() -> void:
+	if _is_action_in_flight:
+		return
 	if _selected_lot_id < 0:
 		UIUtils.show_warning(_tx("ui.auction.select_lot_first", "Select a lot first"))
 		return
 	status_label.text = _tx("ui.auction.buying", "Buying...")
+	_is_action_in_flight = true
+	_set_action_controls_disabled(true)
 	# C2: ApiClient.buy_lot() does not exist — use AuctionManager.buy_now() (/auctions/{id}/buy)
 	var bought: bool = await AuctionManager.buy_now(_selected_lot_id)
+	_is_action_in_flight = false
+	_set_action_controls_disabled(false)
 	if bought:
 		UIUtils.show_success("Purchase successful!")
 		_load_lots()
