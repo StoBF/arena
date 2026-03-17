@@ -82,6 +82,15 @@ class HeroBodyResponse(BaseModel):
     parts: List[BodyPartOut] = Field(default_factory=list)
 
 
+class HeroHistoryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    event_type: str
+    event_data: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+
 # ─── Hero Create ─────────────────────────────────────────────────────────
 
 class HeroCreate(BaseModel):
@@ -159,6 +168,9 @@ class HeroOut(BaseModel):
 class HeroRead(HeroOut):
     perks: List[PerkOut] = Field(default_factory=list)
     abilities: List[HeroAbilityOut] = Field(default_factory=list)
+    body_parts: List[BodyPartOut] = Field(default_factory=list)
+    titles: List["HeroTitleOut"] = Field(default_factory=list)
+    history: List[HeroHistoryOut] = Field(default_factory=list)
     derived_stats: Optional[DerivedStats] = None
 
 
@@ -169,13 +181,6 @@ class HeroGenerateRequest(BaseModel):
     currency: Decimal = Field(..., ge=Decimal('0'), decimal_places=2)
     locale: Literal["en", "pl", "uk"] = Field("en")
     archetype: Optional[HeroArchetype] = Field(None, description="Preferred archetype; random if omitted")
-
-
-# ─── Training Request ─────────────────────────────────────────────────────
-
-class TrainRequest(BaseModel):
-    training_stat: str = Field(..., description="Primary stat to train (strength, perception, endurance, intelligence, agility, luck, willpower)")
-    duration_minutes: int = Field(60, ge=1, le=1440, description="Training duration in minutes (max 24h)")
 
 
 # ─── Training Queue schemas ──────────────────────────────────────────────

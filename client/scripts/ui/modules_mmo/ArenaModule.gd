@@ -47,6 +47,9 @@ const QUEUE_COLORS := {
 	QueueState.PREPARING: Color(0.4, 0.7, 0.95),
 }
 
+func _tx(key: String, fallback: String) -> String:
+	return CabinetStyle.text(key, fallback)
+
 # ---------------------------------------------------------------------------
 # State
 # ---------------------------------------------------------------------------
@@ -93,11 +96,17 @@ var _status_label: Label = null
 # ---------------------------------------------------------------------------
 func _ready() -> void:
 	_build_ui()
+	call_deferred("_apply_cabinet_visuals")
 	_select_mode("1v1")
 	_load_heroes()
 	# React to global hero updates
 	if AppState.heroes_updated.is_connected(_on_heroes_updated) == false:
 		AppState.heroes_updated.connect(_on_heroes_updated)
+
+func _apply_cabinet_visuals() -> void:
+	CabinetStyle.style_screen(self)
+	if _status_label != null:
+		CabinetStyle.style_status_label(_status_label)
 
 
 func _exit_tree() -> void:
@@ -120,13 +129,14 @@ func _build_ui() -> void:
 
 	var root_vbox := VBoxContainer.new()
 	root_vbox.add_theme_constant_override("separation", 10)
+	CabinetStyle.style_module_root(root_vbox)
 	root_margin.add_child(root_vbox)
 
 	# ── Header ──
 	var header := ModuleHeader.new()
 	root_vbox.add_child(header)
-	header.set_title("Arena")
-	header.set_status("Prepare your team")
+	header.set_title(_tx("ui.arena.title", "Arena"))
+	header.set_status(_tx("ui.arena.prepare_team", "Prepare your team"))
 	header.refresh_pressed.connect(_load_heroes)
 
 	# ── Mode Section ──
@@ -440,19 +450,16 @@ func _on_hero_removed_from_slot(slot_index: int) -> void:
 func _load_heroes() -> void:
 	_loading_overlay.show_loading()
 	_status_label.text = "Loading heroes..."
-
-	var response: Dictionary = await ApiClient.get_heroes()
+	# H8: Use HeroManager (cached, avoids redundant API calls and ResponseParser)
+	await HeroManager.load_heroes()
 	_loading_overlay.hide_loading()
-
-	if not bool(response.get("ok", false)):
-		UIUtils.show_error("Failed to load heroes")
-		_status_label.text = "Error loading heroes"
-		return
-
-	_all_heroes = ResponseParser.extract_array(response.get("data", {}))
+	_all_heroes = HeroManager.get_heroes()
 	_apply_filter_and_sort()
 	_render_hero_grid()
-	_status_label.text = "%d heroes loaded" % _all_heroes.size()
+	if _all_heroes.is_empty():
+		_status_label.text = "No heroes found"
+	else:
+		_status_label.text = "%d heroes loaded" % _all_heroes.size()
 
 
 func _on_heroes_updated(_heroes: Array) -> void:
@@ -897,46 +904,20 @@ func _on_queue_pressed() -> void:
 		UIUtils.show_warning("Need %d heroes for %s" % [required, _mode])
 		return
 
-	_set_queue_state(QueueState.SEARCHING)
-	_status_label.text = "Entering queue..."
+	# C4: Register the lead hero as active so BattleRoom can submit the queue
+	HeroManager.set_active_hero_id(int(hero_ids[0]))
 
-	var response: Dictionary = await ApiClient.queue_arena(_mode, hero_ids)
-
-	if bool(response.get("ok", false)):
-		UIUtils.show_success("Entered %s queue!" % _mode)
-		# In a real implementation, the server would send a signal when
-		# a match is found. For now, simulate after a delay.
-		_simulate_match_found()
-	else:
-		var msg: String = str(response.get("message", response.get("error", "Queue failed")))
-		UIUtils.show_error(msg)
-		_set_queue_state(QueueState.IDLE)
-	_status_label.text = ""
+	# C3: Navigate to BattleRoom which handles the real server queue + WebSocket
+	# matchmaking. The old ApiClient.queue_arena() + _simulate_match_found() are removed.
+	var routed: bool = EventBus.navigate_to(EventBus.SCENE_BATTLE_ROOM)
+	if routed == false:
+		UIUtils.show_error("Failed to open BattleRoom route")
 
 
 func _on_cancel_queue() -> void:
 	_set_queue_state(QueueState.IDLE)
 	UIUtils.show_info("Left the queue")
 
-
-## Temporary: simulate a match being found after a short delay.
-## Replace with real WebSocket / server push in production.
-func _simulate_match_found() -> void:
-	await get_tree().create_timer(3.0).timeout
-	if _queue_state != QueueState.SEARCHING:
-		return
-	_set_queue_state(QueueState.MATCH_FOUND)
-	UIUtils.show_success("Match found! Preparing battle...")
-	await get_tree().create_timer(1.5).timeout
-	if _queue_state != QueueState.MATCH_FOUND:
-		return
-	_set_queue_state(QueueState.PREPARING)
-	await get_tree().create_timer(1.0).timeout
-	if _queue_state != QueueState.PREPARING:
-		return
-	# Transition to BattleRoom
-	EventBus.emit_scene_changed("BattleRoom")
-	_set_queue_state(QueueState.IDLE)
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  HELPERS

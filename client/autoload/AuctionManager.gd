@@ -228,6 +228,7 @@ func _map_category(value: String) -> String:
 			return "resource"
 		_:
 			return value.to_lower()
+	return value.to_lower()
 
 func _extract_items(parsed: Variant) -> Array:
 	if parsed is Array:
@@ -288,6 +289,7 @@ func _sort_to_query(value: String) -> String:
 			return "bids_count"
 		_:
 			return ""
+	return ""
 
 func _details_path(_lot_data: Dictionary, lot_id: int) -> String:
 	return "/auctions/%d" % lot_id

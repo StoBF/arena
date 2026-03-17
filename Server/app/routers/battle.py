@@ -30,13 +30,13 @@ async def duel(
     if not hero or hero.owner_id != current_user["user_id"]:
         raise HTTPException(404, "Your hero not found")
     if hero.is_dead:
-        raise HTTPException(400, f"Your hero is dead until {hero.dead_until}")
+        raise HTTPException(400, f"Your hero is dead since {hero.dead_at}")
     if hero.is_training:
         raise HTTPException(400, "Your hero is training")
     if not enemy:
         raise HTTPException(404, "Enemy hero not found")
     if enemy.is_dead:
-        raise HTTPException(400, f"Enemy hero is dead until {enemy.dead_until}")
+        raise HTTPException(400, f"Enemy hero is dead since {enemy.dead_at}")
     result = await CombatService(db).simulate_duel(hero, enemy)
     return {
         "winner": result.winner,
@@ -59,14 +59,14 @@ async def team_battle(
         if not h or h.owner_id != current_user["user_id"]:
             raise HTTPException(404, "Your hero not found")
         if h.is_dead:
-            raise HTTPException(400, f"Hero {h.name} is dead until {h.dead_until}")
+            raise HTTPException(400, f"Hero {h.name} is dead since {h.dead_at}")
         if h.is_training:
             raise HTTPException(400, f"Hero {h.name} is training")
     for e in enemies:
         if not e:
             raise HTTPException(404, "Enemy hero not found")
         if e.is_dead:
-            raise HTTPException(400, f"Enemy hero {e.name} is dead until {e.dead_until}")
+            raise HTTPException(400, f"Enemy hero {e.name} is dead since {e.dead_at}")
     result = await CombatService(db).simulate_team_battle(heroes, enemies)
     return {
         "winner": result.winner,
@@ -89,13 +89,13 @@ async def raid(
         if not h or h.owner_id != current_user["user_id"]:
             raise HTTPException(404, "Your hero not found")
         if h.is_dead:
-            raise HTTPException(400, f"Hero {h.name} is dead until {h.dead_until}")
+            raise HTTPException(400, f"Hero {h.name} is dead since {h.dead_at}")
         if h.is_training:
             raise HTTPException(400, f"Hero {h.name} is training")
     if not boss:
         raise HTTPException(404, "Boss not found")
     if boss.is_dead:
-        raise HTTPException(400, f"Boss is dead until {boss.dead_until}")
+        raise HTTPException(400, f"Boss is dead since {boss.dead_at}")
     result = await CombatService(db).simulate_raid(heroes, boss)
     return {
         "winner": result.winner,

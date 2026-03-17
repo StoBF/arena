@@ -75,8 +75,8 @@ func get_chat_messages(channel: String = "global", limit: int = 50, offset: int 
 func send_chat_message(channel: String, message: String) -> Dictionary:
 	return {
 		"ok": false,
-		"code": 0,
-		"result": HTTPRequest.RESULT_UNAUTHORIZED,
+		"code": 401,
+		"result": HTTPRequest.RESULT_SUCCESS,
 		"headers": PackedStringArray(),
 		"data": {},
 		"message": "Chat send is websocket-only on this backend"
@@ -128,14 +128,15 @@ func complete_training(hero_id: int) -> Dictionary:
 # ---------------------------------------------------------------------------
 
 func start_healing(hero_id: int) -> Dictionary:
-	# TODO: Wire to a real endpoint when the server adds one
+	# C5: No server endpoint exists yet. Return a clear failure so callers
+	# show an "unavailable" message instead of false success.
 	return {
-		"ok": true,
-		"code": 200,
+		"ok": false,
+		"code": 501,
 		"result": HTTPRequest.RESULT_SUCCESS,
 		"headers": PackedStringArray(),
-		"data": {"hero_id": hero_id, "status": "healing"},
-		"message": "Healing started (mock)"
+		"data": {"hero_id": hero_id},
+		"message": "Healing endpoint not yet available"
 	}
 
 # ---------------------------------------------------------------------------
@@ -168,6 +169,21 @@ func queue_arena(mode: String, hero_ids: Array) -> Dictionary:
 		"data": {"mode": mode, "hero_ids": hero_ids, "status": "queued"},
 		"message": "Entered %s queue" % mode
 	}
+
+func submit_battle_queue(hero_id: int) -> Dictionary:
+	if hero_id <= 0:
+		return {
+			"ok": false,
+			"code": 400,
+			"result": HTTPRequest.RESULT_SUCCESS,
+			"headers": PackedStringArray(),
+			"data": {},
+			"message": "Invalid hero id"
+		}
+	return await request_post("/battle/queue/submit", {"hero_id": hero_id})
+
+func get_battle_queue() -> Dictionary:
+	return await request_get("/battle/queue")
 
 # ---------------------------------------------------------------------------
 # Boss Raids

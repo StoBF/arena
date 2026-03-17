@@ -23,7 +23,13 @@ var _bid_input: LineEdit = null
 var _bid_button: Button = null
 var _buy_button: Button = null
 
+func _tx(key: String, fallback: String) -> String:
+	return CabinetStyle.text(key, fallback)
+
 func _ready() -> void:
+	if refresh_button == null or apply_filter_button == null or lots_tree == null:
+		push_warning("AuctionModule nodes are not ready; skipping initialization")
+		return
 	refresh_button.pressed.connect(_load_lots)
 	apply_filter_button.pressed.connect(_render_lots)
 	search_input.text_submitted.connect(func(_v: String) -> void: _render_lots())
@@ -33,7 +39,13 @@ func _ready() -> void:
 	_setup_tree()
 	_create_overlays()
 	_create_bid_controls()
+	call_deferred("_apply_cabinet_visuals")
 	_load_lots()
+
+func _apply_cabinet_visuals() -> void:
+	CabinetStyle.style_screen(self)
+	CabinetStyle.style_header($Root/Header/Title, refresh_button)
+	CabinetStyle.style_status_label(status_label)
 
 func _create_overlays() -> void:
 	_loading_overlay = LoadingOverlay.new()
@@ -49,31 +61,32 @@ func _create_bid_controls() -> void:
 	var action_row := HBoxContainer.new()
 	action_row.name = "AuctionActions"
 	_bid_input = LineEdit.new()
-	_bid_input.placeholder_text = "Bid amount"
+	_bid_input.placeholder_text = _tx("ui.auction.bid_amount", "Bid amount")
 	_bid_input.custom_minimum_size = Vector2(100, 0)
 	_bid_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	action_row.add_child(_bid_input)
 	_bid_button = Button.new()
-	_bid_button.text = "Place Bid"
+	_bid_button.text = _tx("ui.auction.place_bid", "Place Bid")
 	_bid_button.pressed.connect(_on_bid_pressed)
 	action_row.add_child(_bid_button)
 	_buy_button = Button.new()
-	_buy_button.text = "Buy Now"
+	_buy_button.text = _tx("ui.auction.buy_now", "Buy Now")
 	_buy_button.pressed.connect(_on_buy_pressed)
 	action_row.add_child(_buy_button)
 	detail_vbox.add_child(action_row)
 
 func _load_lots() -> void:
-	status_label.text = "Loading..."
+	status_label.text = _tx("ui.auction.loading", "Loading...")
 	_loading_overlay.show_loading()
 	_empty_state.visible = false
-	var response: Dictionary = await ApiClient.get_auction_lots({"page": 1, "page_size": 50})
+	# C2/H7: Route through AuctionManager (canonical source, correct endpoints)
+	var lots: Array = await AuctionManager.fetch_lots({"page": 1, "page_size": 50})
 	_loading_overlay.hide_loading()
-	if not bool(response.get("ok", false)):
-		status_label.text = "Failed to load lots"
-		UIUtils.show_error("Failed to load auction lots")
+	if lots.is_empty() and not AuctionManager.get_last_error_code().is_empty():
+		status_label.text = _tx("ui.auction.load_failed", "Failed to load lots")
+		UIUtils.show_error(_tx("ui.auction.load_failed_reason", "Failed to load auction lots: %s") % AuctionManager.get_last_error_message())
 		return
-	_lots = ResponseParser.extract_array(response.get("data", {}))
+	_lots = lots
 	_lots_by_id.clear()
 	for lot_variant in _lots:
 		if not lot_variant is Dictionary:
@@ -125,7 +138,7 @@ func _render_lots() -> void:
 	if visible_count == 0:
 		_empty_state.visible = true
 		if _empty_state.has_method("set_content"):
-			_empty_state.set_content("No Lots Found", "Try adjusting filters or check back later.")
+			_empty_state.set_content(_tx("ui.auction.empty_title", "No Lots Found"), _tx("ui.auction.empty_hint", "Try adjusting filters or check back later."))
 	else:
 		_empty_state.visible = false
 
@@ -161,35 +174,44 @@ func _on_lot_selected() -> void:
 
 func _on_bid_pressed() -> void:
 	if _selected_lot_id < 0:
-		UIUtils.show_warning("Select a lot first")
+		UIUtils.show_warning(_tx("ui.auction.select_lot_first", "Select a lot first"))
 		return
 	var bid_text: String = _bid_input.text.strip_edges()
-	if not bid_text.is_valid_float() or float(bid_text) <= 0:
-		UIUtils.show_warning("Enter a valid bid amount")
+	if not bid_text.is_valid_int():
+		UIUtils.show_warning(_tx("ui.auction.bid_whole_number", "Enter a whole-number bid amount"))
 		return
-	var amount: float = float(bid_text)
-	status_label.text = "Placing bid..."
-	var response: Dictionary = await ApiClient.place_bid(_selected_lot_id, amount)
-	if bool(response.get("ok", false)):
-		UIUtils.show_success("Bid placed: %s" % DateTimeUtils.format_price(amount))
+	var amount: int = int(bid_text)
+	if amount <= 0:
+		UIUtils.show_warning(_tx("ui.auction.bid_valid_amount", "Enter a valid bid amount"))
+		return
+	status_label.text = _tx("ui.auction.placing_bid", "Placing bid...")
+	# H7: Use AuctionManager (routes to /auctions/{id}/bid)
+	var bid_ok: bool = await AuctionManager.place_bid(_selected_lot_id, amount)
+	if bid_ok:
+		UIUtils.show_success("Bid placed: %s" % DateTimeUtils.format_price(float(amount)))
 		_bid_input.text = ""
 		_load_lots()
 	else:
-		var msg: String = str(response.get("message", response.get("error", "Bid failed")))
+		var msg: String = AuctionManager.get_last_error_message()
+		if msg.is_empty():
+			msg = "Bid failed"
 		UIUtils.show_error(msg)
 		status_label.text = msg
 
 func _on_buy_pressed() -> void:
 	if _selected_lot_id < 0:
-		UIUtils.show_warning("Select a lot first")
+		UIUtils.show_warning(_tx("ui.auction.select_lot_first", "Select a lot first"))
 		return
-	status_label.text = "Buying..."
-	var response: Dictionary = await ApiClient.buy_lot(_selected_lot_id)
-	if bool(response.get("ok", false)):
+	status_label.text = _tx("ui.auction.buying", "Buying...")
+	# C2: ApiClient.buy_lot() does not exist — use AuctionManager.buy_now() (/auctions/{id}/buy)
+	var bought: bool = await AuctionManager.buy_now(_selected_lot_id)
+	if bought:
 		UIUtils.show_success("Purchase successful!")
 		_load_lots()
 	else:
-		var msg: String = str(response.get("message", response.get("error", "Purchase failed")))
+		var msg: String = AuctionManager.get_last_error_message()
+		if msg.is_empty():
+			msg = "Purchase failed"
 		UIUtils.show_error(msg)
 		status_label.text = msg
 

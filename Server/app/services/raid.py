@@ -89,19 +89,18 @@ class RaidService:
 
     async def is_team_defeated(self, instance_id: int) -> bool:
         """
-        Return True only if _all_ heroes are still dead (dead_until > now).
+        Return True only if _all_ heroes are dead.
         """
         inst = await self.db.get(RaidArenaInstance, instance_id)
-        now = datetime.utcnow()
 
         res = await self.db.execute(
             Hero.__table__.select().where(Hero.id.in_(inst.team_ids))
         )
         heroes = res.scalars().all()
 
-        # If any hero is alive (not is_dead OR dead_until passed), team is NOT defeated
+        # If any hero is alive, team is NOT defeated
         for h in heroes:
-            if not h.is_dead or not h.dead_until or h.dead_until <= now:
+            if not h.is_dead:
                 return False
         return True
 

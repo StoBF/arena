@@ -12,6 +12,24 @@ signal manager_error(message: String)
 
 const EQUIPMENT_SLOTS: PackedStringArray = ["Helmet", "Armor", "Weapon", "Boots", "Ring", "Amulet"]
 
+const _SLOT_ALIASES: Dictionary = {
+	"helmet": "Helmet",
+	"head": "Helmet",
+	"armor": "Armor",
+	"spacesuit": "Armor",
+	"chest": "Armor",
+	"gloves": "Armor",
+	"weapon": "Weapon",
+	"boots": "Boots",
+	"ring": "Ring",
+	"belt": "Ring",
+	"utility_belt": "Ring",
+	"artifact": "Amulet",
+	"amulet": "Amulet",
+	"gadget": "Amulet",
+	"implant": "Amulet",
+}
+
 var _items: Array[Dictionary] = []
 var _items_by_hero: Dictionary = {}
 var _equipment_by_hero: Dictionary = {}
@@ -63,6 +81,27 @@ func get_items() -> Array[Dictionary]:
 	AppState.set_inventory_data(_items)
 	_emit_inventory_changed()
 	return _items.duplicate(true)
+
+func refresh_inventory(hero_id: int = -1) -> Dictionary:
+	if hero_id <= 0:
+		hero_id = HeroManager.get_active_hero_id()
+	if hero_id <= 0:
+		hero_id = AppState.current_hero_id
+	if hero_id <= 0:
+		_set_error("invalid_input", "No active hero selected")
+		items_load_failed.emit("No active hero selected")
+		return {"ok": false, "error": _last_error_message, "items": [], "equipment": {}}
+
+	_last_loaded_hero_id = hero_id
+	await HeroManager.load_heroes()
+	_sync_equipment_cache_from_heroes(HeroManager.get_heroes())
+	var items: Array[Dictionary] = await get_items()
+	return {
+		"ok": _last_error_message.is_empty(),
+		"error": _last_error_message,
+		"items": items.duplicate(true),
+		"equipment": get_equipment(hero_id)
+	}
 
 func load_items(hero_id: int = -1) -> void:
 	if hero_id <= 0:
@@ -124,6 +163,7 @@ func equip_item_for_active_hero(item_id: int) -> bool:
 	return await equip_item(hero_id, item_id, slot_type)
 
 func equip_item(hero_id: int, item_id: int, slot_type: String) -> bool:
+	slot_type = _normalize_slot_name(slot_type)
 	if hero_id <= 0 or item_id <= 0 or not EQUIPMENT_SLOTS.has(slot_type):
 		_set_error("invalid_input", "Invalid equip request")
 		return false
@@ -137,10 +177,12 @@ func equip_item(hero_id: int, item_id: int, slot_type: String) -> bool:
 
 	await get_items()
 	await HeroManager.load_heroes()
+	_sync_equipment_cache_from_heroes(HeroManager.get_heroes())
 	sig_item_equipped.emit(hero_id)
 	return true
 
 func unequip_item(hero_id: int, slot_type: String) -> bool:
+	slot_type = _normalize_slot_name(slot_type)
 	if hero_id <= 0 or slot_type.is_empty() or not EQUIPMENT_SLOTS.has(slot_type):
 		_set_error("invalid_input", "Invalid unequip request")
 		return false
@@ -152,6 +194,7 @@ func unequip_item(hero_id: int, slot_type: String) -> bool:
 	if bool(response.get("ok", false)):
 		await get_items()
 		await HeroManager.load_heroes()
+		_sync_equipment_cache_from_heroes(HeroManager.get_heroes())
 		return true
 	return false
 
@@ -329,6 +372,12 @@ func resolve_slot_from_item(item_data: Dictionary) -> String:
 	var slot: String = str(item_data.get("slot", "")).strip_edges()
 	if EQUIPMENT_SLOTS.has(slot):
 		return slot
+	if item_data.has("slot_type"):
+		slot = str(item_data.get("slot_type", "")).strip_edges()
+	if not slot.is_empty():
+		var normalized: String = _normalize_slot_name(slot)
+		if EQUIPMENT_SLOTS.has(normalized):
+			return normalized
 
 	var item_type: String = str(item_data.get("type", "")).to_lower()
 	if item_type == "weapon":
@@ -343,7 +392,67 @@ func resolve_slot_from_item(item_data: Dictionary) -> String:
 		return "Ring"
 	if item_type == "amulet":
 		return "Amulet"
+	if item_type == "artifact":
+		return "Amulet"
+	if item_type == "spacesuit" or item_type == "shield":
+		return "Armor"
 	return ""
+
+func _sync_equipment_cache_from_heroes(heroes: Array[Dictionary]) -> void:
+	for hero: Dictionary in heroes:
+		var hero_id: int = int(hero.get("id", -1))
+		if hero_id <= 0:
+			continue
+		var equipment: Dictionary = _extract_equipment_from_hero(hero)
+		_equipment_by_hero[hero_id] = equipment.duplicate(true)
+
+func _extract_equipment_from_hero(hero: Dictionary) -> Dictionary:
+	var equipment: Dictionary = {}
+	if hero.has("equipment") and hero["equipment"] is Dictionary:
+		var source := hero["equipment"] as Dictionary
+		for slot_key_variant: Variant in source.keys():
+			var slot_name: String = _normalize_slot_name(str(slot_key_variant))
+			if not EQUIPMENT_SLOTS.has(slot_name):
+				continue
+			var value: Variant = source[slot_key_variant]
+			if value is Dictionary:
+				equipment[slot_name] = (value as Dictionary).duplicate(true)
+			else:
+				equipment[slot_name] = {"name": str(value)}
+
+	if hero.has("equipment_items") and hero["equipment_items"] is Array:
+		for entry_variant: Variant in (hero["equipment_items"] as Array):
+			if entry_variant is Dictionary == false:
+				continue
+			var entry := entry_variant as Dictionary
+			var slot_name: String = _normalize_slot_name(str(entry.get("slot", entry.get("slot_type", ""))))
+			if not EQUIPMENT_SLOTS.has(slot_name):
+				continue
+			if entry.has("item") and entry["item"] is Dictionary:
+				equipment[slot_name] = (entry["item"] as Dictionary).duplicate(true)
+			else:
+				equipment[slot_name] = {
+					"id": int(entry.get("item_id", -1)),
+					"name": str(entry.get("item_name", entry.get("item", "-"))),
+				}
+
+	return equipment
+
+## H4: Public wrapper so external callers (e.g. Storage.gd) use the canonical
+## slot-name mapping instead of maintaining their own divergent copy.
+func normalize_slot(slot_name: String) -> String:
+	return _normalize_slot_name(slot_name)
+
+func _normalize_slot_name(slot_name: String) -> String:
+	var normalized: String = slot_name.strip_edges()
+	if normalized.is_empty():
+		return ""
+	if EQUIPMENT_SLOTS.has(normalized):
+		return normalized
+	var lowered: String = normalized.to_lower()
+	if _SLOT_ALIASES.has(lowered):
+		return str(_SLOT_ALIASES[lowered])
+	return normalized.capitalize()
 
 func calculate_stat_delta_for_equip(hero_id: int, item_id: int, slot_type: String) -> Dictionary:
 	var hero_data: Dictionary = HeroManager.get_hero_by_id(hero_id)

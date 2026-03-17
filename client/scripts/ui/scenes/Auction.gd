@@ -13,7 +13,7 @@ const CATEGORIES: PackedStringArray = [
 ]
 
 @onready var category_option: OptionButton = $Margin/VBox/FilterMenu/CategoryOption
-@onready var auction_table = $Margin/VBox/AuctionTable
+@onready var auction_table: Control = $Margin/VBox/AuctionTable
 @onready var prev_button: Button = $Margin/VBox/Pagination/PrevButton
 @onready var next_button: Button = $Margin/VBox/Pagination/NextButton
 @onready var page_label: Label = $Margin/VBox/Pagination/PageLabel
@@ -23,7 +23,7 @@ const CATEGORIES: PackedStringArray = [
 @onready var place_bid_button: Button = $Margin/VBox/LotActions/PlaceBidButton
 @onready var buyout_button: Button = $Margin/VBox/LotActions/BuyoutButton
 @onready var action_status_label: Label = $Margin/VBox/LotActions/ActionStatus
-@onready var buyout_confirm_dialog = $BuyoutConfirmDialog
+@onready var buyout_confirm_dialog: ConfirmationDialog = $BuyoutConfirmDialog
 
 var _current_page: int = 1
 var _page_size: int = PAGE_SIZE
@@ -36,22 +36,27 @@ var _pending_buyout_lot_id: int = -1
 var _is_live_connected: bool = false
 
 func _ready() -> void:
-	$Margin/VBox/Header/BackButton.pressed.connect(func(): EventBus.emit_scene_changed("PlayerHub"))
+	if category_option == null or auction_table == null or place_bid_button == null or buyout_confirm_dialog == null:
+		push_warning("Auction scene nodes are not ready; skipping initialization")
+		return
+	$Margin/VBox/Header/BackButton.pressed.connect(func(): EventBus.navigate_to(EventBus.SCENE_PLAYER_HUB))
 	$Margin/VBox/FilterMenu/RefreshButton.pressed.connect(_request_lots)
 	category_option.item_selected.connect(_on_category_changed)
 	prev_button.pressed.connect(_on_prev_page)
 	next_button.pressed.connect(_on_next_page)
 	place_bid_button.pressed.connect(_on_place_bid_pressed)
 	buyout_button.pressed.connect(_on_buyout_pressed)
-	if buyout_confirm_dialog.action_confirmed.is_connected(_on_buyout_confirmed) == false:
+	if buyout_confirm_dialog.has_signal("action_confirmed") and buyout_confirm_dialog.action_confirmed.is_connected(_on_buyout_confirmed) == false:
 		buyout_confirm_dialog.action_confirmed.connect(_on_buyout_confirmed)
-	if auction_table.lot_selected.is_connected(_on_lot_selected) == false:
+	if auction_table.has_signal("lot_selected") and auction_table.lot_selected.is_connected(_on_lot_selected) == false:
 		auction_table.lot_selected.connect(_on_lot_selected)
 
 	for category in CATEGORIES:
 		category_option.add_item(category)
 	category_option.select(0)
 
+	if AuctionManager.lots_updated.is_connected(_on_lots_updated) == false:
+		AuctionManager.lots_updated.connect(_on_lots_updated)
 	if AuctionManager.lots_fetch_failed.is_connected(_on_lots_failed) == false:
 		AuctionManager.lots_fetch_failed.connect(_on_lots_failed)
 	if has_node("/root/EventBus") and EventBus.auction_updated.is_connected(_on_eventbus_auction_updated) == false:
@@ -72,7 +77,15 @@ func _ready() -> void:
 	WebSocketManager.ensure_auction_subscription()
 	set_process(true)
 	_update_selected_lot_ui()
+	call_deferred("_apply_cabinet_visuals")
 	_request_lots()
+
+func _apply_cabinet_visuals() -> void:
+	CabinetStyle.style_screen(self)
+	CabinetStyle.style_status_label(live_status_label)
+	CabinetStyle.style_status_label(action_status_label)
+	CabinetStyle.style_button(place_bid_button)
+	CabinetStyle.style_button(buyout_button)
 
 func _process(delta: float) -> void:
 	if _selected_lot.is_empty() == false and _lot_is_expired(_selected_lot):
@@ -85,6 +98,8 @@ func _process(delta: float) -> void:
 		_request_lots()
 
 func _request_lots() -> void:
+	if category_option == null:
+		return
 	var filters := {
 		"type": category_option.get_item_text(category_option.selected),
 		"page": _current_page,
@@ -109,6 +124,8 @@ func _on_next_page() -> void:
 	_request_lots()
 
 func _on_lots_updated(items: Array, pagination: Dictionary) -> void:
+	if auction_table == null:
+		return
 	auction_table.set_lots(items)
 	_current_page = int(pagination.get("page", _current_page))
 	_has_next = bool(pagination.get("has_next", false))
@@ -180,6 +197,9 @@ func _on_place_bid_pressed() -> void:
 func _on_buyout_pressed() -> void:
 	if _selected_lot.is_empty():
 		return
+	if buyout_confirm_dialog == null:
+		action_status_label.text = tr("ui.auction.buyout_failed") % "Dialog unavailable"
+		return
 	if _lot_is_expired(_selected_lot):
 		action_status_label.text = tr("ui.auction.lot_expired")
 		return
@@ -205,7 +225,7 @@ func _on_buyout_confirmed() -> void:
 
 func _update_selected_lot_ui() -> void:
 	if _selected_lot.is_empty():
-		if auction_table.has_method("clear_selection"):
+		if auction_table != null and auction_table.has_method("clear_selection"):
 			auction_table.clear_selection()
 		selected_lot_label.text = tr("ui.auction.selected_none")
 		place_bid_button.disabled = true
@@ -309,8 +329,26 @@ func _clear_selected_lot(status_text: String = "") -> void:
 		action_status_label.text = status_text
 
 func _exit_tree() -> void:
+	if AuctionManager.lots_updated.is_connected(_on_lots_updated):
+		AuctionManager.lots_updated.disconnect(_on_lots_updated)
+	if AuctionManager.lots_fetch_failed.is_connected(_on_lots_failed):
+		AuctionManager.lots_fetch_failed.disconnect(_on_lots_failed)
 	if has_node("/root/EventBus") and EventBus.auction_updated.is_connected(_on_eventbus_auction_updated):
 		EventBus.auction_updated.disconnect(_on_eventbus_auction_updated)
+	if WebSocketManager.auction_socket_state_changed.is_connected(_on_auction_socket_state_changed):
+		WebSocketManager.auction_socket_state_changed.disconnect(_on_auction_socket_state_changed)
+	if WebSocketManager.auction_bid_update.is_connected(_on_realtime_event):
+		WebSocketManager.auction_bid_update.disconnect(_on_realtime_event)
+	if WebSocketManager.auction_lot_created.is_connected(_on_realtime_event):
+		WebSocketManager.auction_lot_created.disconnect(_on_realtime_event)
+	if WebSocketManager.auction_lot_closed.is_connected(_on_realtime_event):
+		WebSocketManager.auction_lot_closed.disconnect(_on_realtime_event)
+	if LocalizationManager.locale_changed.is_connected(_on_locale_changed):
+		LocalizationManager.locale_changed.disconnect(_on_locale_changed)
+	if auction_table != null and auction_table.has_signal("lot_selected") and auction_table.lot_selected.is_connected(_on_lot_selected):
+		auction_table.lot_selected.disconnect(_on_lot_selected)
+	if buyout_confirm_dialog != null and buyout_confirm_dialog.has_signal("action_confirmed") and buyout_confirm_dialog.action_confirmed.is_connected(_on_buyout_confirmed):
+		buyout_confirm_dialog.action_confirmed.disconnect(_on_buyout_confirmed)
 	WebSocketManager.stop_auction_subscription()
 
 func _on_locale_changed(_locale_code: String) -> void:

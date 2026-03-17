@@ -15,19 +15,37 @@ var _status_label: Label = null
 
 func _ready() -> void:
 	_build_ui()
+	if LocalizationManager.locale_changed.is_connected(_on_locale_changed) == false:
+		LocalizationManager.locale_changed.connect(_on_locale_changed)
+	call_deferred("_apply_cabinet_visuals")
+	call_deferred("_apply_translations")
 	_load_recipes()
+
+func _exit_tree() -> void:
+	if LocalizationManager.locale_changed.is_connected(_on_locale_changed):
+		LocalizationManager.locale_changed.disconnect(_on_locale_changed)
+
+func _on_locale_changed(_locale_code: String) -> void:
+	_apply_translations()
+
+func _apply_cabinet_visuals() -> void:
+	CabinetStyle.style_screen(self)
+	if _status_label != null:
+		CabinetStyle.style_status_label(_status_label)
 
 func _build_ui() -> void:
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 8)
+	CabinetStyle.style_module_root(root)
 	add_child(root)
 
 	# Header
 	var header := ModuleHeader.new()
+	header.name = "ModuleHeader"
 	root.add_child(header)
 	if header.has_method("set_title"):
-		header.set_title("Workshop")
+		header.set_title(CabinetStyle.text("ui.craft.title", "Workshop"))
 	if header.has_signal("refresh_pressed"):
 		header.refresh_pressed.connect(_load_recipes)
 
@@ -80,7 +98,7 @@ func _build_ui() -> void:
 	right_vbox.add_child(_detail_panel)
 
 	_craft_button = Button.new()
-	_craft_button.text = "Craft"
+	_craft_button.text = CabinetStyle.text("ui.craft.craft_button", "Craft")
 	_craft_button.custom_minimum_size = Vector2(0, 40)
 	_craft_button.pressed.connect(_on_craft_pressed)
 	right_vbox.add_child(_craft_button)
@@ -91,25 +109,13 @@ func _build_ui() -> void:
 	root.add_child(_status_label)
 
 func _load_recipes() -> void:
-	_status_label.text = "Loading recipes..."
+	_status_label.text = CabinetStyle.text("ui.craft.loading", "Loading recipes...")
 	_loading_overlay.show_loading()
 	_empty_state.visible = false
-	# Attempt to fetch recipes; API may not exist yet
-	if ApiClient.has_method("get_recipes"):
-		var response: Dictionary = await ApiClient.get_recipes()
-		_loading_overlay.hide_loading()
-		if bool(response.get("ok", false)):
-			_recipes = ResponseParser.extract_array(response.get("data", {}))
-		else:
-			_recipes = []
-	else:
-		_loading_overlay.hide_loading()
-		# Placeholder static data
-		_recipes = [
-			{"id": 1, "name": "Iron Sword", "materials": "Iron Ingot x3", "level_req": 1, "description": "A basic iron sword."},
-			{"id": 2, "name": "Health Potion", "materials": "Herb x2, Water x1", "level_req": 1, "description": "Restores a small amount of HP."},
-			{"id": 3, "name": "Steel Armor", "materials": "Steel Plate x4, Leather x2", "level_req": 5, "description": "Sturdy steel armor."},
-		]
+	_loading_overlay.hide_loading()
+	# Craft API is not implemented in this client/backend contract yet.
+	# Keep failure explicit and testable; do not fake recipe availability.
+	_recipes = []
 	_render_recipes()
 
 func _render_recipes() -> void:
@@ -117,8 +123,11 @@ func _render_recipes() -> void:
 	if _recipes.is_empty():
 		_empty_state.visible = true
 		if _empty_state.has_method("set_content"):
-			_empty_state.set_content("No Recipes", "No crafting recipes available.")
-		_status_label.text = ""
+			_empty_state.set_content(
+				CabinetStyle.text("ui.craft.unavailable_title", "Crafting Unavailable"),
+				CabinetStyle.text("ui.craft.unavailable_hint", "Crafting is not available on this backend yet.")
+			)
+		_status_label.text = CabinetStyle.text("ui.craft.unavailable_status", "Crafting is currently unavailable")
 		return
 	_empty_state.visible = false
 	for recipe_variant in _recipes:
@@ -142,19 +151,17 @@ func _on_recipe_selected(index: int) -> void:
 		})
 
 func _on_craft_pressed() -> void:
-	if _selected_recipe.is_empty():
-		UIUtils.show_warning("Select a recipe first")
-		return
-	var recipe_id: int = int(_selected_recipe.get("id", -1))
-	if recipe_id < 0:
-		return
-	_status_label.text = "Crafting..."
-	if ApiClient.has_method("craft_item"):
-		var response: Dictionary = await ApiClient.craft_item(recipe_id)
-		if bool(response.get("ok", false)):
-			UIUtils.show_success("Crafted %s!" % str(_selected_recipe.get("name", "item")))
-		else:
-			UIUtils.show_error(str(response.get("message", "Craft failed")))
-	else:
-		UIUtils.show_info("Crafting %s (API coming soon)" % str(_selected_recipe.get("name", "item")))
-	_status_label.text = ""
+	UIUtils.show_error(CabinetStyle.text("ui.craft.unavailable_action", "Crafting is not available on this backend"))
+	_status_label.text = CabinetStyle.text("ui.craft.unavailable_status", "Crafting is currently unavailable")
+
+func _apply_translations() -> void:
+	var header: ModuleHeader = get_node_or_null("VBoxContainer/ModuleHeader") as ModuleHeader
+	if header != null:
+		header.set_title(CabinetStyle.text("ui.craft.title", "Workshop"))
+	if _craft_button != null:
+		_craft_button.text = CabinetStyle.text("ui.craft.craft_button", "Craft")
+	if _recipes.is_empty() and _empty_state != null and _empty_state.has_method("set_content"):
+		_empty_state.set_content(
+			CabinetStyle.text("ui.craft.unavailable_title", "Crafting Unavailable"),
+			CabinetStyle.text("ui.craft.unavailable_hint", "Crafting is not available on this backend yet.")
+		)

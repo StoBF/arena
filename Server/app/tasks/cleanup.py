@@ -24,18 +24,6 @@ async def delete_old_heroes_task():
                     logging.info("[CLEANUP] Немає героїв для видалення.") 
 
 async def revive_dead_heroes_task():
+    logging.warning("[REVIVE] revive_dead_heroes_task is temporarily disabled (legacy auto-revive removed; use resurrection flow).")
     while True:
-        await asyncio.sleep(60)  # раз на хвилину
-        async with AsyncSessionLocal() as session:
-            async with session.begin():
-                now = datetime.utcnow()
-                result = await session.execute(
-                    select(Hero).where(Hero.is_dead == True, Hero.dead_until != None, Hero.dead_until <= now)
-                )
-                to_revive = result.scalars().all()
-                for hero in to_revive:
-                    hero.is_dead = False
-                    hero.dead_until = None
-                    logging.info(f"[REVIVE] Герой id={hero.id}, name={hero.name} відновлений!")
-            if not to_revive:
-                logging.info("[REVIVE] Немає героїв для відродження.") 
+        await asyncio.sleep(3600)

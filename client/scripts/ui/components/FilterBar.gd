@@ -26,7 +26,7 @@ func _ready() -> void:
 	add_child(_content)
 
 	_search_input = LineEdit.new()
-	_search_input.placeholder_text = tr("ui.filter.search_placeholder")
+	_search_input.placeholder_text = CabinetStyle.text("ui.filter.search_placeholder", "Search")
 	_search_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_search_input.custom_minimum_size = Vector2(120, 30)
 	_search_input.text_submitted.connect(func(_v: String) -> void: _emit_filters())
@@ -37,24 +37,39 @@ func _ready() -> void:
 	_content.add_child(_dropdown)
 
 	_extra_input = LineEdit.new()
-	_extra_input.placeholder_text = tr("ui.filter.min_price")
+	_extra_input.placeholder_text = CabinetStyle.text("ui.filter.min_price", "Min price")
 	_extra_input.custom_minimum_size = Vector2(80, 30)
 	_extra_input.visible = false
 	_extra_input.text_submitted.connect(func(_v: String) -> void: _emit_filters())
 	_content.add_child(_extra_input)
 
 	_apply_button = Button.new()
-	_apply_button.text = tr("ui.common.apply")
+	_apply_button.text = CabinetStyle.text("ui.common.apply", "Apply")
 	_apply_button.custom_minimum_size = Vector2(70, 30)
 	_apply_button.pressed.connect(_emit_filters)
 	_content.add_child(_apply_button)
+
+	if LocalizationManager.locale_changed.is_connected(_on_locale_changed) == false:
+		LocalizationManager.locale_changed.connect(_on_locale_changed)
+
+func _exit_tree() -> void:
+	if LocalizationManager.locale_changed.is_connected(_on_locale_changed):
+		LocalizationManager.locale_changed.disconnect(_on_locale_changed)
+
+func _on_locale_changed(_locale_code: String) -> void:
+	if _search_input != null:
+		_search_input.placeholder_text = CabinetStyle.text("ui.filter.search_placeholder", "Search")
+	if _extra_input != null:
+		_extra_input.placeholder_text = CabinetStyle.text("ui.filter.min_price", "Min price")
+	if _apply_button != null:
+		_apply_button.text = CabinetStyle.text("ui.common.apply", "Apply")
 
 
 ## Configure dropdown options. Items: Array of Strings.
 func set_dropdown_items(items: Array, include_all: bool = true) -> void:
 	_dropdown.clear()
 	if include_all:
-		_dropdown.add_item(tr("ui.filter.all"), 0)
+		_dropdown.add_item(CabinetStyle.text("ui.filter.all", "All"), 0)
 	var idx := 1 if include_all else 0
 	for item in items:
 		_dropdown.add_item(str(item), idx)

@@ -15,6 +15,7 @@ signal auction_updated(items, pagination)
 signal chat_updated(channel, messages)
 signal selected_hero_changed(hero)
 signal server_status_updated(status, online_players)
+signal access_token_changed(token: String)
 
 const MAX_CHAT_HISTORY: int = 200
 
@@ -33,7 +34,6 @@ var selected_hero: Dictionary = {}
 var last_created_hero: Dictionary = {}
 var heroes: Array = []
 var inventory: Array = []
-var inventory_items: Array = []
 var auction_lots: Array = []
 var auction_items: Array = []
 var auction_pagination: Dictionary = {"page": 1, "page_size": 20, "total": 0, "has_next": false, "has_prev": false}
@@ -55,6 +55,7 @@ var token_refresh_attempted: bool = false
 func set_access_token(value: String) -> void:
 	access_token = value
 	token = value
+	access_token_changed.emit(value)
 
 
 ## Cache user profile received from /auth/me. Emits user_data_updated.
@@ -65,15 +66,11 @@ func set_user_data(data: Dictionary) -> void:
 	balance = float(data.get("balance", balance))
 	print("[AppState] User data cached: username=%s balance=%.2f" % [username, balance])
 	user_data_updated.emit()
-	if has_node("/root/EventBus"):
-		EventBus.emit_user_data_updated()
 
 
 func set_heroes_data(data: Array) -> void:
 	heroes = data.duplicate(true)
 	heroes_updated.emit(heroes.duplicate(true))
-	if has_node("/root/EventBus"):
-		EventBus.emit_heroes_updated()
 	if selected_hero.is_empty() == false:
 		return
 	for hero_variant in heroes:
@@ -84,10 +81,7 @@ func set_heroes_data(data: Array) -> void:
 
 func set_inventory_data(items: Array) -> void:
 	inventory = items.duplicate(true)
-	inventory_items = items.duplicate(true)
-	inventory_updated.emit(inventory_items.duplicate(true))
-	if has_node("/root/EventBus"):
-		EventBus.emit_inventory_updated()
+	inventory_updated.emit(inventory.duplicate(true))
 
 
 func set_auction_data(items: Array, pagination: Dictionary) -> void:
@@ -95,8 +89,6 @@ func set_auction_data(items: Array, pagination: Dictionary) -> void:
 	auction_items = items.duplicate(true)
 	auction_pagination = pagination.duplicate(true)
 	auction_updated.emit(auction_items.duplicate(true), auction_pagination.duplicate(true))
-	if has_node("/root/EventBus"):
-		EventBus.emit_auction_updated()
 
 
 func clear_user_state() -> void:
@@ -109,7 +101,6 @@ func clear_user_state() -> void:
 	last_created_hero = {}
 	heroes = []
 	inventory = []
-	inventory_items = []
 	auction_lots = []
 	auction_items = []
 	auction_pagination = {"page": 1, "page_size": 20, "total": 0, "has_next": false, "has_prev": false}
@@ -122,12 +113,6 @@ func clear_user_state() -> void:
 	auction_updated.emit([], auction_pagination.duplicate(true))
 	chat_updated.emit("global", [])
 	selected_hero_changed.emit({})
-	if has_node("/root/EventBus"):
-		EventBus.emit_user_data_updated()
-		EventBus.emit_heroes_updated()
-		EventBus.emit_inventory_updated()
-		EventBus.emit_auction_updated()
-		EventBus.emit_chat_updated("global", [])
 
 
 func update_battle_queue(queue_data: Array) -> void:
@@ -158,9 +143,6 @@ func push_chat_message(channel: String, message: String) -> void:
 		chat_messages[channel] = buffered.slice(buffered.size() - MAX_CHAT_HISTORY, buffered.size())
 	chat_updated.emit(channel, (chat_messages[channel] as Array).duplicate(true))
 	emit_signal("chat_message_received", channel, message)
-	if has_node("/root/EventBus"):
-		EventBus.emit_chat_message_received(channel, message)
-		EventBus.emit_chat_updated(channel, chat_messages[channel] as Array)
 
 
 func set_chat_messages(channel: String, messages: Array) -> void:
@@ -169,8 +151,6 @@ func set_chat_messages(channel: String, messages: Array) -> void:
 		copy = copy.slice(copy.size() - MAX_CHAT_HISTORY, copy.size())
 	chat_messages[channel] = copy
 	chat_updated.emit(channel, copy.duplicate(true))
-	if has_node("/root/EventBus"):
-		EventBus.emit_chat_updated(channel, copy)
 
 
 func set_selected_hero(hero: Dictionary) -> void:
@@ -178,8 +158,6 @@ func set_selected_hero(hero: Dictionary) -> void:
 	if selected_hero.has("id"):
 		current_hero_id = int(selected_hero.get("id", current_hero_id))
 	selected_hero_changed.emit(selected_hero.duplicate(true))
-	if has_node("/root/EventBus") and current_hero_id > 0:
-		EventBus.emit_hero_selected(current_hero_id)
 
 
 func set_chat_connection_state(channel: String, connected: bool) -> void:
@@ -198,6 +176,4 @@ func set_server_status(status: String, players_online: int) -> void:
 	server_status = normalized_status
 	online_players = maxi(0, players_online)
 	server_status_updated.emit(server_status, online_players)
-	if has_node("/root/EventBus"):
-		EventBus.emit_server_status_updated(server_status, online_players)
- 
+

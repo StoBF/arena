@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.schemas.hero import (
-    HeroCreate, HeroOut, HeroRead, HeroGenerateRequest, PerkUpgradeRequest,
-    TrainRequest, HeroBodyResponse, BodyPartOut,
+    HeroCreate, HeroRead, HeroGenerateRequest, PerkUpgradeRequest,
+    HeroBodyResponse, BodyPartOut,
     TrainingStartRequest, TrainingQueueOut, TrainingQueueResponse,
     ResurrectRequest, ResurrectionEventOut, HeroStatusResponse,
 )
@@ -56,7 +56,7 @@ async def read_hero(
     db: AsyncSession = Depends(get_session),
     user=Depends(get_current_user_info)
 ):
-    hero = await HeroService(db).get_hero(hero_id)
+    hero = await HeroService(db).get_hero_with_perks(hero_id)
     if not hero or hero.owner_id != user['user_id']:
         raise HTTPException(404, "Hero not found")
     return hero
@@ -73,11 +73,7 @@ async def generate_hero(
     user=Depends(get_current_user_info)
 ):
     hero = await HeroService(db).generate_and_store(user['user_id'], req)
-    payload = HeroOut.model_validate(hero, from_attributes=True).model_dump()
-    payload["perks"] = []
-    payload["abilities"] = []
-    payload["derived_stats"] = None
-    return payload
+    return await HeroService(db).get_hero_with_perks(hero.id)
 
 @router.delete(
     "/{hero_id}",
@@ -126,42 +122,6 @@ async def get_hero_body(
         for bp in (hero.body_parts or [])
     ]
     return HeroBodyResponse(hero_id=hero.id, parts=parts)
-
-@router.post(
-    "/{hero_id}/train",
-    response_model=HeroRead,
-    summary="Start hero training",
-    description="Starts training for the specified hero. Only the owner can start training."
-)
-async def start_training(
-    hero_id: int,
-    req: TrainRequest,
-    db: AsyncSession = Depends(get_session),
-    user=Depends(get_current_user_info),
-):
-    hero = await HeroService(db).get_hero(hero_id)
-    if not hero or hero.owner_id != user['user_id']:
-        raise HTTPException(404, "Hero not found")
-    hero = await HeroService(db).start_training(hero_id, req.training_stat, req.duration_minutes)
-    return hero
-
-@router.post(
-    "/{hero_id}/complete_training",
-    response_model=HeroRead,
-    summary="Complete hero training",
-    description="Completes training for the specified hero if the training time has finished. Only the owner can complete training."
-)
-async def complete_training(
-    hero_id: int,
-    db: AsyncSession = Depends(get_session),
-    user=Depends(get_current_user_info),
-    xp_reward: int = 50
-):
-    hero = await HeroService(db).get_hero(hero_id)
-    if not hero or hero.owner_id != user['user_id']:
-        raise HTTPException(404, "Hero not found")
-    hero = await HeroService(db).complete_training(hero_id, xp_reward)
-    return hero
 
 @router.post(
     "/{hero_id}/perks/upgrade",

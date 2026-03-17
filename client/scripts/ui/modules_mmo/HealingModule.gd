@@ -23,12 +23,21 @@ var _heal_button: Button = null
 var _status_label: Label = null
 var _body_parts_container: VBoxContainer = null
 
+func _tx(key: String, fallback: String) -> String:
+	return CabinetStyle.text(key, fallback)
+
 # ---------------------------------------------------------------------------
 # Lifecycle
 # ---------------------------------------------------------------------------
 func _ready() -> void:
 	_build_ui()
+	call_deferred("_apply_cabinet_visuals")
 	_load_heroes()
+
+func _apply_cabinet_visuals() -> void:
+	CabinetStyle.style_screen(self)
+	if _status_label != null:
+		CabinetStyle.style_status_label(_status_label)
 
 # ---------------------------------------------------------------------------
 # UI construction
@@ -37,12 +46,13 @@ func _build_ui() -> void:
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 8)
+	CabinetStyle.style_module_root(root)
 	add_child(root)
 
 	# --- Header ---
 	var header := ModuleHeader.new()
 	root.add_child(header)
-	header.set_title("Healing Ward")
+	header.set_title(_tx("ui.healing.title", "Healing Ward"))
 	header.refresh_pressed.connect(_load_heroes)
 
 	# --- Body: left hero lists | right detail + body parts ---
@@ -63,8 +73,9 @@ func _build_ui() -> void:
 	left_panel.add_child(left_vbox)
 
 	var injured_title := Label.new()
-	injured_title.text = "Injured Heroes"
+	injured_title.text = _tx("ui.healing.injured_heroes", "Injured Heroes")
 	injured_title.add_theme_font_size_override("font_size", 14)
+	CabinetStyle.style_section_label(injured_title)
 	left_vbox.add_child(injured_title)
 
 	_hero_list = ItemList.new()
@@ -74,8 +85,9 @@ func _build_ui() -> void:
 	left_vbox.add_child(_hero_list)
 
 	var healing_title := Label.new()
-	healing_title.text = "Currently Healing"
+	healing_title.text = _tx("ui.healing.currently_healing", "Currently Healing")
 	healing_title.add_theme_font_size_override("font_size", 14)
+	CabinetStyle.style_section_label(healing_title)
 	left_vbox.add_child(healing_title)
 
 	_healing_list = ItemList.new()
@@ -112,14 +124,15 @@ func _build_ui() -> void:
 	_body_parts_container = VBoxContainer.new()
 	_body_parts_container.add_theme_constant_override("separation", 4)
 	var bp_title := Label.new()
-	bp_title.text = "Body Part Injuries"
+	bp_title.text = _tx("ui.healing.body_part_injuries", "Body Part Injuries")
 	bp_title.add_theme_font_size_override("font_size", 14)
+	CabinetStyle.style_section_label(bp_title)
 	_body_parts_container.add_child(bp_title)
 	right_vbox.add_child(_body_parts_container)
 
 	# Heal button
 	_heal_button = Button.new()
-	_heal_button.text = "Begin Healing"
+	_heal_button.text = _tx("ui.healing.begin", "Begin Healing")
 	_heal_button.custom_minimum_size = Vector2(0, 40)
 	_heal_button.pressed.connect(_on_heal_pressed)
 	right_vbox.add_child(_heal_button)
@@ -133,7 +146,7 @@ func _build_ui() -> void:
 # Data loading
 # ---------------------------------------------------------------------------
 func _load_heroes() -> void:
-	_status_label.text = "Loading..."
+	_status_label.text = _tx("ui.healing.loading", "Loading...")
 	_loading_overlay.show_loading()
 	_empty_state.visible = false
 	_hero_list.clear()
@@ -143,15 +156,10 @@ func _load_heroes() -> void:
 	_healing_heroes.clear()
 	_selected_hero = {}
 
-	var response: Dictionary = await ApiClient.get_heroes()
+	# H8: Use HeroManager (canonical cache, avoids direct ApiClient + ResponseParser)
+	await HeroManager.load_heroes()
 	_loading_overlay.hide_loading()
-	if not bool(response.get("ok", false)):
-		UIUtils.show_error("Failed to load heroes")
-		_status_label.text = "Error"
-		return
-
-	_heroes = ResponseParser.extract_array(response.get("data", {}))
-	AppState.set_heroes_data(_heroes)
+	_heroes = HeroManager.get_heroes()
 
 	# Partition heroes by health status
 	for h in _heroes:
@@ -167,7 +175,7 @@ func _load_heroes() -> void:
 	# Render
 	if _injured_heroes.is_empty() and _healing_heroes.is_empty():
 		_empty_state.visible = true
-		_empty_state.set_content("All Healthy", "No heroes need healing right now.")
+		_empty_state.set_content(_tx("ui.healing.all_healthy", "All Healthy"), _tx("ui.healing.none_needed", "No heroes need healing right now."))
 		_status_label.text = ""
 		return
 
@@ -253,6 +261,10 @@ func _render_body_parts() -> void:
 func _on_heal_pressed() -> void:
 	if _selected_hero.is_empty():
 		UIUtils.show_warning("Select an injured hero first")
+		return
+	var status: String = str(_selected_hero.get("status", "")).to_lower()
+	if status not in ["injured", "critical", "wounded"]:
+		UIUtils.show_warning("Selected hero is not eligible for healing")
 		return
 	var hero_id: int = int(_selected_hero.get("id", -1))
 	if hero_id < 0:

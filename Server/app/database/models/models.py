@@ -126,7 +126,7 @@ class Equipment(Base):
     slot   = Column(String, nullable=False)
     __table_args__ = (UniqueConstraint('hero_id', 'slot', name='_hero_slot_uc'),)
 
-    hero = relationship("app.database.models.hero.Hero", back_populates="equipment_items")
+    hero = relationship("Hero", back_populates="equipment_items")
     item = relationship("Item", back_populates="equipped_in")
 
 class AuctionLot(Base):

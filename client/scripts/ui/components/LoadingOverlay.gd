@@ -14,7 +14,7 @@ func _ready() -> void:
 	visible = false
 
 	_label = Label.new()
-	_label.text = tr("ui.common.loading")
+	_label.text = CabinetStyle.text("ui.common.loading", "Loading...")
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label.set_anchors_preset(Control.PRESET_CENTER)
@@ -27,7 +27,7 @@ func show_loading(text: String = "") -> void:
 	if not text.is_empty():
 		_label.text = text
 	else:
-		_label.text = tr("ui.common.loading")
+		_label.text = CabinetStyle.text("ui.common.loading", "Loading...")
 	visible = true
 	_start_pulse()
 

@@ -27,12 +27,21 @@ var _status_label: Label = null
 
 const DURATIONS := [30, 60, 120, 240]  # minutes
 
+func _tx(key: String, fallback: String) -> String:
+	return CabinetStyle.text(key, fallback)
+
 # ---------------------------------------------------------------------------
 # Lifecycle
 # ---------------------------------------------------------------------------
 func _ready() -> void:
 	_build_ui()
+	call_deferred("_apply_cabinet_visuals")
 	_load_heroes()
+
+func _apply_cabinet_visuals() -> void:
+	CabinetStyle.style_screen(self)
+	if _status_label != null:
+		CabinetStyle.style_status_label(_status_label)
 
 # ---------------------------------------------------------------------------
 # UI construction
@@ -41,12 +50,13 @@ func _build_ui() -> void:
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 8)
+	CabinetStyle.style_module_root(root)
 	add_child(root)
 
 	# --- Header ---
 	var header := ModuleHeader.new()
 	root.add_child(header)
-	header.set_title("Training Grounds")
+	header.set_title(_tx("ui.training.title", "Training Grounds"))
 	header.refresh_pressed.connect(_load_heroes)
 
 	# --- Body: left hero lists | right detail + controls ---
@@ -67,8 +77,9 @@ func _build_ui() -> void:
 	left_panel.add_child(left_vbox)
 
 	var idle_title := Label.new()
-	idle_title.text = "Available Heroes"
+	idle_title.text = _tx("ui.training.available_heroes", "Available Heroes")
 	idle_title.add_theme_font_size_override("font_size", 14)
+	CabinetStyle.style_section_label(idle_title)
 	left_vbox.add_child(idle_title)
 
 	_hero_list = ItemList.new()
@@ -78,8 +89,9 @@ func _build_ui() -> void:
 	left_vbox.add_child(_hero_list)
 
 	var training_title := Label.new()
-	training_title.text = "Currently Training"
+	training_title.text = _tx("ui.training.currently_training", "Currently Training")
 	training_title.add_theme_font_size_override("font_size", 14)
+	CabinetStyle.style_section_label(training_title)
 	left_vbox.add_child(training_title)
 
 	_training_list = ItemList.new()
@@ -115,7 +127,7 @@ func _build_ui() -> void:
 	dur_row.add_theme_constant_override("separation", 8)
 	right_vbox.add_child(dur_row)
 	var dur_label := Label.new()
-	dur_label.text = "Duration:"
+	dur_label.text = _tx("ui.training.duration", "Duration:")
 	dur_row.add_child(dur_label)
 	_duration_dropdown = OptionButton.new()
 	for d in DURATIONS:
@@ -130,13 +142,13 @@ func _build_ui() -> void:
 
 	# Action buttons
 	_start_button = Button.new()
-	_start_button.text = "Start Training"
+	_start_button.text = _tx("ui.training.start", "Start Training")
 	_start_button.custom_minimum_size = Vector2(0, 40)
 	_start_button.pressed.connect(_on_start_training)
 	right_vbox.add_child(_start_button)
 
 	_complete_button = Button.new()
-	_complete_button.text = "Complete Training"
+	_complete_button.text = _tx("ui.training.complete", "Complete Training")
 	_complete_button.custom_minimum_size = Vector2(0, 40)
 	_complete_button.pressed.connect(_on_complete_training)
 	_complete_button.visible = false
@@ -151,7 +163,7 @@ func _build_ui() -> void:
 # Data loading
 # ---------------------------------------------------------------------------
 func _load_heroes() -> void:
-	_status_label.text = "Loading heroes..."
+	_status_label.text = _tx("ui.training.loading", "Loading heroes...")
 	_loading_overlay.show_loading()
 	_empty_state.visible = false
 	_hero_list.clear()
@@ -161,15 +173,10 @@ func _load_heroes() -> void:
 	_training_heroes.clear()
 	_selected_hero = {}
 
-	var response: Dictionary = await ApiClient.get_heroes()
+	# H8: Use HeroManager (canonical cache, avoids direct ApiClient + ResponseParser)
+	await HeroManager.load_heroes()
 	_loading_overlay.hide_loading()
-	if not bool(response.get("ok", false)):
-		UIUtils.show_error("Failed to load heroes")
-		_status_label.text = "Error"
-		return
-
-	_heroes = ResponseParser.extract_array(response.get("data", {}))
-	AppState.set_heroes_data(_heroes)
+	_heroes = HeroManager.get_heroes()
 
 	# Partition into idle vs training
 	for h in _heroes:
@@ -185,13 +192,13 @@ func _load_heroes() -> void:
 	# Render idle list
 	if _idle_heroes.is_empty() and _training_heroes.is_empty():
 		_empty_state.visible = true
-		_empty_state.set_content("No Heroes", "Create a hero first.")
+		_empty_state.set_content(_tx("ui.training.no_heroes", "No Heroes"), _tx("ui.training.create_hero_hint", "Create a hero first."))
 		_status_label.text = ""
 		return
 
 	if _idle_heroes.is_empty():
 		_empty_state.visible = true
-		_empty_state.set_content("All Busy", "All heroes are training or unavailable.")
+		_empty_state.set_content(_tx("ui.training.all_busy", "All Busy"), _tx("ui.training.all_busy_hint", "All heroes are training or unavailable."))
 	else:
 		_empty_state.visible = false
 
@@ -276,12 +283,20 @@ func _on_complete_training() -> void:
 	if _selected_hero.is_empty():
 		UIUtils.show_warning("Select a training hero first")
 		return
+	var is_training: bool = str(_selected_hero.get("status", "")).to_lower() == "training" \
+		or bool(_selected_hero.get("is_training", false))
+	if is_training == false:
+		UIUtils.show_warning("Selected hero is not in training")
+		_update_buttons()
+		return
 	var hero_id: int = int(_selected_hero.get("id", -1))
 	if hero_id < 0:
 		return
 	_status_label.text = "Completing training..."
+	_start_button.disabled = true
 	_complete_button.disabled = true
 	var response: Dictionary = await ApiClient.complete_training(hero_id)
+	_start_button.disabled = false
 	_complete_button.disabled = false
 	if bool(response.get("ok", false)):
 		UIUtils.show_success("%s finished training!" % str(_selected_hero.get("name", "Hero")))
@@ -290,3 +305,4 @@ func _on_complete_training() -> void:
 		var msg: String = str(response.get("message", response.get("error", "Cannot complete yet")))
 		UIUtils.show_error(msg)
 		_status_label.text = msg
+		_update_buttons()

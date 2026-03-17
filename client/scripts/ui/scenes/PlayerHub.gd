@@ -28,6 +28,7 @@ const INACTIVE_BUTTON_COLOR := Color(0, 0, 0, 0)              # transparent
 @onready var status_label: Label        = $RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar/PlayerInfo/StatusLabel
 @onready var server_indicator: ColorRect = $RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar/PlayerInfo/ServerStatusIndicator
 @onready var currency_bar: Node         = $RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar/CurrencyBar
+@onready var notifications_button: Button = $RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar/NotificationsButton
 @onready var notification_badge: Node   = $RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar/NotificationsButton/NotificationBadge
 
 # ---------------------------------------------------------------------------
@@ -69,6 +70,9 @@ var _active_chat_channel: String = "global"
 var _notification_count: int = 0
 var _activity_feed: Node = null   # ActivityFeed component (added dynamically)
 
+func _tx(key: String, fallback: String) -> String:
+	return CabinetStyle.text(key, fallback)
+
 ## Map sidebar button → module key for highlight tracking
 var _sidebar_map: Dictionary = {}
 
@@ -76,7 +80,9 @@ var _sidebar_map: Dictionary = {}
 # Lifecycle
 # ---------------------------------------------------------------------------
 func _ready() -> void:
+	call_deferred("_apply_cabinet_visuals")
 	_build_sidebar_map()
+	_connect_top_bar()
 	_create_activity_feed()
 	_connect_sidebar()
 	_connect_bottom_bar()
@@ -86,6 +92,15 @@ func _ready() -> void:
 	await _refresh_chat_histories()
 	_apply_announcements()
 	_update_quick_status()
+
+func _apply_cabinet_visuals() -> void:
+	CabinetStyle.style_screen(self)
+	CabinetStyle.style_status_label(status_label)
+	CabinetStyle.style_status_label(quick_status_label)
+	CabinetStyle.style_button(action_create_hero, 140)
+	CabinetStyle.style_button(action_queue_pvp, 140)
+	CabinetStyle.style_button(action_boss_raid, 140)
+	CabinetStyle.style_button(action_market, 140)
 
 # ---------------------------------------------------------------------------
 # Sidebar map (button → module key) for highlighting
@@ -118,7 +133,7 @@ func _connect_sidebar() -> void:
 	for btn: Button in _sidebar_map.keys():
 		var key: String = _sidebar_map[btn]
 		btn.pressed.connect(_load_module.bind(key))
-	settings_button.pressed.connect(func() -> void: EventBus.emit_scene_changed("Settings"))
+	settings_button.pressed.connect(func() -> void: EventBus.navigate_to(EventBus.SCENE_SETTINGS))
 	logout_button.pressed.connect(_on_logout_pressed)
 	# Chat signals
 	if chat_panel.has_signal("message_submitted"):
@@ -126,9 +141,13 @@ func _connect_sidebar() -> void:
 	if chat_panel.has_signal("channel_changed"):
 		chat_panel.channel_changed.connect(_on_chat_channel_changed)
 
+func _connect_top_bar() -> void:
+	if notifications_button != null and notifications_button.pressed.is_connected(_on_notifications_pressed) == false:
+		notifications_button.pressed.connect(_on_notifications_pressed)
+
 func _connect_bottom_bar() -> void:
 	action_create_hero.pressed.connect(func() -> void:
-		EventBus.emit_scene_changed("HeroCreation"))
+		EventBus.navigate_to(EventBus.SCENE_HERO_CREATION))
 	action_queue_pvp.pressed.connect(func() -> void:
 		_load_module("arena"))
 	action_boss_raid.pressed.connect(func() -> void:
@@ -175,7 +194,7 @@ func _apply_top_bar() -> void:
 # ---------------------------------------------------------------------------
 func _load_module(module_name: String) -> void:
 	if not MODULE_SCENES.has(module_name):
-		UIUtils.show_warning("Module '%s' not available." % module_name)
+		UIUtils.show_warning(_tx("ui.module.not_available", "Module '%s' not available.") % module_name)
 		return
 	if module_name == _current_module_key and _current_module_instance != null:
 		return  # already showing this module
@@ -194,7 +213,7 @@ func _load_module(module_name: String) -> void:
 	_highlight_sidebar_button(module_name)
 	# Log to activity feed
 	if _activity_feed != null and _activity_feed.has_method("add_entry"):
-		_activity_feed.add_entry("Opened %s" % module_name, "system")
+		_activity_feed.add_entry(_tx("ui.module.opened", "Opened %s") % module_name, "system")
 
 # ---------------------------------------------------------------------------
 # Sidebar active-state highlighting
@@ -227,8 +246,9 @@ func _make_highlight_stylebox() -> StyleBoxFlat:
 # ---------------------------------------------------------------------------
 func _update_quick_status() -> void:
 	# Show a brief roster summary
-	var hero_count: int = HeroManager.heroes.size() if HeroManager.heroes is Array else 0
-	quick_status_label.text = "Heroes: %d" % hero_count
+	# H16: HeroManager has no public `heroes` property — use get_heroes() instead
+	var hero_count: int = HeroManager.get_heroes().size()
+	quick_status_label.text = _tx("ui.playerhub.quick_heroes", "Heroes: %d") % hero_count
 
 # ---------------------------------------------------------------------------
 # Chat helpers
@@ -239,14 +259,17 @@ func _refresh_chat_histories() -> void:
 	_update_chat_from_state("global")
 	_update_chat_from_state("trade")
 	if chat_panel.has_method("set_channel_messages"):
-		chat_panel.set_channel_messages("system", ["System initialized", "Welcome to Arena"])
+		chat_panel.set_channel_messages("system", [
+			_tx("ui.playerhub.system_initialized", "System initialized"),
+			_tx("ui.playerhub.welcome", "Welcome to Arena"),
+		])
 
 func _apply_announcements() -> void:
 	if chat_panel.has_method("set_announcements"):
 		chat_panel.set_announcements([
-			"Double XP weekend starts Friday",
-			"Auction taxes reduced for 24h",
-			"Server maintenance at 03:00 UTC",
+			_tx("ui.playerhub.announce_xp", "Double XP weekend starts Friday"),
+			_tx("ui.playerhub.announce_tax", "Auction taxes reduced for 24h"),
+			_tx("ui.playerhub.announce_maintenance", "Server maintenance at 03:00 UTC"),
 		])
 
 func _update_chat_from_state(channel: String) -> void:
@@ -264,10 +287,8 @@ func _on_chat_message_submitted(channel: String, text: String) -> void:
 	var normalized_channel: String = channel.strip_edges().to_lower()
 	var response: Dictionary = await ApiClient.send_chat_message(normalized_channel, text)
 	if not bool(response.get("ok", false)):
-		var sender: String = AppState.username
-		if sender.is_empty():
-			sender = "You"
-		AppState.push_chat_message(normalized_channel, "[%s] %s" % [sender, text])
+		var msg: String = str(response.get("message", response.get("error", "Chat send failed")))
+		UIUtils.show_error(msg)
 	_update_chat_from_state(normalized_channel)
 
 func _on_chat_channel_changed(channel: String) -> void:
@@ -277,12 +298,21 @@ func _on_chat_channel_changed(channel: String) -> void:
 		_update_chat_from_state(_active_chat_channel)
 	elif _active_chat_channel == "system":
 		if chat_panel.has_method("set_channel_messages"):
-			chat_panel.set_channel_messages("system", ["No active alerts"])
+			chat_panel.set_channel_messages("system", [_tx("ui.playerhub.no_alerts", "No active alerts")])
 
 func _on_logout_pressed() -> void:
 	AuthManager.logout()
 	if has_node("/root/EventBus"):
-		EventBus.emit_scene_changed("LoginScene")
+		var routed: bool = EventBus.navigate_to(EventBus.SCENE_LOGIN)
+		if routed == false:
+			UIUtils.show_error("Failed to navigate to login after logout")
+
+func _on_notifications_pressed() -> void:
+	_notification_count = 0
+	if notification_badge.has_method("set_count"):
+		notification_badge.set_count(_notification_count)
+	if _activity_feed != null and _activity_feed.has_method("add_entry"):
+		_activity_feed.add_entry(_tx("ui.playerhub.notifications_cleared", "Notifications cleared"), "system")
 
 func _on_user_data_updated() -> void:
 	_apply_top_bar()
@@ -291,7 +321,7 @@ func _on_user_data_updated() -> void:
 func _on_server_status_updated() -> void:
 	_apply_top_bar()
 	if _activity_feed != null and _activity_feed.has_method("add_entry"):
-		_activity_feed.add_entry("Server: %s" % AppState.server_status, "system")
+		_activity_feed.add_entry(_tx("ui.playerhub.server_status_entry", "Server: %s") % AppState.server_status, "system")
 
 func _on_chat_updated() -> void:
 	var channel: String = str(EventBus.last_chat_channel)

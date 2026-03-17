@@ -79,6 +79,16 @@ func request_json(
 
 		return response
 
+	return {
+		"ok": false,
+		"result": HTTPRequest.RESULT_CANT_CONNECT,
+		"code": 0,
+		"headers": PackedStringArray(),
+		"data": {},
+		"raw_body": "",
+		"message": "Request loop exited unexpectedly"
+	}
+
 
 func _send_once(endpoint: String, method: int, payload: Dictionary, headers: PackedStringArray, include_auth: bool) -> Dictionary:
 	var req := HTTPRequest.new()

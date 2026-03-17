@@ -152,7 +152,7 @@ class Hero(SoftDeleteMixin, Base):
     history_entries = relationship("HeroHistory", back_populates="hero", cascade="all, delete-orphan", lazy="noload")
     body_parts = relationship("HeroBodyPart", back_populates="hero", cascade="all, delete-orphan", lazy="selectin")
     training_queue = relationship("HeroTrainingQueue", back_populates="hero", cascade="all, delete-orphan", lazy="noload")
-    combat_stats = relationship("HeroCombatStats", back_populates="hero", uselist=False, cascade="all, delete-orphan", lazy="selectin")
+    combat_stats = relationship("HeroCombatStats", back_populates="hero", uselist=False, cascade="all, delete-orphan", lazy="noload")
     titles = relationship("HeroTitle", back_populates="hero", cascade="all, delete-orphan", lazy="selectin")
     resurrection_events = relationship("HeroResurrectionEvent", back_populates="hero", cascade="all, delete-orphan", lazy="noload")
 
@@ -370,6 +370,6 @@ class HeroPerk(Base):
     perk_id = Column(Integer, ForeignKey("perks.id"), nullable=True)
     perk_name = Column(String, nullable=True)
     perk_level = Column(Integer, nullable=False)
-    hero = relationship("app.database.models.hero.Hero", back_populates="perks")
+    hero = relationship("Hero", back_populates="perks")
     perk = relationship("Perk")
     __table_args__ = (UniqueConstraint('hero_id', 'perk_id', name='_hero_perk_uc'),) 

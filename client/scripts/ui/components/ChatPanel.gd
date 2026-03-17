@@ -23,6 +23,10 @@ var _messages_by_channel: Dictionary = {
 }
 
 func _ready() -> void:
+	# H12: Guard against missing scene nodes before any use
+	if tabs == null or messages == null or message_input == null or send_button == null:
+		push_warning("ChatPanel: one or more required nodes are missing; skipping initialization")
+		return
 	tabs.set_tab_title(0, "Global")
 	tabs.set_tab_title(1, "Trade")
 	tabs.set_tab_title(2, "System")
@@ -32,6 +36,8 @@ func _ready() -> void:
 	_render_current_channel()
 
 func get_current_channel() -> String:
+	if tabs == null:
+		return "global"
 	return CHANNEL_BY_TAB.get(tabs.current_tab, "global")
 
 func set_channel_messages(channel: String, lines: Array) -> void:
@@ -40,16 +46,22 @@ func set_channel_messages(channel: String, lines: Array) -> void:
 		_render_current_channel()
 
 func set_system_messages(lines: Array) -> void:
+	if system_messages == null:
+		return
 	system_messages.clear()
 	for line in lines:
 		system_messages.add_item(str(line))
 
 func set_announcements(lines: Array) -> void:
+	if announcements == null:
+		return
 	announcements.clear()
 	for line in lines:
 		announcements.add_item(str(line))
 
 func _on_tab_changed(_index: int) -> void:
+	if tabs == null:
+		return
 	_render_current_channel()
 	channel_changed.emit(get_current_channel())
 
@@ -61,6 +73,8 @@ func _on_send_pressed() -> void:
 	message_input.clear()
 
 func _render_current_channel() -> void:
+	if messages == null:
+		return
 	messages.clear()
 	var channel: String = get_current_channel()
 	var lines: Array = _messages_by_channel.get(channel, []) as Array

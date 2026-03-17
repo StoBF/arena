@@ -110,10 +110,10 @@ class CombatService:
             hero = f["hero"]
             if f["is_dead"]:
                 hero.is_dead = True
-                hero.dead_until = now + timedelta(minutes=RECOVERY_TIME_MINUTES)
+                hero.dead_at = now
             else:
                 hero.is_dead = False
-                hero.dead_until = None
+                hero.dead_at = None
             await self.db.commit()
         # Нагороди (спрощено)
         rewards = {"xp": 100 if winner == "team_a" else 50}

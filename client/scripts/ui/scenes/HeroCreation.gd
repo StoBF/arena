@@ -11,7 +11,7 @@ var _last_create_response_data: Dictionary = {}
 
 func _ready() -> void:
 	create_button.pressed.connect(_on_create_pressed)
-	$VBox/Actions/BackButton.pressed.connect(func(): EventBus.emit_scene_changed("PlayerHub"))
+	$VBox/Actions/BackButton.pressed.connect(func(): EventBus.navigate_to(EventBus.SCENE_PLAYER_HUB))
 	investment_slider.value_changed.connect(_on_investment_changed)
 	if LocalizationManager.locale_changed.is_connected(_on_locale_changed) == false:
 		LocalizationManager.locale_changed.connect(_on_locale_changed)

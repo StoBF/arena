@@ -12,6 +12,15 @@ var refresh_token: String = ""
 func _ready() -> void:
 	jwt_token = AppState.access_token
 	refresh_token = AppState.refresh_token
+	# H15: keep jwt_token in sync when token refresh happens outside login flow
+	# (NetworkManager and ApiClient call AppState.set_access_token() directly)
+	AppState.access_token_changed.connect(_on_access_token_changed)
+
+func _on_access_token_changed(token: String) -> void:
+	if jwt_token != token:
+		jwt_token = token
+		Network.set_auth_header(token)
+		auth_state_changed.emit(is_authenticated())
 
 func is_authenticated() -> bool:
 	return jwt_token.is_empty() == false

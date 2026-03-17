@@ -11,7 +11,11 @@ const STATUS_OFFLINE_COLOR := Color(0.8, 0.1, 0.1, 1.0)
 
 func _ready() -> void:
 	login_button.pressed.connect(_on_login_pressed)
-	$VBox/Actions/RegisterButton.pressed.connect(func(): EventBus.emit_scene_changed("RegisterScene"))
+	$VBox/Actions/RegisterButton.pressed.connect(func(): EventBus.navigate_to(EventBus.SCENE_REGISTER))
+	if AuthManager.login_succeeded.is_connected(_on_login_succeeded) == false:
+		AuthManager.login_succeeded.connect(_on_login_succeeded)
+	if AuthManager.login_failed.is_connected(_on_login_failed) == false:
+		AuthManager.login_failed.connect(_on_login_failed)
 	_apply_translations()
 	_subscribe_status_updates()
 	_set_status_ui(AppState.server_status == "online", AppState.online_players)
@@ -19,6 +23,10 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if has_node("/root/EventBus") and EventBus.server_status_updated.is_connected(_on_server_status_updated):
 		EventBus.server_status_updated.disconnect(_on_server_status_updated)
+	if AuthManager.login_succeeded.is_connected(_on_login_succeeded):
+		AuthManager.login_succeeded.disconnect(_on_login_succeeded)
+	if AuthManager.login_failed.is_connected(_on_login_failed):
+		AuthManager.login_failed.disconnect(_on_login_failed)
 
 func _on_login_pressed() -> void:
 	var email: String = email_input.text.strip_edges()
@@ -29,14 +37,20 @@ func _on_login_pressed() -> void:
 		return
 
 	login_button.disabled = true
-	var result: Dictionary = await AuthManager.login(email, password)
+	if has_node("/root/UIUtils"):
+		UIUtils.show_info(tr("ui.login.status.signing_in"))
+	await AuthManager.login(email, password)
 	login_button.disabled = false
-	if bool(result.get("ok", false)):
-		password_input.clear()
-		EventBus.emit_scene_changed("PlayerHub")
-	else:
-		if has_node("/root/UIUtils"):
-			UIUtils.show_error(str(result.get("message", tr("ui.login.status.failed"))))
+
+func _on_login_succeeded() -> void:
+	password_input.clear()
+	if has_node("/root/UIUtils"):
+		UIUtils.show_success(tr("ui.login.status.success"))
+	EventBus.navigate_to(EventBus.SCENE_PLAYER_HUB)
+
+func _on_login_failed(message: String) -> void:
+	if has_node("/root/UIUtils"):
+		UIUtils.show_error(message if message.is_empty() == false else tr("ui.login.status.failed"))
 
 func _apply_translations() -> void:
 	email_input.placeholder_text = tr("ui.common.email")

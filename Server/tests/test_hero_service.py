@@ -4,7 +4,7 @@ from app.services.hero import HeroService
 from app.database.models.hero import Hero
 from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
-import datetime
+from datetime import datetime, timedelta
 
 @pytest.mark.asyncio
 async def test_create_and_get_hero(async_session: AsyncSession):
@@ -101,19 +101,39 @@ async def test_get_nickname_for_new_attributes(async_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_hero_training_flow(async_session: AsyncSession):
     from app.services.hero import HeroService
-    service = HeroService(async_session)
-    hero = await service.create_hero("TrainingHero", owner_id=777)
-    hero = await service.start_training(hero.id, duration_minutes=1)
-    assert hero.is_training is True
-    assert hero.training_end_time is not None
-    with pytest.raises(Exception):
-        await service.complete_training(hero.id, xp_reward=10)
-    hero.training_end_time = datetime.datetime.utcnow() - datetime.timedelta(minutes=1)
+    from app.services.training import TrainingService
+    from app.schemas.hero import TrainingStartRequest
+    from app.database.models.hero import HeroTrainingQueue, TrainingType, TrainingStatus
+
+    hero_service = HeroService(async_session)
+    training_service = TrainingService(async_session)
+
+    hero = await hero_service.create_hero("TrainingHero", owner_id=777)
+    base_strength = hero.strength
+
+    started = await training_service.start_training(
+        hero.id,
+        owner_id=777,
+        req=TrainingStartRequest(
+            training_type=TrainingType.ATTRIBUTE,
+            training_target="strength",
+            target_level=base_strength + 1,
+            room_slot=0,
+        ),
+    )
+    assert started.status == TrainingStatus.RUNNING
+
+    entry = await async_session.get(HeroTrainingQueue, started.id)
+    assert entry is not None
+    entry.ends_at = datetime.utcnow() - timedelta(minutes=1)
     await async_session.commit()
-    hero = await service.complete_training(hero.id, xp_reward=10)
-    assert hero.is_training is False
-    assert hero.training_end_time is None
-    assert hero.experience >= 10
+
+    claimed = await training_service.claim_training(hero.id, owner_id=777, entry_id=started.id)
+    assert claimed.status == TrainingStatus.COMPLETED
+
+    updated_hero = await hero_service.get_hero(hero.id)
+    assert updated_hero.strength == base_strength + 1
+    assert updated_hero.training_sessions_completed >= 1
 
 @pytest.mark.asyncio
 async def test_upgrade_perk(async_session: AsyncSession):

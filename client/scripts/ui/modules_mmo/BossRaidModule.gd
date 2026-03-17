@@ -29,12 +29,24 @@ var _status_label: Label = null
 
 const MAX_TEAM := 5
 
+func _tx(key: String, fallback: String) -> String:
+	var value: String = tr(key)
+	if value == key:
+		return fallback
+	return value
+
 # ---------------------------------------------------------------------------
 # Lifecycle
 # ---------------------------------------------------------------------------
 func _ready() -> void:
 	_build_ui()
+	call_deferred("_apply_cabinet_visuals")
 	_load_data()
+
+func _apply_cabinet_visuals() -> void:
+	CabinetStyle.style_screen(self)
+	if _status_label != null:
+		CabinetStyle.style_status_label(_status_label)
 
 # ---------------------------------------------------------------------------
 # UI construction — 3-column layout
@@ -43,12 +55,13 @@ func _build_ui() -> void:
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 8)
+	CabinetStyle.style_module_root(root)
 	add_child(root)
 
 	# --- Header ---
 	var header := ModuleHeader.new()
 	root.add_child(header)
-	header.set_title("Boss Raids")
+	header.set_title(_tx("ui.boss_raid.title", "Boss Raids"))
 	header.refresh_pressed.connect(_load_data)
 
 	# --- Main 3-column body ---
@@ -68,8 +81,9 @@ func _build_ui() -> void:
 	boss_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	boss_panel.add_child(boss_vbox)
 	var boss_title := Label.new()
-	boss_title.text = "Bosses"
+	boss_title.text = _tx("ui.boss_raid.bosses", "Bosses")
 	boss_title.add_theme_font_size_override("font_size", 14)
+	CabinetStyle.style_section_label(boss_title)
 	boss_vbox.add_child(boss_title)
 	_boss_list = ItemList.new()
 	_boss_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -98,7 +112,7 @@ func _build_ui() -> void:
 	detail_vbox.add_child(_boss_detail)
 
 	var log_title := Label.new()
-	log_title.text = "Battle Log"
+	log_title.text = _tx("ui.boss_raid.log_title", "Battle Log")
 	log_title.add_theme_font_size_override("font_size", 13)
 	detail_vbox.add_child(log_title)
 	_log_display = RichTextLabel.new()
@@ -106,7 +120,7 @@ func _build_ui() -> void:
 	_log_display.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_log_display.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_log_display.custom_minimum_size = Vector2(0, 100)
-	_log_display.text = "[i]No raid started yet[/i]"
+	_log_display.text = "[i]%s[/i]" % _tx("ui.boss_raid.no_raid", "No raid started yet")
 	detail_vbox.add_child(_log_display)
 
 	# Col 3 — Team builder
@@ -121,7 +135,7 @@ func _build_ui() -> void:
 	team_panel.add_child(team_vbox)
 
 	var heroes_title := Label.new()
-	heroes_title.text = "Hero Roster"
+	heroes_title.text = _tx("ui.boss_raid.hero_roster", "Hero Roster")
 	heroes_title.add_theme_font_size_override("font_size", 14)
 	team_vbox.add_child(heroes_title)
 	_hero_list = ItemList.new()
@@ -131,7 +145,7 @@ func _build_ui() -> void:
 	team_vbox.add_child(_hero_list)
 
 	var team_label := Label.new()
-	team_label.text = "Raid Team (max %d)" % MAX_TEAM
+	team_label.text = _tx("ui.boss_raid.team_max", "Raid Team (max %d)") % MAX_TEAM
 	team_label.add_theme_font_size_override("font_size", 13)
 	team_vbox.add_child(team_label)
 	_team_container = HBoxContainer.new()
@@ -144,14 +158,14 @@ func _build_ui() -> void:
 	team_vbox.add_child(btn_row)
 
 	_start_button = Button.new()
-	_start_button.text = "Start Raid"
+	_start_button.text = _tx("ui.boss_raid.start", "Start Raid")
 	_start_button.custom_minimum_size = Vector2(0, 44)
 	_start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_start_button.pressed.connect(_on_start_raid)
 	btn_row.add_child(_start_button)
 
 	_battle_button = Button.new()
-	_battle_button.text = "Fight!"
+	_battle_button.text = _tx("ui.boss_raid.fight", "Fight!")
 	_battle_button.custom_minimum_size = Vector2(0, 44)
 	_battle_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_battle_button.pressed.connect(_on_fight_raid)
@@ -159,7 +173,7 @@ func _build_ui() -> void:
 	btn_row.add_child(_battle_button)
 
 	_rewards_button = Button.new()
-	_rewards_button.text = "Collect Rewards"
+	_rewards_button.text = _tx("ui.boss_raid.collect_rewards", "Collect Rewards")
 	_rewards_button.custom_minimum_size = Vector2(0, 44)
 	_rewards_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_rewards_button.pressed.connect(_on_collect_rewards)
@@ -205,36 +219,35 @@ func _load_data() -> void:
 	if bool(boss_resp.get("ok", false)):
 		_bosses = ResponseParser.extract_array(boss_resp.get("data", {}))
 
-	if _bosses.is_empty():
-		# Placeholder bosses until server populates the table
-		_bosses = [
-			{"id": 1, "name": "Goblin King", "level": 10, "rewards": "Gold x500, Rare Weapon", "description": "A ferocious goblin leader."},
-			{"id": 2, "name": "Dragon Wyrm", "level": 25, "rewards": "Gold x2000, Epic Armor", "description": "Ancient dragon terrorizing the realm."},
-			{"id": 3, "name": "Lich Lord", "level": 40, "rewards": "Gold x5000, Legendary Ring", "description": "Undead sorcerer of immense power."},
-		]
-
 	for b in _bosses:
 		if b is Dictionary:
 			_boss_list.add_item("%s  (Lv.%s)" % [
 				str(b.get("name", "?")), str(b.get("level", "?"))])
 
-	# Load heroes
-	var hero_resp: Dictionary = await ApiClient.get_heroes()
+	if _bosses.is_empty():
+		_empty_state.visible = true
+		if _empty_state.has_method("set_content"):
+			_empty_state.set_content(
+				_tx("ui.boss_raid.unavailable_title", "No Boss Raids Available"),
+				_tx("ui.boss_raid.unavailable_hint", "Boss raid data is currently unavailable.")
+			)
+
+	# Load heroes — H8: Use HeroManager (canonical cache, avoids direct ApiClient)
+	await HeroManager.load_heroes()
 	_loading_overlay.hide_loading()
-	if bool(hero_resp.get("ok", false)):
-		var all: Array = ResponseParser.extract_array(hero_resp.get("data", {}))
-		for h in all:
-			if not h is Dictionary:
-				continue
-			var hero := h as Dictionary
-			if not bool(hero.get("is_dead", false)) and not bool(hero.get("is_training", false)):
-				_heroes.append(hero)
+	var all: Array = HeroManager.get_heroes()
+	for h in all:
+		if not h is Dictionary:
+			continue
+		var hero := h as Dictionary
+		if not bool(hero.get("is_dead", false)) and not bool(hero.get("is_training", false)):
+			_heroes.append(hero)
 
 	for h in _heroes:
 		if h is Dictionary:
 			_hero_list.add_item("%s  (Lv.%s)" % [
 				str(h.get("name", "?")), str(h.get("level", "?"))])
-	_status_label.text = "%d bosses · %d heroes" % [_bosses.size(), _heroes.size()]
+	_status_label.text = _tx("ui.boss_raid.status", "%d bosses · %d heroes") % [_bosses.size(), _heroes.size()]
 
 # ---------------------------------------------------------------------------
 # Boss selection
@@ -254,7 +267,7 @@ func _on_boss_selected(index: int) -> void:
 	_start_button.visible = true
 	_battle_button.visible = false
 	_rewards_button.visible = false
-	_log_display.text = "[i]Select heroes and start the raid[/i]"
+	_log_display.text = "[i]%s[/i]" % _tx("ui.boss_raid.select_and_start", "Select heroes and start the raid")
 
 # ---------------------------------------------------------------------------
 # Team interaction
@@ -384,8 +397,8 @@ func _render_battle_log(data: Variant) -> void:
 	if log_entries.is_empty():
 		lines.append("[i]No detailed log available[/i]")
 
-	var remaining_a := d.get("team_a_remaining", [])
-	var remaining_b := d.get("team_b_remaining", [])
+	var remaining_a: Array = d.get("team_a_remaining", []) as Array if d.get("team_a_remaining") is Array else []
+	var remaining_b: Array = d.get("team_b_remaining", []) as Array if d.get("team_b_remaining") is Array else []
 	if remaining_a is Array and not (remaining_a as Array).is_empty():
 		lines.append("\n[b]Survivors:[/b] %d heroes" % (remaining_a as Array).size())
 	_log_display.text = "\n".join(lines)

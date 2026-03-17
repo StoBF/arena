@@ -33,14 +33,14 @@ WebSocketManager="*res://autoload/WebSocketManager.gd"
 AuthManager="*res://autoload/AuthManager.gd"
 ServerStatusManager="*res://autoload/ServerStatusManager.gd"
 
-[gui]
-
-theme/custom="res://themes/GameTheme.tres"
-
 [dotnet]
 
 project/assembly_name="Arena_manager"
 project/solution_directory="E:\\GOG Games\\arena\\client"
+
+[gui]
+
+theme/custom="res://themes/GameTheme.tres"
 
 [mono]
 

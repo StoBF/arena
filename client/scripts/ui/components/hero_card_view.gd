@@ -32,12 +32,12 @@ func set_hero_data(hero: Dictionary, _selected: bool = false) -> void:
 func _build_stats(hero: Dictionary) -> String:
 	var strength: Variant = hero.get("strength", "-")
 	var agility: Variant = hero.get("agility", "-")
+	var endurance: Variant = hero.get("endurance", "-")
 	var intelligence: Variant = hero.get("intelligence", "-")
-	var vitality: Variant = hero.get("vitality", "-")
 	if hero.has("attributes") and hero["attributes"] is Dictionary:
 		var attributes := hero["attributes"] as Dictionary
 		strength = attributes.get("strength", strength)
 		agility = attributes.get("agility", agility)
+		endurance = attributes.get("endurance", endurance)
 		intelligence = attributes.get("intelligence", intelligence)
-		vitality = attributes.get("vitality", vitality)
-	return "STR %s  AGI %s  INT %s  VIT %s" % [str(strength), str(agility), str(intelligence), str(vitality)]
+	return "STR %s  AGI %s  END %s  INT %s" % [str(strength), str(agility), str(endurance), str(intelligence)]
