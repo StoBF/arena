@@ -6,9 +6,9 @@ Create Date: 2026-03-16 00:00:00.000000
 
 What this migration does
 ------------------------
-ENUMS (CREATE)
-  hero_archetype, ability_type, ability_domain, body_part_status,
-  training_type, training_status, hero_condition
+STRING STATUS/CATEGORY COLUMNS
+    Uses VARCHAR(32)-backed columns for archetype/type/domain/status/condition
+    fields to avoid PostgreSQL enum dependencies during fresh bootstrap.
 
 ALTER heroes
   • DROP  dead_until           (column removed from model; replaced by dead_at)
@@ -42,54 +42,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 # ---------------------------------------------------------------------------
-# Enum objects — reused in both upgrade() and downgrade()
-# ---------------------------------------------------------------------------
-
-_hero_archetype = sa.Enum(
-    'VANGUARD', 'PREDATOR', 'PHANTOM', 'MYSTIC', 'WARDEN', 'APOSTLE', 'CHIMERA',
-    name='hero_archetype',
-)
-_ability_type = sa.Enum(
-    'OFFENSIVE', 'DEFENSIVE', 'UTILITY', 'SUPPORT', 'MUTATION',
-    name='ability_type',
-)
-_ability_domain = sa.Enum(
-    'BIOMORPH', 'SPACE', 'PSIONIC', 'ELEMENTAL', 'SHADOW', 'BLOOD', 'ORDER', 'CHAOS',
-    name='ability_domain',
-)
-_body_part_status = sa.Enum(
-    'healthy', 'injured', 'crippled', 'broken', 'destroyed',
-    name='body_part_status',
-)
-_training_type = sa.Enum(
-    'attribute', 'discipline', 'ability',
-    name='training_type',
-)
-_training_status = sa.Enum(
-    'queued', 'running', 'completed', 'cancelled',
-    name='training_status',
-)
-_hero_condition = sa.Enum(
-    'healthy', 'wounded', 'severely_injured', 'crippled', 'dead',
-    name='hero_condition',
-)
-
-
-# ---------------------------------------------------------------------------
 def upgrade() -> None:
     conn = op.get_bind()
     inspector = sa.inspect(conn)
-
-    # -----------------------------------------------------------------------
-    # 1. Create enum types (PostgreSQL-specific; idempotent via checkfirst)
-    # -----------------------------------------------------------------------
-    _hero_archetype.create(conn, checkfirst=True)
-    _ability_type.create(conn, checkfirst=True)
-    _ability_domain.create(conn, checkfirst=True)
-    _body_part_status.create(conn, checkfirst=True)
-    _training_type.create(conn, checkfirst=True)
-    _training_status.create(conn, checkfirst=True)
-    _hero_condition.create(conn, checkfirst=True)
 
     # -----------------------------------------------------------------------
     # 2. Alter existing 'heroes' table
@@ -113,7 +68,7 @@ def upgrade() -> None:
         # --- ADD archetype ---
         if 'archetype' not in heroes_cols:
             batch_op.add_column(sa.Column(
-                'archetype', _hero_archetype, nullable=True))
+                'archetype', sa.String(length=32), nullable=True))
 
         # --- ADD HP/condition columns ---
         if 'current_hp' not in heroes_cols:
@@ -124,7 +79,7 @@ def upgrade() -> None:
                 'max_hp_override', sa.Integer(), nullable=True))
         if 'condition' not in heroes_cols:
             batch_op.add_column(sa.Column(
-                'condition', _hero_condition, nullable=False, server_default='healthy'))
+                'condition', sa.String(length=32), nullable=False, server_default='healthy'))
 
         # --- ADD resurrection / death tracking ---
         if 'resurrection_count' not in heroes_cols:
@@ -189,8 +144,8 @@ def upgrade() -> None:
                       nullable=False, index=True),
             sa.Column('ability_code', sa.String(length=80), nullable=False),
             sa.Column('ability_name', sa.String(length=120), nullable=False),
-            sa.Column('ability_type', _ability_type, nullable=False),
-            sa.Column('ability_domain', _ability_domain, nullable=False),
+            sa.Column('ability_type', sa.String(length=32), nullable=False),
+            sa.Column('ability_domain', sa.String(length=32), nullable=False),
             sa.Column('ability_level', sa.Integer(), nullable=False, server_default='1'),
             sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'),
             sa.Column('metadata_json', sa.Text(), nullable=True),
@@ -230,7 +185,7 @@ def upgrade() -> None:
             sa.Column('max_hp', sa.Integer(), nullable=False),
             sa.Column('current_hp', sa.Integer(), nullable=False),
             sa.Column('armor', sa.Integer(), nullable=False, server_default='0'),
-            sa.Column('status', _body_part_status, nullable=False, server_default='healthy'),
+            sa.Column('status', sa.String(length=32), nullable=False, server_default='healthy'),
             sa.Column('updated_at', sa.DateTime(), nullable=False,
                       server_default=sa.text('CURRENT_TIMESTAMP')),
             sa.UniqueConstraint('hero_id', 'part_name', name='uq_hero_body_part'),
@@ -246,13 +201,13 @@ def upgrade() -> None:
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('hero_id', sa.Integer(), sa.ForeignKey('heroes.id', ondelete='CASCADE'),
                       nullable=False, index=True),
-            sa.Column('training_type', _training_type, nullable=False),
+            sa.Column('training_type', sa.String(length=32), nullable=False),
             sa.Column('training_target', sa.String(length=80), nullable=False),
             sa.Column('current_level', sa.Integer(), nullable=False, server_default='0'),
             sa.Column('target_level', sa.Integer(), nullable=False, server_default='1'),
             sa.Column('started_at', sa.DateTime(), nullable=True),
             sa.Column('ends_at', sa.DateTime(), nullable=True),
-            sa.Column('status', _training_status, nullable=False, server_default='queued'),
+            sa.Column('status', sa.String(length=32), nullable=False, server_default='queued'),
             sa.Column('room_slot', sa.Integer(), nullable=False, server_default='0'),
             sa.Column('efficiency', sa.Float(), nullable=False, server_default='1.0'),
         )
@@ -297,12 +252,6 @@ def upgrade() -> None:
             batch_op.create_index('ix_hero_titles_hero', ['hero_id'], unique=False)
 
     # --- hero_resurrection_events ---
-    # hero_condition enum already created above; use create_constraint=False here
-    _hero_condition_ref = sa.Enum(
-        'healthy', 'wounded', 'severely_injured', 'crippled', 'dead',
-        name='hero_condition',
-        create_constraint=False,
-    )
     if not inspector.has_table('hero_resurrection_events'):
         op.create_table(
             'hero_resurrection_events',
@@ -313,8 +262,8 @@ def upgrade() -> None:
             sa.Column('revived_at', sa.DateTime(), nullable=False,
                       server_default=sa.text('CURRENT_TIMESTAMP')),
             sa.Column('side_effects_json', sa.Text(), nullable=True),
-            sa.Column('condition_before', _hero_condition_ref, nullable=False, server_default='dead'),
-            sa.Column('condition_after', _hero_condition_ref, nullable=False, server_default='wounded'),
+            sa.Column('condition_before', sa.String(length=32), nullable=False, server_default='dead'),
+            sa.Column('condition_after', sa.String(length=32), nullable=False, server_default='wounded'),
             sa.Column('hp_restored_to', sa.Integer(), nullable=False, server_default='0'),
         )
         with op.batch_alter_table('hero_resurrection_events', schema=None) as batch_op:
@@ -383,15 +332,4 @@ def downgrade() -> None:
     for col_name in ('speed', 'health', 'defense', 'field_of_view'):
         op.execute(sa.text(f"UPDATE heroes SET {col_name} = 0 WHERE {col_name} IS NULL"))
 
-    # -----------------------------------------------------------------------
-    # 3. Drop enum types
-    # -----------------------------------------------------------------------
-    # hero_condition must be dropped last since it's referenced in two tables.
-    # All tables that used it have already been dropped above.
-    _hero_condition.drop(conn, checkfirst=True)
-    _training_status.drop(conn, checkfirst=True)
-    _training_type.drop(conn, checkfirst=True)
-    _body_part_status.drop(conn, checkfirst=True)
-    _ability_domain.drop(conn, checkfirst=True)
-    _ability_type.drop(conn, checkfirst=True)
-    _hero_archetype.drop(conn, checkfirst=True)
+    # No enum types to drop.

@@ -3,6 +3,8 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Generic, TypeVar, List
 
+from app.schemas.hero import HeroRead
+
 T = TypeVar('T')
 
 
@@ -31,7 +33,9 @@ class PaginatedResponse(BaseModel, Generic[T]):
 
 class HeroesPaginatedResponse(BaseModel):
     """Paginated response for heroes list."""
-    items: List = Field(..., description="List of heroes")
+    model_config = ConfigDict(from_attributes=True)
+
+    items: List[HeroRead] = Field(..., description="List of heroes")
     total: int = Field(..., description="Total number of heroes")
     limit: int = Field(..., description="Heroes per page")
     offset: int = Field(..., description="Number of heroes skipped")

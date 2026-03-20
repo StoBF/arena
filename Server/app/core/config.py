@@ -1,9 +1,21 @@
 from typing import List
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+
+_SERVER_ROOT = Path(__file__).resolve().parents[2]
+_ENV_PATH = _SERVER_ROOT / "app" / ".env"
+_DEFAULT_SQLITE_PATH = (_SERVER_ROOT / "data" / "hero_manager.db").resolve()
+_DEFAULT_SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+load_dotenv(_ENV_PATH)
 
 class Settings:
-    # Reads DATABASE_URL from environment; falls back to in-memory SQLite for testing
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+    # Reads DATABASE_URL from environment; falls back to a persistent on-disk SQLite DB.
+    # In-memory SQLite loses all data on process restart, so never use it as the default.
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///%s" % _DEFAULT_SQLITE_PATH.as_posix())
     JWT_SECRET_KEY: str = "supersecretkey"
     JWT_ALGORITHM: str = "HS256"
     

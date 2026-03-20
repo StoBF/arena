@@ -33,7 +33,7 @@ class AuctionLotService(BaseService):
         async with self._txn():
             existing = await self.session.execute(
                 select(AuctionLot)
-                .where(AuctionLot.hero_id == hero_id, AuctionLot.status == AuctionStatus.ACTIVE)
+                .where(AuctionLot.hero_id == hero_id, AuctionLot.status == AuctionStatus.ACTIVE.value)
                 .with_for_update()
             )
             if existing.scalars().first():
@@ -63,7 +63,7 @@ class AuctionLotService(BaseService):
                 current_price=starting_price,
                 buyout_price=buyout_price,
                 end_time=end_time,
-                status=AuctionStatus.ACTIVE,
+                status=AuctionStatus.ACTIVE.value,
                 created_at=datetime.utcnow()
             )
             self.session.add(lot)
@@ -84,10 +84,10 @@ class AuctionLotService(BaseService):
             limit = 1
         if offset < 0:
             offset = 0
-        count_query = select(func.count()).select_from(AuctionLot).where(AuctionLot.status == AuctionStatus.ACTIVE)
+        count_query = select(func.count()).select_from(AuctionLot).where(AuctionLot.status == AuctionStatus.ACTIVE.value)
         total_result = await self.session.execute(count_query)
         total = total_result.scalars().first() or 0
-        query = select(AuctionLot).options(joinedload(AuctionLot.bids)).where(AuctionLot.status == AuctionStatus.ACTIVE)
+        query = select(AuctionLot).options(joinedload(AuctionLot.bids)).where(AuctionLot.status == AuctionStatus.ACTIVE.value)
         query = query.limit(limit).offset(offset)
         result = await self.session.execute(query)
         items = result.unique().scalars().all()
@@ -129,7 +129,7 @@ class AuctionLotService(BaseService):
             if not lot:
                 logger.warning(f"[LOT_CLOSE_NOT_FOUND] lot_id={lot_id}")
                 raise HTTPException(404, "Auction lot not found")
-            if lot.status != AuctionStatus.ACTIVE:
+            if lot.status != AuctionStatus.ACTIVE.value:
                 logger.info(f"[LOT_CLOSE_ALREADY_CLOSED] lot_id={lot_id} hero_id={lot.hero_id}")
                 return lot
             hero_result = await self.session.execute(
@@ -177,7 +177,7 @@ class AuctionLotService(BaseService):
             else:
                 logger.info(f"[LOT_NO_BIDS] lot_id={lot_id} hero_id={lot.hero_id} seller_id={lot.seller_id} returning_hero")
             hero.is_on_auction = False
-            lot.status = AuctionStatus.FINISHED
+            lot.status = AuctionStatus.FINISHED.value
             logger.info(f"[LOT_CLOSE_COMPLETE] lot_id={lot_id} hero_id={lot.hero_id} status=closed")
         await emit("cache_invalidate", "auctions:active*")
         return lot

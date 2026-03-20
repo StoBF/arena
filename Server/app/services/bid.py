@@ -105,7 +105,7 @@ class BidService(BaseService):
             # Lock auction immediately (prevents concurrent modifications)
             auction_result = await self.session.execute(
                 select(Auction)
-                .where(Auction.id == auction_id, Auction.status == AuctionStatus.ACTIVE)
+                .where(Auction.id == auction_id, Auction.status == AuctionStatus.ACTIVE.value)
                 .with_for_update()  # PESSIMISTIC LOCK ON AUCTION
             )
             auction = auction_result.scalars().first()
@@ -198,7 +198,7 @@ class BidService(BaseService):
             # Lock lot immediately
             lot_result = await self.session.execute(
                 select(AuctionLot)
-                .where(AuctionLot.id == lot_id, AuctionLot.status == AuctionStatus.ACTIVE)
+                .where(AuctionLot.id == lot_id, AuctionLot.status == AuctionStatus.ACTIVE.value)
                 .with_for_update()  # PESSIMISTIC LOCK ON LOT
             )
             lot = lot_result.scalars().first()

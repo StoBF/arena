@@ -57,7 +57,7 @@ class AuctionService(BaseService):
                 start_price=start_price,
                 current_price=start_price,
                 end_time=end_time,
-                status=AuctionStatus.ACTIVE,
+                status=AuctionStatus.ACTIVE.value,
                 created_at=datetime.utcnow(),
                 quantity=quantity
             )
@@ -97,14 +97,14 @@ class AuctionService(BaseService):
         # Get total count
         count_query = select(func.count()).select_from(Auction)
         if active_only:
-            count_query = count_query.where(and_(Auction.status == AuctionStatus.ACTIVE, Auction.end_time > datetime.utcnow()))
+            count_query = count_query.where(and_(Auction.status == AuctionStatus.ACTIVE.value, Auction.end_time > datetime.utcnow()))
         total_result = await self.session.execute(count_query)
         total = total_result.scalars().first() or 0
         
         # Get paginated items
         query = select(Auction).options(joinedload(Auction.bids))
         if active_only:
-            query = query.where(and_(Auction.status == AuctionStatus.ACTIVE, Auction.end_time > datetime.utcnow()))
+            query = query.where(and_(Auction.status == AuctionStatus.ACTIVE.value, Auction.end_time > datetime.utcnow()))
         query = query.limit(limit).offset(offset)
         result = await self.session.execute(query)
         items = result.unique().scalars().all()
@@ -131,13 +131,13 @@ class AuctionService(BaseService):
             auction = auction_result.scalars().first()
             if not auction or auction.seller_id != seller_id:
                 raise HTTPException(403, "Not allowed to cancel this auction")
-            if auction.status != AuctionStatus.ACTIVE or auction.end_time < datetime.utcnow():
+            if auction.status != AuctionStatus.ACTIVE.value or auction.end_time < datetime.utcnow():
                 raise HTTPException(400, "Auction is not active or already ended")
             if auction.current_price != auction.start_price:
                 raise HTTPException(400, "Cannot cancel - bids already placed")
             
             # Update auction status
-            auction.status = AuctionStatus.CANCELLED
+            auction.status = AuctionStatus.CANCELLED.value
             
             # Return item to stash (within transaction)
             stash_result = await self.session.execute(
@@ -186,13 +186,13 @@ class AuctionService(BaseService):
                 raise HTTPException(404, "Auction not found")
             
             # SAFEGUARD: If auction already closed, exit safely (prevents double closure)
-            if auction.status != AuctionStatus.ACTIVE:
+            if auction.status != AuctionStatus.ACTIVE.value:
                 logger.info(f"[AUCTION_CLOSE_ALREADY_CLOSED] auction_id={auction_id} current_status={auction.status}")
                 # Already closed - this is safe even if called multiple times
                 return auction
             
             # Change status to FINISHED atomically (within transaction)
-            auction.status = AuctionStatus.FINISHED
+            auction.status = AuctionStatus.FINISHED.value
             logger.info(f"[AUCTION_STATUS_CHANGED] auction_id={auction_id} new_status=finished seller_id={auction.seller_id}")
             
             # Find highest bid (protected by auction row lock)
@@ -285,7 +285,7 @@ class AuctionService(BaseService):
         # item auctions
         result = await self.session.execute(
             select(Auction)
-            .where(Auction.status == AuctionStatus.ACTIVE, Auction.end_time <= now)
+            .where(Auction.status == AuctionStatus.ACTIVE.value, Auction.end_time <= now)
             .with_for_update(skip_locked=True)
         )
         for auction in result.scalars().all():
@@ -294,7 +294,7 @@ class AuctionService(BaseService):
         from app.services.auction_lot import AuctionLotService
         result = await self.session.execute(
             select(AuctionLot)
-            .where(AuctionLot.status == AuctionStatus.ACTIVE, AuctionLot.end_time <= now)
+            .where(AuctionLot.status == AuctionStatus.ACTIVE.value, AuctionLot.end_time <= now)
             .with_for_update(skip_locked=True)
         )
         lot_ids = [lot.id for lot in result.scalars().all()]

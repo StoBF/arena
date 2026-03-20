@@ -56,9 +56,12 @@ async def lifespan(app: FastAPI):
     if settings.REDIS_URL:
         await redis_cache.connect()
 
-    async with AsyncSessionLocal() as session:
-        async with session.begin():
-            await run_auction_sweep_once(session)
+    try:
+        async with AsyncSessionLocal() as session:
+            async with session.begin():
+                await run_auction_sweep_once(session)
+    except Exception:
+        logging.exception("[AUCTION] startup sweep failed; continuing application startup")
 
     cleanup_task = asyncio.create_task(delete_old_heroes_task())
     auctions_task = asyncio.create_task(close_expired_auctions_task())
@@ -167,7 +170,8 @@ async def create_database_if_not_exists():
         password=parsed.password,
         host=parsed.hostname,
         port=parsed.port or 5432,
-        database=default_db
+        database=default_db,
+        timeout=5,
     )
     exists = await conn.fetchval(
         "SELECT 1 FROM pg_database WHERE datname = $1", db_name

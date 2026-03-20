@@ -78,7 +78,7 @@ class Auction(Base):
     end_time = Column(DateTime, nullable=False, index=True)
     winner_id = Column(Integer, ForeignKey("users.id"))  # user
     quantity = Column(Integer, default=1)  # кількість предметів у лоті
-    status = Column(Enum(AuctionStatus), default=AuctionStatus.ACTIVE, index=True)
+    status = Column(String(32), nullable=False, default=AuctionStatus.ACTIVE.value, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     __table_args__ = (
         CheckConstraint('start_price > 0', name='ck_auction_start_price_positive'),
@@ -140,7 +140,7 @@ class AuctionLot(Base):
     buyout_price = Column(Numeric(12, 2), nullable=True)
     end_time = Column(DateTime, nullable=False, index=True)
     winner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    status = Column(Enum(AuctionStatus), default=AuctionStatus.ACTIVE, index=True)
+    status = Column(String(32), nullable=False, default=AuctionStatus.ACTIVE.value, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     __table_args__ = (
         CheckConstraint('starting_price > 0', name='ck_lot_starting_price_positive'),

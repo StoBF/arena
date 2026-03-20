@@ -28,11 +28,12 @@ if _server_root not in sys.path:
 # Load .env from app/.env (same file the FastAPI application reads)
 _env_path = Path(_server_root) / "app" / ".env"
 load_dotenv(_env_path)
+_default_sqlite_path = (Path(_server_root) / "data" / "hero_manager.db").resolve()
 
 # ---------------------------------------------------------------------------
 # Database URL – convert async → sync driver for Alembic
 # ---------------------------------------------------------------------------
-_raw_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+_raw_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///%s" % _default_sqlite_path.as_posix())
 
 
 def _to_sync_url(url: str) -> str:

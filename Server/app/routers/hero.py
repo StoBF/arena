@@ -17,6 +17,12 @@ from app.core.redis_cache import redis_cache
 
 router = APIRouter(prefix="/heroes", tags=["Heroes"])
 
+
+async def _serialize_hero(service: HeroService, hero_or_model) -> HeroRead:
+    if isinstance(hero_or_model, HeroRead):
+        return hero_or_model
+    return await service.get_hero_with_perks(hero_or_model.id)
+
 @router.get(
     "/",
     response_model=HeroesPaginatedResponse,
@@ -34,10 +40,15 @@ async def read_heroes(
     if cached is not None:
         return cached
     
-    result = await HeroService(db).list_heroes(user['user_id'], limit=limit, offset=offset)
+    hero_service = HeroService(db)
+    result = await hero_service.list_heroes(user['user_id'], limit=limit, offset=offset)
+    items = [
+        await hero_service.get_hero_with_perks(hero.id)
+        for hero in result["items"]
+    ]
     
     response = {
-        "items": result["items"],
+        "items": items,
         "total": result["total"],
         "limit": result["limit"],
         "offset": result["offset"]
@@ -56,10 +67,11 @@ async def read_hero(
     db: AsyncSession = Depends(get_session),
     user=Depends(get_current_user_info)
 ):
-    hero = await HeroService(db).get_hero_with_perks(hero_id)
+    hero_service = HeroService(db)
+    hero = await hero_service.get_hero_with_perks(hero_id)
     if not hero or hero.owner_id != user['user_id']:
         raise HTTPException(404, "Hero not found")
-    return hero
+    return await _serialize_hero(hero_service, hero)
 
 @router.post(
     "/generate",
@@ -72,8 +84,9 @@ async def generate_hero(
     db: AsyncSession = Depends(get_session),
     user=Depends(get_current_user_info)
 ):
-    hero = await HeroService(db).generate_and_store(user['user_id'], req)
-    return await HeroService(db).get_hero_with_perks(hero.id)
+    hero_service = HeroService(db)
+    hero = await hero_service.generate_and_store(user['user_id'], req)
+    return await _serialize_hero(hero_service, hero)
 
 @router.delete(
     "/{hero_id}",
@@ -86,8 +99,9 @@ async def delete_hero(
     db: AsyncSession = Depends(get_session),
     user=Depends(get_current_user_info)
 ):
-    hero = await HeroService(db).delete_hero(hero_id, user['user_id'])
-    return hero
+    hero_service = HeroService(db)
+    hero = await hero_service.delete_hero(hero_id, user['user_id'])
+    return await _serialize_hero(hero_service, hero)
 
 @router.post(
     "/{hero_id}/restore",
@@ -100,8 +114,9 @@ async def restore_hero(
     db: AsyncSession = Depends(get_session),
     user=Depends(get_current_user_info)
 ):
-    hero = await HeroService(db).restore_hero(hero_id, user['user_id'])
-    return hero
+    hero_service = HeroService(db)
+    hero = await hero_service.restore_hero(hero_id, user['user_id'])
+    return await _serialize_hero(hero_service, hero)
 
 @router.get(
     "/{hero_id}/body",

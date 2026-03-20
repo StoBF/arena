@@ -1,4 +1,6 @@
 # app/database/session.py
+import logging
+
 from app.database.base import Base
 import app.database.models  # noqa: F401 - imports all model modules and registers metadata
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -8,6 +10,8 @@ from app.core.config import settings
 from typing import AsyncGenerator
 
 DATABASE_URL = settings.DATABASE_URL
+IS_SQLITE = DATABASE_URL.startswith("sqlite")
+IS_SQLITE_MEMORY = IS_SQLITE and ":memory:" in DATABASE_URL
 
 # Build engine kwargs — SQLite needs special connect_args;
 # PostgreSQL / other databases use connection-pool defaults.
@@ -15,8 +19,9 @@ _engine_kwargs: dict = {
     "echo": False,
     "future": True,
 }
-if DATABASE_URL.startswith("sqlite"):
+if IS_SQLITE:
     _engine_kwargs["connect_args"] = {"check_same_thread": False}
+if IS_SQLITE_MEMORY:
     _engine_kwargs["poolclass"] = StaticPool
 
 engine = create_async_engine(DATABASE_URL, **_engine_kwargs)
@@ -28,6 +33,9 @@ AsyncSessionLocal = sessionmaker(
 )
 
 async def create_db_and_tables():
+    if not IS_SQLITE:
+        logging.info("[DB] Skipping metadata create_all for non-SQLite database; apply Alembic migrations instead")
+        return
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sqlalchemy as sa
 from sqlalchemy import text
 from app.database.session import AsyncSessionLocal
 from app.services.auction import AuctionService
@@ -7,6 +8,68 @@ from app.services.auction import AuctionService
 
 # Stable advisory lock ID for global auction sweeps (must fit signed bigint range)
 AUCTION_SWEEP_LOCK_ID = 941337001
+REQUIRED_AUCTION_MIGRATION = "e6f7a8b9c0d1"
+
+_schema_warning_logged = False
+_revision_warning_logged = False
+
+
+def _inspect_required_auction_schema(sync_session) -> dict:
+    connection = sync_session.connection()
+    inspector = sa.inspect(connection)
+    missing: list[str] = []
+    required_columns = {
+        "auctions": ("status", "end_time"),
+        "auction_lots": ("status", "end_time"),
+    }
+
+    revision: str | None = None
+    if inspector.has_table("alembic_version"):
+        row = connection.execute(text("SELECT version_num FROM alembic_version LIMIT 1")).first()
+        revision = row[0] if row else None
+    else:
+        missing.append("missing table alembic_version")
+
+    for table_name, column_names in required_columns.items():
+        if not inspector.has_table(table_name):
+            missing.append(f"missing table {table_name}")
+            continue
+
+        actual_columns = {column["name"] for column in inspector.get_columns(table_name)}
+        for column_name in column_names:
+            if column_name not in actual_columns:
+                missing.append(f"missing column {table_name}.{column_name}")
+
+    return {"missing": missing, "revision": revision}
+
+
+async def _auction_schema_ready(session) -> bool:
+    global _schema_warning_logged, _revision_warning_logged
+
+    report = await session.run_sync(_inspect_required_auction_schema)
+    missing = report["missing"]
+    revision = report["revision"]
+
+    if revision != REQUIRED_AUCTION_MIGRATION and not _revision_warning_logged:
+        logging.error(
+            "[AUCTION] database migration state is not current. alembic_version=%s, required=%s.",
+            revision,
+            REQUIRED_AUCTION_MIGRATION,
+        )
+        _revision_warning_logged = True
+
+    if not missing:
+        return True
+
+    if not _schema_warning_logged:
+        logging.error(
+            "[AUCTION] schema mismatch detected; skipping auction sweep. alembic_version=%s. %s. Apply migration %s before enabling auction sweep.",
+            revision,
+            "; ".join(missing),
+            REQUIRED_AUCTION_MIGRATION,
+        )
+        _schema_warning_logged = True
+    return False
 
 
 async def _try_acquire_sweep_lock(session) -> bool:
@@ -17,21 +80,10 @@ async def _try_acquire_sweep_lock(session) -> bool:
         return True
 
     row = await session.execute(
-        text("SELECT pg_try_advisory_lock(:lock_id)"),
+        text("SELECT pg_try_advisory_xact_lock(:lock_id)"),
         {"lock_id": AUCTION_SWEEP_LOCK_ID},
     )
     return bool(row.scalar())
-
-
-async def _release_sweep_lock(session) -> None:
-    bind = session.get_bind()
-    if not bind or bind.dialect.name != "postgresql":
-        return
-
-    await session.execute(
-        text("SELECT pg_advisory_unlock(:lock_id)"),
-        {"lock_id": AUCTION_SWEEP_LOCK_ID},
-    )
 
 
 async def run_auction_sweep_once(session) -> bool:
@@ -41,16 +93,16 @@ async def run_auction_sweep_once(session) -> bool:
     Returns:
         True if sweep executed by this instance, False if skipped due to lock contention.
     """
+    if not await _auction_schema_ready(session):
+        return False
+
     if not await _try_acquire_sweep_lock(session):
         logging.info("[AUCTION] Startup sweep skipped (lock held by another instance)")
         return False
 
-    try:
-        await AuctionService(session).close_expired_auctions()
-        logging.info("[AUCTION] Startup sweep completed")
-        return True
-    finally:
-        await _release_sweep_lock(session)
+    await AuctionService(session).close_expired_auctions()
+    logging.info("[AUCTION] Startup sweep completed")
+    return True
 
 async def close_expired_auctions_task():
     """
@@ -71,7 +123,7 @@ async def close_expired_auctions_task():
                     if ran:
                         logging.info("[AUCTION] Sweep completed")
                     else:
-                        logging.info("[AUCTION] Sweep skipped (lock held by another instance)")
+                        logging.info("[AUCTION] Sweep not executed")
         except Exception:
             # log the stack trace but don't stop the loop
             logging.exception("[AUCTION] background sweep failed")
