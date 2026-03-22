@@ -34,11 +34,12 @@ class BidService(BaseService):
         result = await self.session.execute(select(Bid).where(Bid.id == bid_id))
         return result.scalars().first()
 
-    async def list_bids(self, limit: int = 10, offset: int = 0):
+    async def list_bids(self, user_id: int | None = None, limit: int = 10, offset: int = 0):
         """
         List bids with pagination support.
         
         Args:
+            user_id: If given, return only bids placed by this user
             limit: Number of items to return (max 100)
             offset: Number of items to skip
             
@@ -55,11 +56,16 @@ class BidService(BaseService):
         
         # Get total count
         count_query = select(func.count()).select_from(Bid)
+        if user_id is not None:
+            count_query = count_query.where(Bid.bidder_id == user_id)
         total_result = await self.session.execute(count_query)
         total = total_result.scalars().first() or 0
         
         # Get paginated items
-        query = select(Bid).limit(limit).offset(offset)
+        query = select(Bid)
+        if user_id is not None:
+            query = query.where(Bid.bidder_id == user_id)
+        query = query.limit(limit).offset(offset)
         result = await self.session.execute(query)
         items = result.scalars().all()
         

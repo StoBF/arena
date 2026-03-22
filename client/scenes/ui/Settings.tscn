@@ -47,9 +47,13 @@ max_value = 1.0
 step = 0.01
 value = 0.7
 
+
 [node name="FullscreenToggle" type="CheckButton" parent="VBox/Body"]
 layout_mode = 2
 text = "Fullscreen"
+
+[node name="ResolutionOption" type="OptionButton" parent="VBox/Body"]
+layout_mode = 2
 
 [node name="LanguageOption" type="OptionButton" parent="VBox/Body"]
 layout_mode = 2

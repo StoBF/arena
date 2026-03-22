@@ -80,6 +80,12 @@ async def cancel_auction(auction_id: int, db: AsyncSession = Depends(get_session
 )
 async def close_auction(auction_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionService(db)
+    # Only the seller or an admin may manually close an auction
+    auction = await service.get_auction(auction_id)
+    if not auction:
+        raise HTTPException(404, "Auction not found")
+    if auction.seller_id != current_user["user_id"] and current_user.get("role") != "admin":
+        raise HTTPException(403, "Only the seller or an admin can close this auction")
     auction = await service.close_auction(auction_id)
     return AuctionOut.from_orm(auction)
 
@@ -152,6 +158,12 @@ async def get_auction(auction_id: int, db: AsyncSession = Depends(get_session), 
 )
 async def close_auction_lot(lot_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionLotService(db)
+    # Only the seller or an admin may manually close a lot
+    lot = await service.get_auction_lot(lot_id)
+    if not lot:
+        raise HTTPException(404, "Auction lot not found")
+    if lot.seller_id != current_user["user_id"] and current_user.get("role") != "admin":
+        raise HTTPException(403, "Only the seller or an admin can close this lot")
     lot = await service.close_auction_lot(lot_id)
     return AuctionLotOut.from_orm(lot)
 

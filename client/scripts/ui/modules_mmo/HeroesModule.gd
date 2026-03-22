@@ -126,6 +126,7 @@ func _on_heroes_load_failed(message: String) -> void:
 
 func _render_heroes(heroes: Array) -> void:
 	for child in cards_grid.get_children():
+		cards_grid.remove_child(child)
 		child.queue_free()
 	if heroes.is_empty():
 		_empty_state.visible = true
@@ -136,15 +137,25 @@ func _render_heroes(heroes: Array) -> void:
 		status_label.text = ""
 		return
 	_empty_state.visible = false
-	for hero_variant in heroes:
-		if not hero_variant is Dictionary:
-			continue
-		var card: Control = HERO_CARD_SCENE.instantiate()
-		cards_grid.add_child(card)
-		if card.has_method("set_hero"):
-			card.set_hero(hero_variant as Dictionary)
-		if card.has_signal("selected") and not card.selected.is_connected(_on_card_selected):
-			card.selected.connect(_on_card_selected)
+	   for hero_variant in heroes:
+		   if not hero_variant is Dictionary:
+			   continue
+		   var card: Control = HERO_CARD_SCENE.instantiate()
+		   cards_grid.add_child(card)
+		   if card.has_method("set_hero"):
+			   card.set_hero(hero_variant as Dictionary)
+		   if card.has_signal("delete_requested"):
+			   card.delete_requested.connect(_on_delete_hero)
+		   if card.has_signal("auction_requested"):
+			   card.auction_requested.connect(_on_auction_hero)
+	func _on_delete_hero(hero_id: int) -> void:
+		if not UIUtils.confirm("Are you sure you want to delete this hero?"):
+			 return
+		await ApiClient.delete_hero(hero_id)
+		await HeroManager.load_heroes()
+
+	func _on_auction_hero(hero_id: int) -> void:
+		UIManager.open_view("auction", {"hero_id": hero_id})
 	var selected_id: int = int(AppState.selected_hero.get("id", HeroManager.get_active_hero_id()))
 	var selected_from_list: Dictionary = _find_hero_by_id(heroes, selected_id)
 	if selected_from_list.is_empty() and not heroes.is_empty() and heroes[0] is Dictionary:
@@ -405,8 +416,13 @@ func _show_skill_detail(sk: Dictionary) -> void:
 func _render_body_parts(hero: Dictionary) -> void:
 	if _body_parts_container == null:
 		return
-	while _body_parts_container.get_child_count() > 1:
-		_body_parts_container.get_child(_body_parts_container.get_child_count() - 1).queue_free()
+	# Remove old body-part rows (keep child 0 = title label).
+	# Must use remove_child() before queue_free(); queue_free alone defers
+	# deletion to end-of-frame so get_child_count() never drops → infinite loop.
+	for i in range(_body_parts_container.get_child_count() - 1, 0, -1):
+		var child := _body_parts_container.get_child(i)
+		_body_parts_container.remove_child(child)
+		child.queue_free()
 	var body_parts: Array = []
 	if hero.has("body_parts") and hero["body_parts"] is Array:
 		body_parts = hero["body_parts"] as Array

@@ -22,11 +22,11 @@ router = APIRouter(prefix="/bids", tags=["Bids"])
 async def place_bid(data: BidCreate, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = BidService(db)
     user_id = current_user["user_id"]
-    if hasattr(data, 'lot_id') and data.lot_id is not None:
+    if data.lot_id is not None:
         bid = await service.place_lot_bid(bidder_id=user_id, lot_id=data.lot_id, amount=data.amount, request_id=data.request_id)
     else:
         bid = await service.place_bid(bidder_id=user_id, auction_id=data.auction_id, amount=data.amount, request_id=data.request_id)
-    return BidOut.from_orm(bid)
+    return BidOut.model_validate(bid, from_attributes=True)
 
 
 @router.get(
@@ -42,10 +42,10 @@ async def read_bids(
     current_user=Depends(get_current_user_info)
 ):
     service = BidService(db)
-    result = await service.list_bids(limit=limit, offset=offset)
+    result = await service.list_bids(user_id=current_user["user_id"], limit=limit, offset=offset)
     
     return {
-        "items": [BidOut.from_orm(b) for b in result["items"]],
+        "items": [BidOut.model_validate(b, from_attributes=True) for b in result["items"]],
         "total": result["total"],
         "limit": result["limit"],
         "offset": result["offset"]
@@ -63,7 +63,7 @@ async def read_bid(bid_id: int, db: AsyncSession = Depends(get_session), current
     bid = await service.get_bid(bid_id)
     if not bid:
         raise HTTPException(404, "Bid not found")
-    return BidOut.from_orm(bid)
+    return BidOut.model_validate(bid, from_attributes=True)
 
 
 @router.delete(
@@ -77,4 +77,4 @@ async def delete_bid(bid_id: int, db: AsyncSession = Depends(get_session), curre
     deleted = await service.delete_bid(bid_id)
     if not deleted:
         raise HTTPException(404, "Bid not found")
-    return BidOut.from_orm(deleted)
+    return BidOut.model_validate(deleted, from_attributes=True)

@@ -33,6 +33,13 @@ WebSocketManager="*res://autoload/WebSocketManager.gd"
 AuthManager="*res://autoload/AuthManager.gd"
 ServerStatusManager="*res://autoload/ServerStatusManager.gd"
 
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
 [dotnet]
 
 project/assembly_name="Arena_manager"

@@ -48,12 +48,15 @@ text = "Stats"
 [node name="ActionRow" type="HBoxContainer" parent="Margin/Root/Content"]
 layout_mode = 2
 
-[node name="SelectButton" type="Button" parent="Margin/Root/Content/ActionRow"]
-custom_minimum_size = Vector2(110, 0)
-layout_mode = 2
-text = "Select"
 
-[node name="InspectButton" type="Button" parent="Margin/Root/Content/ActionRow"]
+[node name="AuctionButton" type="Button" parent="Margin/Root/Content/ActionRow"]
 custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
-text = "Inspect"
+text = "Put on Auction"
+tooltip_text = "List this hero for auction."
+
+[node name="DeleteButton" type="Button" parent="Margin/Root/Content/ActionRow"]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+text = "Delete"
+tooltip_text = "Permanently delete this hero. This cannot be undone."

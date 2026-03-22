@@ -74,15 +74,6 @@ func get_chat_messages(channel: String = "global", limit: int = 50, offset: int 
 		"message": "Unexpected chat response"
 	}
 
-func send_chat_message(channel: String, message: String) -> Dictionary:
-	return {
-		"ok": false,
-		"code": 401,
-		"result": HTTPRequest.RESULT_SUCCESS,
-		"headers": PackedStringArray(),
-		"data": {},
-		"message": "Chat send is websocket-only on this backend"
-	}
 
 func _legacy_chat_channel(channel: String) -> String:
 	var normalized: String = channel.strip_edges().to_lower()
@@ -96,8 +87,6 @@ func get_server_status() -> Dictionary:
 func get_account() -> Dictionary:
 	return await get_user()
 
-func get_inventory(hero_id: int) -> Dictionary:
-	return await request_get("/inventory/%d" % hero_id)
 
 func get_auctions() -> Dictionary:
 	return await request_get("/auction")

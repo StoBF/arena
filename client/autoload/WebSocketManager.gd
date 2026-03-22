@@ -1,4 +1,87 @@
-extends Node
+signal chat_message_received(channel: String, message: Dictionary)
+signal chat_socket_state_changed(channel: String, connected: bool)
+
+const CHAT_CHANNELS := ["general", "trade", "system"]
+var _chat_ws: Dictionary = {} # channel: WebSocketPeer
+var _chat_connected: Dictionary = {} # channel: bool
+var _chat_should_run: Dictionary = {} # channel: bool
+
+func ensure_chat_subscription(channel: String) -> void:
+	if not CHAT_CHANNELS.has(channel):
+		return
+	_chat_should_run[channel] = true
+	if not _chat_ws.has(channel) or _chat_ws[channel] == null:
+		_connect_chat_socket(channel)
+
+func stop_chat_subscription(channel: String) -> void:
+	if not CHAT_CHANNELS.has(channel):
+		return
+	_chat_should_run[channel] = false
+	if _chat_ws.has(channel) and _chat_ws[channel] != null:
+		_chat_ws[channel].close()
+	_chat_ws[channel] = null
+	if _chat_connected.get(channel, false):
+		_chat_connected[channel] = false
+		chat_socket_state_changed.emit(channel, false)
+
+func _process(_delta: float) -> void:
+	# ...existing code...
+	for channel in CHAT_CHANNELS:
+		if not _chat_ws.has(channel) or _chat_ws[channel] == null:
+			if _chat_should_run.get(channel, false):
+				_connect_chat_socket(channel)
+			continue
+		var ws: WebSocketPeer = _chat_ws[channel]
+		ws.poll()
+		var state: int = ws.get_ready_state()
+		if state == WebSocketPeer.STATE_OPEN:
+			if not _chat_connected.get(channel, false):
+				_chat_connected[channel] = true
+				chat_socket_state_changed.emit(channel, true)
+			while ws.get_available_packet_count() > 0:
+				var packet: String = ws.get_packet().get_string_from_utf8()
+				_handle_chat_packet(channel, packet)
+		elif state == WebSocketPeer.STATE_CLOSED:
+			_handle_chat_closed(channel)
+
+func _connect_chat_socket(channel: String) -> void:
+	var token: String = AppState.access_token if not AppState.access_token.is_empty() else AppState.token
+	if token.is_empty():
+		return
+	var ws_url: String = "%s/ws/%s?token=%s" % [ServerConfig.get_instance().get_ws_base_url(), channel, token.uri_encode()]
+	var ws := WebSocketPeer.new()
+	var err: int = ws.connect_to_url(ws_url)
+	if err != OK:
+		_chat_ws[channel] = null
+		return
+	_chat_ws[channel] = ws
+
+func _handle_chat_closed(channel: String) -> void:
+	if _chat_connected.get(channel, false):
+		_chat_connected[channel] = false
+		chat_socket_state_changed.emit(channel, false)
+	_chat_ws[channel] = null
+	if _chat_should_run.get(channel, false):
+		# Try reconnect after delay
+		var timer: SceneTreeTimer = get_tree().create_timer(2.0)
+		timer.timeout.connect(func():
+			if _chat_should_run.get(channel, false) and (_chat_ws[channel] == null):
+				_connect_chat_socket(channel)
+		)
+
+func _handle_chat_packet(channel: String, raw_packet: String) -> void:
+	var parsed: Variant = JSON.parse_string(raw_packet)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return
+	chat_message_received.emit(channel, parsed)
+
+func send_chat_message(channel: String, text: String) -> void:
+	if not _chat_ws.has(channel) or _chat_ws[channel] == null:
+		return
+	var msg := {"text": text}
+	var json = JSON.stringify(msg)
+	_chat_ws[channel].put_packet(json.to_utf8())
+
 
 signal auction_bid_update(event_data: Dictionary)
 signal auction_lot_closed(event_data: Dictionary)
@@ -50,6 +133,44 @@ func _process(_delta: float) -> void:
 	elif state == WebSocketPeer.STATE_CLOSED:
 		_handle_auction_closed()
 
+func _process(_delta: float) -> void:
+	# --- Chat WebSockets ---
+	for channel in CHAT_CHANNELS:
+		if not _chat_ws.has(channel) or _chat_ws[channel] == null:
+			if _chat_should_run.get(channel, false):
+				_connect_chat_socket(channel)
+			continue
+		var ws: WebSocketPeer = _chat_ws[channel]
+		ws.poll()
+		var state: int = ws.get_ready_state()
+		if state == WebSocketPeer.STATE_OPEN:
+			if not _chat_connected.get(channel, false):
+				_chat_connected[channel] = true
+				chat_socket_state_changed.emit(channel, true)
+			while ws.get_available_packet_count() > 0:
+				var packet: String = ws.get_packet().get_string_from_utf8()
+				_handle_chat_packet(channel, packet)
+		elif state == WebSocketPeer.STATE_CLOSED:
+			_handle_chat_closed(channel)
+
+	# --- Auction WebSocket ---
+	if _auction_ws == null:
+		if _auction_should_run:
+			_connect_auction_socket()
+		return
+
+	_auction_ws.poll()
+	var state: int = _auction_ws.get_ready_state()
+	if state == WebSocketPeer.STATE_OPEN:
+		if not _auction_connected:
+			_auction_connected = true
+			_auction_reconnect_attempts = 0
+			auction_socket_state_changed.emit(true)
+		while _auction_ws.get_available_packet_count() > 0:
+			var packet: String = _auction_ws.get_packet().get_string_from_utf8()
+			_handle_auction_packet(packet)
+	elif state == WebSocketPeer.STATE_CLOSED:
+		_handle_auction_closed()
 func _connect_auction_socket() -> void:
 	var token: String = AppState.access_token if not AppState.access_token.is_empty() else AppState.token
 	if token.is_empty():

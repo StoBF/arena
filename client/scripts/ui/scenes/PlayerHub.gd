@@ -8,13 +8,14 @@ extends Control
 # Module registry — add new modules here
 # ---------------------------------------------------------------------------
 const MODULE_SCENES := {
-	"heroes": preload("res://scenes/modules/HeroesModule.tscn"),
-	"inventory": preload("res://scenes/modules/InventoryModule.tscn"),
-	"auction": preload("res://scenes/modules/AuctionModule.tscn"),
-	"craft": preload("res://scenes/modules/CraftModule.tscn"),
-	"healing": preload("res://scenes/modules/HealingModule.tscn"),
-	"arena": preload("res://scenes/modules/ArenaModule.tscn"),
-	"boss_raid": preload("res://scenes/modules/BossRaidModule.tscn"),
+	"heroes": preload("res://scenes/ui/modules_mmo/HeroesModule.tscn"),
+	"inventory": preload("res://scenes/ui/modules_mmo/InventoryModule.tscn"),
+	"auction": preload("res://scenes/ui/modules_mmo/AuctionModule.tscn"),
+	"craft": preload("res://scenes/ui/modules_mmo/CraftModule.tscn"),
+	"healing": preload("res://scenes/ui/modules_mmo/HealingModule.tscn"),
+	"arena": preload("res://scenes/ui/modules_mmo/ArenaModule.tscn"),
+	"boss_raid": preload("res://scenes/ui/modules_mmo/BossRaidModule.tscn"),
+	"hero_creation": preload("res://scenes/ui/modules_mmo/HeroCreationModule.tscn"),
 }
 
 const ACTIVE_BUTTON_COLOR := Color(0.85, 0.72, 0.35, 0.35)   # gold highlight
@@ -143,12 +144,15 @@ func _connect_sidebar() -> void:
 	if not logout_button.pressed.is_connected(_on_logout_pressed):
 		logout_button.pressed.connect(_on_logout_pressed)
 	# Chat signals
-	if chat_panel.has_signal("message_submitted"):
-		if not chat_panel.message_submitted.is_connected(_on_chat_message_submitted):
-			chat_panel.message_submitted.connect(_on_chat_message_submitted)
-	if chat_panel.has_signal("channel_changed"):
-		if not chat_panel.channel_changed.is_connected(_on_chat_channel_changed):
-			chat_panel.channel_changed.connect(_on_chat_channel_changed)
+	   if chat_panel.has_signal("message_submitted"):
+		   if not chat_panel.message_submitted.is_connected(_on_chat_message_submitted):
+			   chat_panel.message_submitted.connect(_on_chat_message_submitted)
+	   if chat_panel.has_signal("channel_changed"):
+		   if not chat_panel.channel_changed.is_connected(_on_chat_channel_changed):
+			   chat_panel.channel_changed.connect(_on_chat_channel_changed)
+	   # Subscribe to default chat channel
+	   WebSocketManager.ensure_chat_subscription("general")
+	   WebSocketManager.chat_message_received.connect(_on_chat_message_received)
 
 func _disconnect_sidebar() -> void:
 	for btn: Button in _sidebar_map.keys():
@@ -160,10 +164,15 @@ func _disconnect_sidebar() -> void:
 		settings_button.pressed.disconnect(_on_settings_pressed)
 	if logout_button != null and logout_button.pressed.is_connected(_on_logout_pressed):
 		logout_button.pressed.disconnect(_on_logout_pressed)
-	if chat_panel != null and chat_panel.has_signal("message_submitted") and chat_panel.message_submitted.is_connected(_on_chat_message_submitted):
-		chat_panel.message_submitted.disconnect(_on_chat_message_submitted)
-	if chat_panel != null and chat_panel.has_signal("channel_changed") and chat_panel.channel_changed.is_connected(_on_chat_channel_changed):
-		chat_panel.channel_changed.disconnect(_on_chat_channel_changed)
+	   if chat_panel != null and chat_panel.has_signal("message_submitted") and chat_panel.message_submitted.is_connected(_on_chat_message_submitted):
+		   chat_panel.message_submitted.disconnect(_on_chat_message_submitted)
+	   if chat_panel != null and chat_panel.has_signal("channel_changed") and chat_panel.channel_changed.is_connected(_on_chat_channel_changed):
+		   chat_panel.channel_changed.disconnect(_on_chat_channel_changed)
+	   # Unsubscribe from all chat channels
+	   for channel in ["general", "trade", "system"]:
+		   WebSocketManager.stop_chat_subscription(channel)
+	   if WebSocketManager.chat_message_received.is_connected(_on_chat_message_received):
+		   WebSocketManager.chat_message_received.disconnect(_on_chat_message_received)
 
 func _connect_top_bar() -> void:
 	if notifications_button != null and notifications_button.pressed.is_connected(_on_notifications_pressed) == false:
@@ -174,13 +183,13 @@ func _disconnect_top_bar() -> void:
 		notifications_button.pressed.disconnect(_on_notifications_pressed)
 
 func _connect_bottom_bar() -> void:
-	if not action_create_hero.pressed.is_connected(_on_action_create_hero_pressed):
+	if action_create_hero != null and not action_create_hero.pressed.is_connected(_on_action_create_hero_pressed):
 		action_create_hero.pressed.connect(_on_action_create_hero_pressed)
-	if not action_queue_pvp.pressed.is_connected(_on_action_queue_pvp_pressed):
+	if action_queue_pvp != null and not action_queue_pvp.pressed.is_connected(_on_action_queue_pvp_pressed):
 		action_queue_pvp.pressed.connect(_on_action_queue_pvp_pressed)
-	if not action_boss_raid.pressed.is_connected(_on_action_boss_raid_pressed):
+	if action_boss_raid != null and not action_boss_raid.pressed.is_connected(_on_action_boss_raid_pressed):
 		action_boss_raid.pressed.connect(_on_action_boss_raid_pressed)
-	if not action_market.pressed.is_connected(_on_action_market_pressed):
+	if action_market != null and not action_market.pressed.is_connected(_on_action_market_pressed):
 		action_market.pressed.connect(_on_action_market_pressed)
 
 func _disconnect_bottom_bar() -> void:
@@ -332,21 +341,28 @@ func _update_chat_from_state(channel: String) -> void:
 # Signal callbacks
 # ---------------------------------------------------------------------------
 func _on_chat_message_submitted(channel: String, text: String) -> void:
-	var normalized_channel: String = channel.strip_edges().to_lower()
-	var response: Dictionary = await ApiClient.send_chat_message(normalized_channel, text)
-	if not bool(response.get("ok", false)):
-		var msg: String = str(response.get("message", response.get("error", "Chat send failed")))
-		UIUtils.show_error(msg)
-	_update_chat_from_state(normalized_channel)
+	   var normalized_channel: String = channel.strip_edges().to_lower()
+	   WebSocketManager.send_chat_message(normalized_channel, text)
+func _on_chat_message_received(channel: String, message: Dictionary) -> void:
+   # Add message to AppState and update chat panel
+   if not AppState.chat_messages.has(channel):
+	   AppState.chat_messages[channel] = []
+   AppState.chat_messages[channel].append(message)
+   _update_chat_from_state(channel)
 
 func _on_chat_channel_changed(channel: String) -> void:
-	_active_chat_channel = channel
-	if _active_chat_channel == "global" or _active_chat_channel == "trade":
-		await ApiClient.get_chat_messages(_active_chat_channel, 50, 0)
-		_update_chat_from_state(_active_chat_channel)
-	elif _active_chat_channel == "system":
-		if chat_panel.has_method("set_channel_messages"):
-			chat_panel.set_channel_messages("system", [_tx("ui.playerhub.no_alerts", "No active alerts")])
+	   _active_chat_channel = channel
+	   var normalized_channel = channel.strip_edges().to_lower()
+	   for ch in ["general", "trade", "system"]:
+		   if ch == normalized_channel:
+			   WebSocketManager.ensure_chat_subscription(ch)
+		   else:
+			   WebSocketManager.stop_chat_subscription(ch)
+	   # Clear and update chat panel
+	   _update_chat_from_state(normalized_channel)
+	   if normalized_channel == "system":
+		   if chat_panel.has_method("set_channel_messages"):
+			   chat_panel.set_channel_messages("system", [_tx("ui.playerhub.no_alerts", "No active alerts")])
 
 func _on_logout_pressed() -> void:
 	AuthManager.logout()
@@ -369,7 +385,7 @@ func _on_settings_pressed() -> void:
 	EventBus.navigate_to(EventBus.SCENE_SETTINGS)
 
 func _on_action_create_hero_pressed() -> void:
-	EventBus.navigate_to(EventBus.SCENE_HERO_CREATION)
+	_load_module("hero_creation")
 
 func _on_action_queue_pvp_pressed() -> void:
 	_load_module("arena")

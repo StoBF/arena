@@ -37,8 +37,8 @@ theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
 [node name="A3d9253eB8134Dd09571896255d70f1a" type="Sprite2D" parent="RootMargin"]
-position = Vector2(676, 183.00005)
-scale = Vector2(1.1308594, 1.1748047)
+position = Vector2(959, 342.87503)
+scale = Vector2(1.8730469, 1.4436036)
 texture = ExtResource("2_fqcn4")
 
 [node name="RootVBox" type="VBoxContainer" parent="RootMargin"]
@@ -130,6 +130,11 @@ horizontal_alignment = 1
 [node name="SidebarSep1" type="HSeparator" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
 layout_mode = 2
 
+[node name="EconomyLabel" type="Label" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.7, 0.3, 1)
+text = "Economy"
+
 [node name="HeroesButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
@@ -160,6 +165,11 @@ alignment = 0
 
 [node name="SidebarSep2" type="HSeparator" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
 layout_mode = 2
+
+[node name="CombatLabel" type="Label" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.8, 0.3, 1)
+text = "Combat"
 
 [node name="HealingButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
 custom_minimum_size = Vector2(0, 38)

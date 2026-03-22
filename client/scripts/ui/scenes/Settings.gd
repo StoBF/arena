@@ -1,9 +1,19 @@
+@onready var resolution_option: OptionButton = $VBox/Body/ResolutionOption
 extends Control
 
 func _tx(key: String, fallback: String) -> String:
 	return CabinetStyle.text(key, fallback)
 
 func _ready() -> void:
+		   AppState.load_settings()
+		   _init_resolution_options()
+		   resolution_option.item_selected.connect(_on_resolution_selected)
+		   # Apply saved resolution if not fullscreen
+		   if DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_FULLSCREEN:
+			   DisplayServer.window_set_size(AppState.window_resolution)
+			   var screen_size = DisplayServer.screen_get_size()
+			   var pos = (screen_size / 2 - AppState.window_resolution / 2).floor()
+			   DisplayServer.window_set_position(pos)
 	$VBox/Header/BackButton.pressed.connect(func(): EventBus.navigate_to(EventBus.SCENE_PLAYER_HUB))
 	$VBox/Body/VolumeSlider.value_changed.connect(_on_volume_changed)
 	$VBox/Body/FullscreenToggle.toggled.connect(_on_fullscreen_toggled)
@@ -23,8 +33,38 @@ func _on_volume_changed(value: float) -> void:
 func _on_fullscreen_toggled(enabled: bool) -> void:
 	if enabled:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		resolution_option.disabled = true
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		resolution_option.disabled = false
+func _init_resolution_options() -> void:
+   var resolutions = [
+	   Vector2i(1280, 720),
+	   Vector2i(1600, 900),
+	   Vector2i(1920, 1080),
+	   Vector2i(2560, 1440)
+   ]
+   resolution_option.clear()
+   for res in resolutions:
+	   resolution_option.add_item("%dx%d" % [res.x, res.y], res)
+   var current = DisplayServer.window_get_size()
+   var idx = 0
+   for i in range(resolutions.size()):
+	   if resolutions[i] == current:
+		   idx = i
+		   break
+   resolution_option.select(idx)
+   resolution_option.disabled = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+
+func _on_resolution_selected(index: int) -> void:
+   var res = resolution_option.get_item_metadata(index)
+   if res is Vector2i:
+	   DisplayServer.window_set_size(res)
+	   var screen_size = DisplayServer.screen_get_size()
+	   var pos = (screen_size / 2 - res / 2).floor()
+	   DisplayServer.window_set_position(pos)
+	   AppState.window_resolution = res
+	   AppState.save_settings()
 
 func _on_language_selected(index: int) -> void:
 	var locales: Array = LocalizationManager.get_supported_locales()

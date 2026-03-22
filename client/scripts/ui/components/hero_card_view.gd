@@ -1,19 +1,23 @@
 extends PanelContainer
 
-signal selected(hero_id: int)
+
+signal delete_requested(hero_id: int)
+signal auction_requested(hero_id: int)
 
 @onready var portrait: TextureRect = $Margin/Root/PortraitFrame/Portrait
 @onready var name_label: Label = $Margin/Root/Content/NameLabel
 @onready var meta_label: Label = $Margin/Root/Content/MetaLabel
 @onready var stats_label: Label = $Margin/Root/Content/StatsLabel
-@onready var select_button: Button = $Margin/Root/Content/ActionRow/SelectButton
-@onready var inspect_button: Button = $Margin/Root/Content/ActionRow/InspectButton
+@onready var auction_button: Button = $Margin/Root/Content/ActionRow/AuctionButton
+@onready var delete_button: Button = $Margin/Root/Content/ActionRow/DeleteButton
 
 var _hero_id: int = -1
 
 func _ready() -> void:
-	select_button.pressed.connect(func() -> void: selected.emit(_hero_id))
-	inspect_button.pressed.connect(func() -> void: selected.emit(_hero_id))
+	auction_button.pressed.connect(func() -> void: auction_requested.emit(_hero_id))
+	delete_button.pressed.connect(func() -> void: delete_requested.emit(_hero_id))
+	auction_button.tooltip_text = "List this hero for auction."
+	delete_button.tooltip_text = "Permanently delete this hero. This cannot be undone."
 
 func set_hero(hero: Dictionary) -> void:
 	_hero_id = int(hero.get("id", -1))

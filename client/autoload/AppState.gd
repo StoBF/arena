@@ -1,5 +1,23 @@
+# Persistent settings
+var window_resolution: Vector2i = Vector2i(1920, 1080)
+
+const SETTINGS_PATH := "user://settings.cfg"
+
+func save_settings() -> void:
+	var config = ConfigFile.new()
+	config.set_value("display", "resolution_x", window_resolution.x)
+	config.set_value("display", "resolution_y", window_resolution.y)
+	config.save(SETTINGS_PATH)
+
+func load_settings() -> void:
+	var config = ConfigFile.new()
+	var err = config.load(SETTINGS_PATH)
+	if err == OK:
+		var x = int(config.get_value("display", "resolution_x", 1920))
+		var y = int(config.get_value("display", "resolution_y", 1080))
+		window_resolution = Vector2i(x, y)
 # Autoload AppState.gd
-extends Node
+
 
 signal battle_queue_updated(queue)
 signal battle_queue_error(message)
@@ -176,4 +194,3 @@ func set_server_status(status: String, players_online: int) -> void:
 	server_status = normalized_status
 	online_players = maxi(0, players_online)
 	server_status_updated.emit(server_status, online_players)
-

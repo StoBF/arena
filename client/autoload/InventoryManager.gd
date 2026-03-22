@@ -63,11 +63,11 @@ func get_items() -> Array[Dictionary]:
 	var hero_id: int = _last_loaded_hero_id
 	if hero_id <= 0:
 		hero_id = AppState.current_hero_id
-	var path: String = "/inventory"
+	var path: String = "/inventory/"
+	var query: String = ""
 	if hero_id > 0:
-		path = "%s?hero_id=%d" % [path, hero_id]
-
-	var response: Dictionary = await _perform_request(HTTPClient.METHOD_GET, path)
+		query = "?hero_id=%d" % hero_id
+	var response: Dictionary = await _perform_request(HTTPClient.METHOD_GET, path + query)
 	if not bool(response.get("ok", false)):
 		items_load_failed.emit(_last_error_message)
 		manager_error.emit(_last_error_message)

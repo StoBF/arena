@@ -59,9 +59,7 @@ func _extract_hero(data: Variant) -> Dictionary:
 			return (parsed["result"] as Dictionary).duplicate(true)
 		return parsed.duplicate(true)
 	return {}
-			AppState.set_user_data((profile["result"] as Dictionary).duplicate(true))
-			return
-		AppState.set_user_data(profile.duplicate(true))
+
 
 func _extract_balance_from_response(data: Dictionary) -> float:
 	if data.is_empty():
