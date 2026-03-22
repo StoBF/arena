@@ -178,14 +178,12 @@ func _on_hero_selected(hero: Dictionary) -> void:
 	else:
 		player_hero_label.text = tr("ui.battle.player_name") % str(hero.get("name", "Hero"))
 		start_button.disabled = false
-		hero_stats.text = tr("ui.battle.hero_stats") % [
-			str(hero.get("level", "-")),
-			str(hero.get("generation", hero.get("gen", "-"))),
-			str(hero.get("strength", "-")),
-			str(hero.get("agility", "-")),
-			str(hero.get("endurance", "-")),
-			str(hero.get("wins", "-")),
-			str(hero.get("losses", "-")),
+		var stats: Dictionary = hero.get("stats", {})
+		hero_stats.text = "Role: %s  HP: %s  RES: %s  REF: %s" % [
+			str(hero.get("primary_role", "-")),
+			str(hero.get("current_hp", "-")),
+			str(stats.get("resilience", "-")),
+			str(stats.get("reflex", "-")),
 		]
 	_update_waiting_label()
 
@@ -227,7 +225,7 @@ func _render_queue(queue: Array) -> void:
 	elif selected_queued:
 		enemy_hero_label.text = tr("ui.battle.no_opponent")
 	else:
-		enemy_hero_label.text = tr("ui.battle.enemy_training")
+		enemy_hero_label.text = tr("ui.battle.no_opponent")
 
 	leave_button.disabled = not selected_queued
 	start_button.disabled = selected_queued or _selected_hero_id <= 0
@@ -246,7 +244,7 @@ func _hero_name_by_id(hero_id: int) -> String:
 
 func _update_waiting_label() -> void:
 	if _selected_hero_id <= 0:
-		enemy_hero_label.text = tr("ui.battle.enemy_training")
+		enemy_hero_label.text = tr("ui.battle.no_opponent")
 		return
 	var selected_queued: bool = false
 	for entry_variant in AppState.battle_queue:
@@ -256,7 +254,7 @@ func _update_waiting_label() -> void:
 	if selected_queued:
 		enemy_hero_label.text = tr("ui.battle.no_opponent")
 	else:
-		enemy_hero_label.text = tr("ui.battle.enemy_training")
+		enemy_hero_label.text = tr("ui.battle.no_opponent")
 
 func _on_start_pressed() -> void:
 	if _selected_hero_id <= 0:

@@ -30,8 +30,8 @@ func craft_recipe(recipe_id: String) -> void:
 	if _player_data == null or _inventory_controller == null:
 		craft_result.emit(false, "Controllers are not bound")
 		return
-	var endpoint: String = "/workshop/craft/%s" % recipe_id
-	var response: Dictionary = await ApiClient.request_post(endpoint, {})
+	var endpoint: String = "/craft/start"
+	var response: Dictionary = await ApiClient.request_post(endpoint, {"recipe_id": recipe_id})
 	if bool(response.get("ok", false)) == false:
 		craft_result.emit(false, str(response.get("message", "Craft failed")))
 		return

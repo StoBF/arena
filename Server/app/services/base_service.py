@@ -30,8 +30,3 @@ class BaseService:
         if self.session.in_transaction():
             return self.session.begin_nested()
         return self.session.begin()
-
-    async def place_bid(self, hero_id, user_id, amount):
-        async with self.session.begin():
-            hero = await self.session.get(Hero, hero_id, with_for_update=True)
-            # перевірка owner_id, балансу, запис bid 

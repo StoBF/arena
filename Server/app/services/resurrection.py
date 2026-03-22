@@ -12,8 +12,9 @@ from app.database.models.hero import (
 )
 from app.schemas.hero import ResurrectionEventOut, HeroStatusResponse
 from app.core.hero_config import (
-    RESURRECTION_ARTIFACTS, MAX_RESURRECTIONS, CONDITION_THRESHOLDS, PRIMARY_STATS,
+    RESURRECTION_ARTIFACTS, MAX_RESURRECTIONS, CONDITION_THRESHOLDS,
 )
+from app.core.generation_config import CORE_STATS
 from app.core.derived_stats import compute_derived_for_hero
 from app.core.events import emit
 
@@ -101,12 +102,12 @@ class ResurrectionService(BaseService):
         for effect in artifact.get("side_effects", []):
             effect_entry = {"type": effect["type"], "desc": effect["desc"]}
 
-            if effect["type"] == "stat_reduction":
+            if effect["type"] == "stat_reduction" and hero.stats:
                 penalty = effect.get("stat_penalty", 1)
-                stat = random.choice(PRIMARY_STATS)
-                current_val = getattr(hero, stat, 0) or 0
+                stat = random.choice(CORE_STATS)
+                current_val = getattr(hero.stats, stat, 0) or 0
                 new_val = max(1, current_val - penalty)
-                setattr(hero, stat, new_val)
+                setattr(hero.stats, stat, new_val)
                 effect_entry["stat"] = stat
                 effect_entry["old_value"] = current_val
                 effect_entry["new_value"] = new_val

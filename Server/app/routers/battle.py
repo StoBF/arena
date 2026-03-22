@@ -31,8 +31,6 @@ async def duel(
         raise HTTPException(404, "Your hero not found")
     if hero.is_dead:
         raise HTTPException(400, f"Your hero is dead since {hero.dead_at}")
-    if hero.is_training:
-        raise HTTPException(400, "Your hero is training")
     if not enemy:
         raise HTTPException(404, "Enemy hero not found")
     if enemy.is_dead:
@@ -60,8 +58,6 @@ async def team_battle(
             raise HTTPException(404, "Your hero not found")
         if h.is_dead:
             raise HTTPException(400, f"Hero {h.name} is dead since {h.dead_at}")
-        if h.is_training:
-            raise HTTPException(400, f"Hero {h.name} is training")
     for e in enemies:
         if not e:
             raise HTTPException(404, "Enemy hero not found")
@@ -90,8 +86,6 @@ async def raid(
             raise HTTPException(404, "Your hero not found")
         if h.is_dead:
             raise HTTPException(400, f"Hero {h.name} is dead since {h.dead_at}")
-        if h.is_training:
-            raise HTTPException(400, f"Hero {h.name} is training")
     if not boss:
         raise HTTPException(404, "Boss not found")
     if boss.is_dead:
@@ -130,8 +124,6 @@ async def submit_queue(
                 raise HTTPException(status_code=404, detail="Hero not found")
             if hero.is_dead:
                 raise HTTPException(status_code=400, detail="Hero is dead")
-            if hero.is_training:
-                raise HTTPException(status_code=400, detail="Hero is training")
 
             queue_entry = BattleQueueEntry(hero_id=data.hero_id, player_id=user_id)
             db.add(queue_entry)
@@ -173,11 +165,12 @@ async def get_hero_stats(hero_id: int, db: AsyncSession = Depends(get_session)):
     hero = hero_result.scalars().first()
     if not hero:
         raise HTTPException(404, "Hero not found")
+    stats = hero.stats
     return {
         "hero_id": hero.id,
-        "attack": hero.strength,
-        "defense": hero.defense,
-        "health": hero.health,
+        "attack": stats.stamina if stats else 0,
+        "defense": stats.defense if stats else 0,
+        "health": stats.health if stats else 0,
     }
 
 @router.post("/bet")
@@ -255,8 +248,10 @@ async def predict(db: AsyncSession = Depends(get_session)):
     h2 = heroes.get(queue[1].hero_id)
     if not h1 or not h2:
         raise HTTPException(400, "hero stats unavailable")
-    score1 = h1.strength + h1.defense + h1.health
-    score2 = h2.strength + h2.defense + h2.health
+    s1 = h1.stats
+    s2 = h2.stats
+    score1 = (s1.stamina + s1.defense + s1.health) if s1 else 100
+    score2 = (s2.stamina + s2.defense + s2.health) if s2 else 100
     winner = queue[0].hero_id if score1 >= score2 else queue[1].hero_id
     chance = score1/float(score1+score2)
     return {"winner_id": winner, "chance": chance}

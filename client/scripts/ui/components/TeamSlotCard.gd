@@ -143,7 +143,7 @@ func set_hero(hero: Dictionary) -> void:
 	var hero_name: String = str(hero.get("name", "Hero"))
 	_name_label.text = hero_name
 	_name_label.visible = true
-	_level_label.text = "Lv. %s" % str(hero.get("level", "?"))
+	_level_label.text = "Gen %s" % str(hero.get("hero_generation_level", "?"))
 	_level_label.visible = true
 	_empty_label.visible = false
 	_remove_button.visible = true
@@ -152,8 +152,11 @@ func set_hero(hero: Dictionary) -> void:
 	_portrait_icon.add_theme_color_override("font_color", Color(0.92, 0.88, 0.72))
 	_portrait_rect.color = Color(0.18, 0.2, 0.28, 0.9)
 	# Stats line
-	var power: int = int(hero.get("power", hero.get("strength", 0)))
-	var wins: int = int(hero.get("wins", 0))
+	var stats_dict: Dictionary = hero.get("stats", {})
+	var power: int = 0
+	for key: String in ["stamina", "strength", "willpower", "reflex", "resilience", "focus", "adaptability", "luck"]:
+		power += int(stats_dict.get(key, 0))
+	var wins: int = int(hero.get("total_kills", 0))
 	if power > 0 or wins > 0:
 		_stats_label.text = "PWR %d  W %d" % [power, wins]
 		_stats_label.visible = true

@@ -60,7 +60,7 @@ async def test_auction_api_endpoints(async_session, test_client: AsyncClient, te
     assert data["total"] >= 1
 
     # create hero and place lot
-    hero = Hero(name="LotHero", generation=1, nickname="LH", strength=1, agility=1, endurance=1, speed=1, health=1, defense=1, luck=1, field_of_view=1, level=1, experience=0, locale="en", owner_id=test_user.id, gold=Decimal("0"))
+    hero = Hero(name="LotHero", owner_id=test_user.id, primary_role="VANGUARD", locale="en")
     async_session.add(hero)
     await async_session.commit()
     await async_session.refresh(hero)
@@ -117,7 +117,7 @@ async def test_crafting_api_resource_deduction_and_mutation(async_session, test_
     await async_session.commit()
 
     # start craft
-    resp = await test_client.post(f"/workshop/craft/{recipe.id}", headers={"Authorization": f"Bearer {test_user_token}"})
+    resp = await test_client.post(f"/craft/craft/{recipe.id}", headers={"Authorization": f"Bearer {test_user_token}"})
     assert resp.status_code == 200
     queue = resp.json()
     # stash was deducted
@@ -127,7 +127,7 @@ async def test_crafting_api_resource_deduction_and_mutation(async_session, test_
     )).scalars().first()
     assert stash.quantity == 3
     # finish craft
-    resp = await test_client.post(f"/workshop/finish/{queue['id']}", headers={"Authorization": f"Bearer {test_user_token}"})
+    resp = await test_client.post(f"/craft/finish/{queue['id']}", headers={"Authorization": f"Bearer {test_user_token}"})
     assert resp.status_code == 200
     item = resp.json()
     assert "is_mutated" in item
@@ -175,7 +175,7 @@ async def test_warehouse_api_and_insufficient_resources(test_client: AsyncClient
     assert any(i["item_id"] == 2222 and i["quantity"] == 3 for i in items)
 
     # try to craft with insufficient resources using non-existent recipe
-    resp = await test_client.post("/workshop/craft/99999", headers={"Authorization": f"Bearer {test_user_token}"})
+    resp = await test_client.post("/craft/craft/99999", headers={"Authorization": f"Bearer {test_user_token}"})
     assert resp.status_code == 400
 
 @pytest.mark.asyncio
@@ -192,9 +192,9 @@ async def test_integration_client_like_flow(async_session, test_client: AsyncCli
     await async_session.commit()
 
     # craft
-    resp = await test_client.post(f"/workshop/craft/{recipe.id}", headers={"Authorization": f"Bearer {test_user_token}"})
+    resp = await test_client.post(f"/craft/craft/{recipe.id}", headers={"Authorization": f"Bearer {test_user_token}"})
     queue_id = resp.json()["id"]
-    resp = await test_client.post(f"/workshop/finish/{queue_id}", headers={"Authorization": f"Bearer {test_user_token}"})
+    resp = await test_client.post(f"/craft/finish/{queue_id}", headers={"Authorization": f"Bearer {test_user_token}"})
     assert resp.status_code == 200
     crafted = resp.json()
 

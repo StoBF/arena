@@ -67,7 +67,7 @@ theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 10
 
 [node name="DetailPanel" type="PanelContainer" parent="Root/Body"]
-custom_minimum_size = Vector2(320, 0)
+custom_minimum_size = Vector2(380, 0)
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -83,7 +83,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 8
-theme_override_constants/separation = 10
 
 [node name="DetailTitle" type="Label" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
 layout_mode = 2
@@ -93,32 +92,50 @@ text = "Hero Details"
 layout_mode = 2
 text = "Name: -"
 
+[node name="DetailRole" type="Label" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+layout_mode = 2
+text = "Role: -"
+
 [node name="DetailStats" type="RichTextLabel" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
-custom_minimum_size = Vector2(0, 150)
+custom_minimum_size = Vector2(0, 180)
 layout_mode = 2
 size_flags_vertical = 3
 bbcode_enabled = true
 text = "Stats: -"
 
-[node name="EquipmentTitle" type="Label" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+[node name="TagsLabel" type="Label" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
 layout_mode = 2
-text = "Equipment"
+text = ""
+autowrap_mode = 2
 
-[node name="EquipmentList" type="ItemList" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+[node name="SkillsSection" type="VBoxContainer" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="SkillsTitle" type="Label" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox/SkillsSection"]
+layout_mode = 2
+text = "Skills (0)"
+
+[node name="SkillsList" type="ItemList" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox/SkillsSection"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_vertical = 3
+allow_reselect = true
+
+[node name="SkillDetailPanel" type="PanelContainer" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox/SkillsSection"]
+visible = false
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SkillDetailContent" type="RichTextLabel" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox/SkillsSection/SkillDetailPanel"]
+layout_mode = 2
 size_flags_horizontal = 3
-
-[node name="ActionRow" type="HBoxContainer" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox"]
-layout_mode = 2
-
-[node name="PromoteButton" type="Button" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox/ActionRow"]
-layout_mode = 2
-text = "Promote"
-
-[node name="ManageGearButton" type="Button" parent="Root/Body/DetailPanel/DetailMargin/DetailVBox/ActionRow"]
-layout_mode = 2
-text = "Manage Gear"
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_active = true
+text = ""
 
 [node name="StatusLabel" type="Label" parent="Root"]
 layout_mode = 2

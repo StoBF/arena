@@ -95,7 +95,7 @@ async def test_auctionlot_and_bid(db):
     await db.commit()
     await db.refresh(user1)
     await db.refresh(user2)
-    hero = Hero(name="TestHero", generation=1, nickname="TH", strength=1, agility=1, endurance=1, speed=1, health=1, defense=1, luck=1, field_of_view=1, level=1, experience=0, locale="en", owner_id=user1.id, gold=Decimal("0"))
+    hero = Hero(name="TestHero", owner_id=user1.id, primary_role="VANGUARD", locale="en")
     db.add(hero)
     await db.commit()
     await db.refresh(hero)
@@ -110,9 +110,7 @@ async def test_auctionlot_and_bid(db):
     assert events == ["auctions:active*", "auctions:active_lots*"]
     events.clear()
     # clamp on lot duration: create a second hero to avoid active-lot conflict
-    hero2 = Hero(name="AnotherHero", generation=1, nickname="AH", strength=1, agility=1,
-                 endurance=1, speed=1, health=1, defense=1, luck=1, field_of_view=1,
-                 level=1, experience=0, locale="en", owner_id=user1.id, gold=Decimal("0"))
+    hero2 = Hero(name="AnotherHero", owner_id=user1.id, primary_role="VANGUARD", locale="en")
     db.add(hero2)
     await db.commit()
     await db.refresh(hero2)
@@ -242,7 +240,7 @@ async def test_cache_event_emitted(db):
 
     # hero lot operations via AuctionLotService
     lot_service = AuctionLotService(db)
-    hero = Hero(name="CacheHero", generation=1, nickname="CH", strength=1, agility=1, endurance=1, speed=1, health=1, defense=1, luck=1, field_of_view=1, level=1, experience=0, locale="en", owner_id=user.id, gold=Decimal("0"))
+    hero = Hero(name="CacheHero", owner_id=user.id, primary_role="VANGUARD", locale="en")
     db.add(hero)
     await db.commit()
     await db.refresh(hero)
@@ -294,7 +292,7 @@ async def test_expired_auction_sweep(db):
     assert auction.status == "finished"
 
     # lots: reuse same service to ensure both branches are covered
-    hero = Hero(name="SweepHero", generation=1, nickname="SH", strength=1, agility=1, endurance=1, speed=1, health=1, defense=1, luck=1, field_of_view=1, level=1, experience=0, locale="en", owner_id=user.id, gold=Decimal("0"))
+    hero = Hero(name="SweepHero", owner_id=user.id, primary_role="VANGUARD", locale="en")
     db.add(hero)
     await db.commit()
     await db.refresh(hero)

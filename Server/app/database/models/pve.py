@@ -1,5 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime, JSON
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, JSON
 from app.database.base import Base
 from datetime import datetime
 
@@ -8,24 +7,14 @@ class MobTemplate(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     level = Column(Integer, nullable=False)
-    base_stats = Column(JSON, nullable=False)  # dict: {"strength": 10, ...}
+    base_stats = Column(JSON, nullable=False)  # v2 stat keys, e.g. {"stamina": 10, "willpower": 8, ...}
     is_boss = Column(Boolean, default=False)
-    perks = relationship("MobPerk", back_populates="mob_template")
 
-class BossPerk(Base):
-    __tablename__ = "boss_perks"
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    description = Column(String)
-    effect = Column(JSON)  # dict: {"type": "buff", "value": 10}
 
-class MobPerk(Base):
-    __tablename__ = "mob_perks"
-    id = Column(Integer, primary_key=True)
-    mob_template_id = Column(Integer, ForeignKey("mob_templates.id"), nullable=False)
-    perk_id = Column(Integer, ForeignKey("boss_perks.id"), nullable=False)
-    mob_template = relationship("MobTemplate", back_populates="perks")
-    perk = relationship("BossPerk")
+# NOTE: boss_perks / mob_perks tables still exist in the DB schema but the
+# ORM models (BossPerk, MobPerk) were removed in the v2 redesign because
+# no service or router references them.  If re-introduced later, define
+# them with v2 stat keys.
 
 class RaidArenaInstance(Base):
     __tablename__ = "raid_arena_instances"

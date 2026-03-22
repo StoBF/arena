@@ -22,7 +22,7 @@ from app.core.redis_cache import redis_cache
 
 from app.core.config import settings
 from app.database.session import create_db_and_tables, AsyncSessionLocal, engine
-from app.routers import auth, hero, auction, bid, announcement, inventory, equipment, workshop, chat
+from app.routers import auth, hero, auction, bid, announcement, inventory, equipment, chat
 from app.tasks.cleanup import delete_old_heroes_task
 from app.tasks.auctions import close_expired_auctions_task, run_auction_sweep_once
 from app.routers.health import router as health_router
@@ -148,7 +148,6 @@ app.include_router(bid.router)
 app.include_router(announcement.router)
 app.include_router(inventory.router)
 app.include_router(equipment.router)
-app.include_router(workshop.router)
 app.include_router(chat.router, tags=["Chat"])
 
 # Створення бази, якщо відсутня

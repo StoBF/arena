@@ -1,30 +1,82 @@
-from datetime import datetime, timedelta
+"""
+Combat service — v2
+
+Uses hero.stats (HeroStats) for all stat references.
+No perks/perk-trees — skill catalog drives combat in future iterations.
+Equipment bonuses read via item_stat_map (v1-column → v2-stat mapping).
+
+RNG is deterministic (seeded) for reproducibility, matching actions.py.
+"""
+from datetime import datetime
 from typing import List, Dict, Any, Optional
-from app.database.models.hero import Hero
-from app.database.models.perk import Perk
-from app.services.hero import HeroService
+
+import hashlib
 import random
+
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
-RECOVERY_TIME_MINUTES = 60  # 1 година на відновлення
+from app.database.models.hero import Hero, HeroStats
+from app.core.item_stat_map import equipment_stat_totals
 
-# Мапа ефектів перків (приклад)
-PERK_EFFECTS = {
-    "Plasma Gunner": {"type": "offensive", "stat": "strength"},
-    "Meteoric Defender": {"type": "defensive", "stat": "defense"},
-    "Radiation Healer": {"type": "support", "stat": "health"},
-    "Nebula Trickster": {"type": "utility", "stat": "agility"},
-    # ... додати інші перки за потреби
-}
+
+RECOVERY_TIME_MINUTES = 60
+
 
 class BattleResult:
-    def __init__(self, winner: str, log: List[str], rewards: Dict[str, Any], team_a_remaining, team_b_remaining):
+    def __init__(
+        self,
+        winner: str,
+        log: List[str],
+        rewards: Dict[str, Any],
+        team_a_remaining: List[int],
+        team_b_remaining: List[int],
+    ):
         self.winner = winner
         self.log = log
         self.rewards = rewards
         self.team_a_remaining = team_a_remaining
         self.team_b_remaining = team_b_remaining
+
+
+# ── Deterministic RNG seed (same algorithm as actions.py) ─────────
+
+def _make_seed(*parts: Any) -> int:
+    raw = "|".join(str(p) for p in parts)
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    return int(digest[:16], 16)
+
+
+def _hero_stats(hero: Hero) -> Dict[str, int]:
+    """Extract combat-relevant stats from v2 HeroStats relationship."""
+    s: Optional[HeroStats] = getattr(hero, "stats", None)
+    if s is None:
+        return {
+            "health": 100,
+            "stamina": 100,
+            "defense": 10,
+            "speed": 10,
+            "agility": 10,
+            "luck": 5,
+            "willpower": 5,
+            "vision": 10,
+        }
+    return {
+        "health": s.health,
+        "stamina": s.stamina,
+        "defense": s.defense,
+        "speed": s.speed,
+        "agility": s.agility,
+        "luck": s.luck,
+        "willpower": s.willpower,
+        "vision": s.vision,
+    }
+
+
+def _equipment_bonus(hero: Hero) -> Dict[str, int]:
+    """Return v2-keyed equipment bonus totals for a hero."""
+    return equipment_stat_totals(getattr(hero, "equipment_items", []))
+
 
 class CombatService:
     def __init__(self, db_session):
@@ -40,32 +92,40 @@ class CombatService:
         return await self.simulate_battle(team, [boss])
 
     async def simulate_battle(self, team_a: List[Hero], team_b: List[Hero]) -> BattleResult:
-        # Ініціалізація бою
-        fighters = []
-        log = []
-        # Eager-load heroes with perks and equipment
+        # Eager-load heroes with stats + equipment
         hero_ids = [h.id for h in team_a + team_b]
         result = await self.db.execute(
             select(Hero).options(
-                joinedload(Hero.perks),
-                joinedload(Hero.equipment_items)
+                joinedload(Hero.stats),
+                joinedload(Hero.equipment_items),
             ).where(Hero.id.in_(hero_ids))
         )
-        # `joinedload` may produce duplicate rows when loading collections, so
-        # ensure unique heroes before building our map.
         loaded_heroes = {h.id: h for h in result.scalars().unique().all()}
-        # Підготовка бійців: застосування бонусів від перків
+
+        fighters: List[Dict[str, Any]] = []
+        log: List[str] = []
+
         for hero in team_a + team_b:
             h = loaded_heroes.get(hero.id, hero)
-            stats = await self.apply_perk_effects(h)
+            stats = _hero_stats(h)
+            # Apply equipment bonuses (v2-keyed)
+            eq_bonuses = _equipment_bonus(h)
+            for stat_key in stats:
+                stats[stat_key] += eq_bonuses.get(stat_key, 0)
             fighters.append({
                 "hero": h,
                 "stats": stats,
                 "current_hp": stats["health"],
-                "is_dead": False
+                "is_dead": False,
             })
-        # Визначення порядку ходів
+
+        # Deterministic seed from participant IDs
+        seed = _make_seed("combat", *(f["hero"].id for f in fighters))
+        rng = random.Random(seed)
+
+        # Turn order by speed
         fighters = sorted(fighters, key=lambda f: f["stats"]["speed"], reverse=True)
+
         round_num = 1
         while True:
             alive_a = [f for f in fighters if f["hero"] in team_a and not f["is_dead"]]
@@ -76,26 +136,27 @@ class CombatService:
             for fighter in fighters:
                 if fighter["is_dead"]:
                     continue
-                # Визначаємо ціль
                 if fighter["hero"] in team_a:
-                    targets = [f for f in alive_b if not f["is_dead"]]
+                    targets = [f for f in fighters if f["hero"] in team_b and not f["is_dead"]]
                 else:
-                    targets = [f for f in alive_a if not f["is_dead"]]
+                    targets = [f for f in fighters if f["hero"] in team_a and not f["is_dead"]]
                 if not targets:
                     continue
-                target = min(targets, key=lambda t: t["current_hp"])  # ціль з найменшим HP
-                # Розрахунок атаки
-                dmg, is_crit, is_miss = self.calculate_damage(fighter, target)
+                target = min(targets, key=lambda t: t["current_hp"])
+                dmg, is_crit, is_miss = self._calculate_damage(fighter, target, rng)
                 if is_miss:
                     log.append(f"{fighter['hero'].name} misses {target['hero'].name}!")
                     continue
                 target["current_hp"] -= dmg
-                log.append(f"{fighter['hero'].name} hits {target['hero'].name} for {dmg}{' (CRIT)' if is_crit else ''}.")
+                log.append(
+                    f"{fighter['hero'].name} hits {target['hero'].name} for {dmg}"
+                    f"{' (CRIT)' if is_crit else ''}."
+                )
                 if target["current_hp"] <= 0 and not target["is_dead"]:
                     target["is_dead"] = True
                     log.append(f"{target['hero'].name} is defeated!")
             round_num += 1
-        # Визначення переможця
+
         alive_a = [f for f in fighters if f["hero"] in team_a and not f["is_dead"]]
         alive_b = [f for f in fighters if f["hero"] in team_b and not f["is_dead"]]
         if alive_a and not alive_b:
@@ -104,7 +165,8 @@ class CombatService:
             winner = "team_b"
         else:
             winner = "draw"
-        # Оновлення статусу героїв
+
+        # Update hero condition — single atomic commit
         now = datetime.utcnow()
         for f in fighters:
             hero = f["hero"]
@@ -114,49 +176,37 @@ class CombatService:
             else:
                 hero.is_dead = False
                 hero.dead_at = None
-            await self.db.commit()
-        # Нагороди (спрощено)
-        rewards = {"xp": 100 if winner == "team_a" else 50}
-        return BattleResult(winner, log, rewards, [f["hero"].id for f in alive_a], [f["hero"].id for f in alive_b])
+        await self.db.commit()
 
-    async def apply_perk_effects(self, hero: Hero) -> Dict[str, int]:
-        # Base stats
-        stats = {
-            "strength": hero.strength,
-            "agility": hero.agility,
-            "intelligence": hero.intelligence,
-            "endurance": hero.endurance,
-            "speed": hero.speed,
-            "health": hero.health,
-            "defense": hero.defense,
-            "luck": hero.luck,
-            "field_of_view": hero.field_of_view,
-        }
-        # Apply perk modifiers
-        for hp in getattr(hero, "perks", []):
-            if hp.perk and hp.perk.modifiers:
-                for stat, val in hp.perk.modifiers.items():
-                    if stat in stats:
-                        stats[stat] += int(val) * hp.perk_level
-            elif hp.perk_name:
-                effect = PERK_EFFECTS.get(hp.perk_name)
-                if effect:
-                    stat_name = effect.get("stat")
-                    if stat_name in stats:
-                        stats[stat_name] += hp.perk_level
-        return stats
+        rewards: Dict[str, Any] = {}
+        return BattleResult(
+            winner,
+            log,
+            rewards,
+            [f["hero"].id for f in alive_a],
+            [f["hero"].id for f in alive_b],
+        )
 
-    def calculate_damage(self, attacker, defender):
-        atk = attacker["stats"]["strength"]
-        defense = defender["stats"]["defense"]
-        luck = attacker["stats"]["luck"]
-        dodge = defender["stats"]["luck"]
-        # Крит/ухилення
-        is_crit = random.random() < (luck / 100)
-        is_miss = random.random() < (dodge / 150)
-        base_dmg = max(1, atk - int(defense * 0.7))
+    @staticmethod
+    def _calculate_damage(
+        attacker: Dict, defender: Dict, rng: random.Random
+    ) -> tuple:
+        """Deterministic damage using seeded RNG and v2 stats."""
+        atk_stats = attacker["stats"]
+        def_stats = defender["stats"]
+
+        attack_power = atk_stats["stamina"] * 1.2 + atk_stats["willpower"] * 0.3
+        defense_val = def_stats["defense"]
+
+        luck_atk = atk_stats["luck"]
+        luck_def = def_stats["luck"]
+
+        is_crit = rng.random() < (luck_atk / 100)
+        is_miss = rng.random() < (luck_def / 150)
+
+        base_dmg = max(1, int(attack_power - defense_val * 0.7))
         if is_crit:
             base_dmg *= 2
         if is_miss:
             base_dmg = 0
-        return base_dmg, is_crit, is_miss 
+        return base_dmg, is_crit, is_miss

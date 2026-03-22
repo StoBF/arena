@@ -243,13 +243,13 @@ func _load_data() -> void:
 		if not h is Dictionary:
 			continue
 		var hero := h as Dictionary
-		if not bool(hero.get("is_dead", false)) and not bool(hero.get("is_training", false)):
+		if not bool(hero.get("is_dead", false)):
 			_heroes.append(hero)
 
 	for h in _heroes:
 		if h is Dictionary:
-			_hero_list.add_item("%s  (Lv.%s)" % [
-				str(h.get("name", "?")), str(h.get("level", "?"))])
+			_hero_list.add_item("%s  (Gen %s)" % [
+				str(h.get("name", "?")), str(h.get("hero_generation_level", "?"))])
 	_status_label.text = _tx("ui.boss_raid.status", "%d bosses · %d heroes") % [_bosses.size(), _heroes.size()]
 
 # ---------------------------------------------------------------------------

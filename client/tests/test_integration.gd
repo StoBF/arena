@@ -15,7 +15,7 @@ func test_crafting_updates_server():
     var token = "<your-test-token>"  # replace with a valid token for manual run
     Network.set_auth_header(token)
     var completed = false
-    var req = Network.request("/workshop/craft/1", HTTPClient.METHOD_POST, {})
+    var req = Network.request("/craft/start", HTTPClient.METHOD_POST, {"recipe_id": 1})
     req.request_completed.connect(func(result, code, hdrs, body):
         assert_eq(code, 200)
         completed = true
@@ -48,7 +48,7 @@ func test_equipping_updates_server_stats():
 func test_error_conditions_are_handled():
     # attempt to craft nonexistent recipe
     var completed = false
-    var req = Network.request("/workshop/craft/999999", HTTPClient.METHOD_POST, {})
+    var req = Network.request("/craft/start", HTTPClient.METHOD_POST, {"recipe_id": 999999})
     req.request_completed.connect(func(result, code, hdrs, body):
         assert_eq(code, 400)
         completed = true

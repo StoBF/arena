@@ -15,19 +15,19 @@ const TEAM_SIZE := {"1v1": 1, "5v5": 5}
 const HERO_CARD_MIN := Vector2(130, 160)
 
 ## Filter options
-enum HeroFilter { ALL, HEALTHY, INJURED, HIGH_LEVEL, AVAILABLE_ONLY }
+enum HeroFilter { ALL, HEALTHY, INJURED, HIGH_GEN, AVAILABLE_ONLY }
 const FILTER_LABELS := {
 	HeroFilter.ALL: "All",
 	HeroFilter.HEALTHY: "Healthy",
 	HeroFilter.INJURED: "Injured",
-	HeroFilter.HIGH_LEVEL: "High Level",
+	HeroFilter.HIGH_GEN: "High Gen",
 	HeroFilter.AVAILABLE_ONLY: "Available",
 }
 
 ## Sort options
-enum HeroSort { LEVEL, POWER, WINS }
+enum HeroSort { GEN_LEVEL, POWER, WINS }
 const SORT_LABELS := {
-	HeroSort.LEVEL: "Level",
+	HeroSort.GEN_LEVEL: "Gen Level",
 	HeroSort.POWER: "Power",
 	HeroSort.WINS: "Wins",
 }
@@ -58,7 +58,7 @@ var _filtered_heroes: Array = []     # after filter + sort
 var _mode: String = "1v1"
 var _queue_state: int = QueueState.IDLE
 var _active_filter: int = HeroFilter.ALL
-var _active_sort: int = HeroSort.LEVEL
+var _active_sort: int = HeroSort.GEN_LEVEL
 var _team_slots: Array = []          # TeamSlotCard refs
 var _hero_cards: Array = []          # hero grid card panels
 var _warnings: Array = []
@@ -463,7 +463,7 @@ func _load_heroes() -> void:
 
 
 func _on_heroes_updated(_heroes: Array) -> void:
-	# Refresh if the global hero list changes (e.g. after healing / training)
+	# Refresh if the global hero list changes (e.g. after healing)
 	_all_heroes = _heroes.duplicate(true)
 	_apply_filter_and_sort()
 	_render_hero_grid()
@@ -496,23 +496,23 @@ func _apply_filter_and_sort() -> void:
 
 	# --- Sort ---
 	match _active_sort:
-		HeroSort.LEVEL:
+		HeroSort.GEN_LEVEL:
 			_filtered_heroes.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-				return int(a.get("level", 0)) > int(b.get("level", 0)))
+				return int(a.get("hero_generation_level", 0)) > int(b.get("hero_generation_level", 0)))
 		HeroSort.POWER:
 			_filtered_heroes.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-				return int(a.get("power", a.get("strength", 0))) > int(b.get("power", b.get("strength", 0))))
+				var sa: Dictionary = a.get("stats", {})
+				var sb: Dictionary = b.get("stats", {})
+				return _stat_total(sa) > _stat_total(sb))
 		HeroSort.WINS:
 			_filtered_heroes.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-				return int(a.get("wins", 0)) > int(b.get("wins", 0)))
+				return int(a.get("total_kills", 0)) > int(b.get("total_kills", 0)))
 
 
 func _passes_filter(hero: Dictionary) -> bool:
 	var status: String = str(hero.get("status", "idle")).to_lower()
 	var is_dead: bool = bool(hero.get("is_dead", false))
-	var is_training: bool = bool(hero.get("is_training", false))
 	var is_healing: bool = bool(hero.get("is_healing", false))
-	var level: int = int(hero.get("level", 1))
 	var hp: int = int(hero.get("current_hp", hero.get("hp", 100)))
 	var max_hp: int = int(hero.get("max_hp", 100))
 
@@ -520,13 +520,13 @@ func _passes_filter(hero: Dictionary) -> bool:
 		HeroFilter.ALL:
 			return true
 		HeroFilter.HEALTHY:
-			return not is_dead and not is_training and not is_healing and hp > 0
+			return not is_dead and not is_healing and hp > 0
 		HeroFilter.INJURED:
 			return (hp < max_hp and hp > 0) or status == "injured"
-		HeroFilter.HIGH_LEVEL:
-			return level >= 10
+		HeroFilter.HIGH_GEN:
+			return int(hero.get("hero_generation_level", 1)) >= 5
 		HeroFilter.AVAILABLE_ONLY:
-			return not is_dead and not is_training and not is_healing \
+			return not is_dead and not is_healing \
 				and status in ["idle", "healthy", ""] \
 				and not _is_hero_in_team(int(hero.get("id", -1)))
 	return true
@@ -611,7 +611,7 @@ func _create_hero_card(hero: Dictionary) -> PanelContainer:
 
 	# Level
 	var level_lbl := Label.new()
-	level_lbl.text = "Lv. %s" % str(hero.get("level", "?"))
+	level_lbl.text = "Gen %s" % str(hero.get("hero_generation_level", "?"))
 	level_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	level_lbl.add_theme_font_size_override("font_size", 11)
 	level_lbl.add_theme_color_override("font_color", Color(0.6, 0.63, 0.72))
@@ -620,16 +620,12 @@ func _create_hero_card(hero: Dictionary) -> PanelContainer:
 	# Status line
 	var status_str: String = str(hero.get("status", "idle")).to_lower()
 	var is_dead: bool = bool(hero.get("is_dead", false))
-	var is_training: bool = bool(hero.get("is_training", false))
 	var is_healing: bool = bool(hero.get("is_healing", false))
 	var display_status: String = ""
 	var status_color := Color(0.5, 0.55, 0.62)
 	if is_dead:
 		display_status = "Dead"
 		status_color = Color(0.85, 0.25, 0.25)
-	elif is_training:
-		display_status = "Training"
-		status_color = Color(0.3, 0.65, 0.9)
 	elif is_healing:
 		display_status = "Healing"
 		status_color = Color(0.3, 0.85, 0.45)
@@ -646,8 +642,9 @@ func _create_hero_card(hero: Dictionary) -> PanelContainer:
 		vb.add_child(s_lbl)
 
 	# Stats (power / wins)
-	var power: int = int(hero.get("power", hero.get("strength", 0)))
-	var wins: int = int(hero.get("wins", 0))
+	var stats_dict: Dictionary = hero.get("stats", {})
+	var power: int = _stat_total(stats_dict)
+	var wins: int = int(hero.get("total_kills", 0))
 	var stats_lbl := Label.new()
 	stats_lbl.text = "PWR %d  W %d" % [power, wins]
 	stats_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -731,9 +728,8 @@ func _is_hero_unavailable(hero_id: int, hero: Dictionary) -> bool:
 	if hero.is_empty():
 		return true
 	var is_dead: bool = bool(hero.get("is_dead", false))
-	var is_training: bool = bool(hero.get("is_training", false))
 	var is_healing: bool = bool(hero.get("is_healing", false))
-	return is_dead or is_training or is_healing
+	return is_dead or is_healing
 
 
 func _is_hero_in_team(hero_id: int) -> bool:
@@ -758,8 +754,6 @@ func _assign_hero_to_team(hero: Dictionary) -> void:
 		var reason: String = ""
 		if bool(hero.get("is_dead", false)):
 			reason = "dead"
-		elif bool(hero.get("is_training", false)):
-			reason = "training"
 		elif bool(hero.get("is_healing", false)):
 			reason = "healing"
 		UIUtils.show_warning("Hero is %s and cannot join the team" % reason)
@@ -807,7 +801,7 @@ func _on_autofill_pressed() -> void:
 		available.append(hero)
 
 	available.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return int(a.get("power", a.get("strength", 0))) > int(b.get("power", b.get("strength", 0))))
+		return _stat_total(a.get("stats", {})) > _stat_total(b.get("stats", {})))
 
 	var filled: int = 0
 	for slot in _team_slots:
@@ -839,15 +833,15 @@ func _update_preview() -> void:
 			continue
 		filled_count += 1
 		var hd: Dictionary = s.get_hero_data()
-		total_power += int(hd.get("power", hd.get("strength", 0)))
+		total_power += _stat_total(hd.get("stats", {}))
 		# Check for warnings
 		var hp: int = int(hd.get("current_hp", hd.get("hp", 100)))
 		var max_hp: int = int(hd.get("max_hp", 100))
-		var level: int = int(hd.get("level", 1))
+		var gen_level: int = int(hd.get("hero_generation_level", 1))
 		if max_hp > 0 and hp < max_hp:
 			_warnings.append("⚠ %s is injured (%d/%d HP)" % [str(hd.get("name", "Hero")), hp, max_hp])
-		if level < 5:
-			_warnings.append("⚠ %s is low level (%d)" % [str(hd.get("name", "Hero")), level])
+		if gen_level < 5:
+			_warnings.append("⚠ %s has low gen level (%d)" % [str(hd.get("name", "Hero")), gen_level])
 
 	if filled_count < required:
 		_warnings.insert(0, "⚠ Need %d more hero%s" % [required - filled_count, "" if (required - filled_count) == 1 else "es"])
@@ -939,6 +933,14 @@ func _hero_portrait_color(hero_name: String) -> Color:
 	var g: float = (((h >> 8) & 0xFF) as float) / 255.0 * 0.3 + 0.12
 	var b: float = (((h >> 16) & 0xFF) as float) / 255.0 * 0.3 + 0.15
 	return Color(r, g, b, 0.85)
+
+
+## Sum all 8 v2 core stats to produce a single power number.
+static func _stat_total(stats: Dictionary) -> int:
+	var total: int = 0
+	for key: String in ["stamina", "strength", "willpower", "reflex", "resilience", "focus", "adaptability", "luck"]:
+		total += int(stats.get(key, 0))
+	return total
 
 
 func _section_style() -> StyleBoxFlat:

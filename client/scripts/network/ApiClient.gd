@@ -37,12 +37,9 @@ func get_user() -> Dictionary:
 func get_heroes() -> Dictionary:
 	return await request_get(get_hero_collection_path())
 
-func create_hero(hero_name: String, investment: int) -> Dictionary:
+func create_hero(hero_name: String, _investment: int = 0) -> Dictionary:
 	return await request_post("/heroes/generate", {
-		"generation": 1,
-		"currency": maxf(0.0, float(investment)),
 		"locale": _resolve_locale(),
-		"name": hero_name,
 	})
 
 func get_auction_lots(filters: Dictionary = {}) -> Dictionary:
@@ -115,18 +112,6 @@ func buyout(lot_id: int) -> Dictionary:
 	return await request_post("/auction/buy", {
 		"lot_id": lot_id,
 	})
-
-# ---------------------------------------------------------------------------
-# Training
-# ---------------------------------------------------------------------------
-
-func start_training(hero_id: int, duration_minutes: int = 60) -> Dictionary:
-	return await request_post("/heroes/%d/train" % hero_id, {
-		"duration_minutes": duration_minutes,
-	})
-
-func complete_training(hero_id: int) -> Dictionary:
-	return await request_post("/heroes/%d/complete_training" % hero_id)
 
 # ---------------------------------------------------------------------------
 # Healing (no dedicated server endpoint yet — uses hero status)
@@ -208,15 +193,6 @@ func raid_battle(instance_id: int) -> Dictionary:
 
 func raid_rewards(instance_id: int) -> Dictionary:
 	return await request_post("/raid/rewards/%d" % instance_id)
-
-# ---------------------------------------------------------------------------
-# Hero Perks
-# ---------------------------------------------------------------------------
-
-func upgrade_perk(hero_id: int, perk_id: int) -> Dictionary:
-	return await request_post("/heroes/%d/perks/upgrade" % hero_id, {
-		"perk_id": perk_id,
-	})
 
 func connect_chat() -> Dictionary:
 	return {

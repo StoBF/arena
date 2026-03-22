@@ -61,30 +61,6 @@ class AuctionLotOut(BaseModel):
     created_at: datetime = Field(...)
 
 
-class CreateAuctionLot(BaseModel):
-    # add fields as needed
-    pass
-
-class OutAuctionLot(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int = Field(...)
-    # add other fields as needed
-
-class BidCreate(BaseModel):
-    auction_id: int = Field(...)
-    amount: Decimal = Field(..., decimal_places=2)
-
-class BidOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int = Field(...)
-    auction_id: int = Field(...)
-    bidder_id: int = Field(...)
-    amount: Decimal = Field(...)
-    created_at: datetime = Field(...)
-
-
 class AutoBidCreate(BaseModel):
     auction_id: Optional[int] = Field(None)
     lot_id: Optional[int] = Field(None)

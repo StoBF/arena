@@ -1,73 +1,59 @@
 # app/services/hero.py
+"""
+Hero service — v2 (role-based, skill catalog, no training/XP).
+
+CRUD operations, generation orchestration, and relationship loading.
+"""
 
 from sqlalchemy.future import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from fastapi import HTTPException
-from app.database.models.hero import Hero, HeroPerk, HeroAbility
-from app.database.models.perk import Perk
-from app.database.models.models import Auction
+from app.database.models.hero import Hero
 from app.database.models.user import User
-from decimal import Decimal
 from app.services.base_service import BaseService
 from app.services.hero_generation import generate_hero
 from app.schemas.hero import (
-    HeroCreate,
     HeroOut,
     HeroRead,
     HeroGenerateRequest,
-    PerkOut,
-    HeroAbilityOut,
-    DerivedStats,
+    HeroStatsOut,
+    SkillDetailOut,
+    SkillCatalogOut,
+    SkillEffectOut,
+    HeroTagOut,
     BodyPartOut,
     HeroTitleOut,
     HeroHistoryOut,
+    DerivedStatsOut,
 )
 from app.core.derived_stats import compute_derived_for_hero
-from app.core.hero_config import MAX_HEROES, PRIMARY_STATS
+from app.core.hero_config import MAX_HEROES
 from app.core.events import emit
 from sqlalchemy.orm import joinedload, selectinload
 
+
 class HeroService(BaseService):
-    async def create_hero(self, name: str, owner_id: int):
-        res = await self.session.execute(
-            select(func.count()).select_from(Hero).where(Hero.owner_id == owner_id, Hero.is_deleted == False)
-        )
-        (count,) = res.one()
-        if count >= MAX_HEROES:
-            raise HTTPException(status_code=400, detail="Maximum heroes limit reached")
-        hero = Hero(name=name, owner_id=owner_id, is_deleted=False)
-        self.session.add(hero)
-        await self.commit_or_rollback()
-        await self.session.refresh(hero)
-        await emit("cache_invalidate", f"heroes:{owner_id}*")
-        return hero
+
+    # ── CRUD ──────────────────────────────────────────────────────
 
     async def get_hero(
         self,
         hero_id: int,
         only_active: bool = True,
-        load_perks: bool = False,
+        load_skills: bool = False,
         load_equipment: bool = False,
         load_body_parts: bool = False,
         load_titles: bool = False,
         load_history: bool = False,
+        load_tags: bool = False,
     ):
-        """Retrieve a hero optionally eager-loading relationships.
-
-        The extra flags are useful in async code where lazy-loading would
-        otherwise trigger I/O outside of a greenlet causing MissingGreenlet
-        errors in tests.
-        """
+        """Retrieve a hero, optionally eager-loading relationships."""
         query = select(Hero).where(Hero.id == hero_id)
-        # Soft-delete mixin adds default filter; only_active flag kept for clarity
-        if load_perks:
-            query = query.options(joinedload(Hero.perks))
+        if load_skills:
+            query = query.options(selectinload(Hero.skills))
         if load_equipment:
-            # import here to avoid circular import
             from app.database.models.models import Equipment
-
             query = query.options(
                 joinedload(Hero.equipment_items).joinedload(Equipment.item)
             )
@@ -77,51 +63,43 @@ class HeroService(BaseService):
             query = query.options(selectinload(Hero.titles))
         if load_history:
             query = query.options(selectinload(Hero.history_entries))
+        if load_tags:
+            query = query.options(selectinload(Hero.tags))
         result = await self.session.execute(query)
         return result.scalars().first()
 
     async def list_heroes(self, user_id: int = None, limit: int = 10, offset: int = 0):
-        """
-        List heroes with pagination support.
-        
-        Args:
-            user_id: Filter by owner (optional)
-            limit: Number of items to return (max 100)
-            offset: Number of items to skip
-            
-        Returns:
-            dict with items, total, limit, offset
-        """
-        from sqlalchemy.orm import joinedload
-        
-        # Enforce max limit
-        if limit > 100:
-            limit = 100
-        if limit < 1:
-            limit = 1
-        if offset < 0:
-            offset = 0
-        
-        # Get total count
+        """List heroes with pagination support."""
+        limit = max(1, min(limit, 100))
+        offset = max(0, offset)
+
         count_query = select(func.count()).select_from(Hero)
         if user_id is not None:
             count_query = count_query.where(Hero.owner_id == user_id)
         total_result = await self.session.execute(count_query)
         total = total_result.scalars().first() or 0
-        
-        # Get paginated items
-        query = select(Hero).options(joinedload(Hero.perks), joinedload(Hero.equipment_items))
+
+        query = (
+            select(Hero)
+            .options(
+                joinedload(Hero.stats),
+                selectinload(Hero.skills),
+                selectinload(Hero.tags),
+                selectinload(Hero.body_parts),
+                selectinload(Hero.titles),
+            )
+        )
         if user_id is not None:
             query = query.where(Hero.owner_id == user_id)
         query = query.limit(limit).offset(offset)
         result = await self.session.execute(query)
         items = result.unique().scalars().all()
-        
+
         return {
             "items": items,
             "total": total,
             "limit": limit,
-            "offset": offset
+            "offset": offset,
         }
 
     async def update_hero(self, hero_id: int, name: str, user_id: int):
@@ -157,24 +135,26 @@ class HeroService(BaseService):
         await emit("cache_invalidate", f"heroes:{user_id}*")
         return hero
 
+    # ── Generation ───────────────────────────────────────────────
+
     async def generate_and_store(self, owner_id: int, req: HeroGenerateRequest):
-        """
-        Generate and store hero with atomic transaction.
-        CRITICAL: Combines user balance deduction and hero creation atomically.
-        No partial commits: balance deducted AND hero created together, or neither.
+        """Generate and store hero with atomic transaction.
+
+        Locks the user row, checks hero limit, generates the hero,
+        and commits atomically.
         """
         tx = self._txn()
         async with tx:
-            # Lock user row immediately to prevent concurrent hero creation
+            # Lock user row to prevent concurrent hero creation
             user_result = await self.session.execute(
                 select(User)
                 .where(User.id == owner_id)
-                .with_for_update()  # PESSIMISTIC LOCK ON USER
+                .with_for_update()
             )
             user = user_result.scalars().first()
             if not user:
                 raise HTTPException(404, "User not found")
-            
+
             # Check hero limit
             res = await self.session.execute(
                 select(func.count()).select_from(Hero)
@@ -183,114 +163,76 @@ class HeroService(BaseService):
             (count,) = res.one()
             if count >= MAX_HEROES:
                 raise HTTPException(400, "Maximum heroes limit reached")
-            
-            # Ensure currency is Decimal for safe arithmetic
-            currency = Decimal(req.currency)
-            # Generate hero data (generates attributes, perks, nickname, archetype, abilities)
+
+            # Generate hero (v2 engine)
             new_hero = await generate_hero(
                 self.session,
                 owner_id,
-                req.generation,
-                currency,
-                req.locale,
-                preferred_archetype=getattr(req, "archetype", None),
+                locale=req.locale,
+                seed=req.seed,
             )
-            
-            # Deduct currency from user balance (WITHIN TRANSACTION)
-            # User is locked, so no race condition
-            # Cost is 100 times the currency request (in Decimal for precision)
-            cost = Decimal(100) * currency
-            from app.services.accounting import AccountingService
-            # adjust_balance will validate funds and record ledger entry
-            await AccountingService(self.session).adjust_balance(owner_id, -cost, "hero_generation", reference_id=None, field="balance")
             # Transaction auto-commits on success
-        
+
         await self.session.refresh(new_hero)
         await emit("cache_invalidate", f"heroes:{owner_id}*")
         return new_hero
 
-    async def send_offline_messages(self, user_id: int, websocket: str):
-        from app.services.notification import NotificationService
-        await NotificationService.send_offline_messages(user_id, websocket)
+    # ── Read with relationships ──────────────────────────────────
 
-    async def add_experience(self, hero_id: int, amount: int):
-        hero = await self.get_hero(hero_id)
-        if not hero:
-            raise HTTPException(status_code=404, detail="Hero not found")
-        hero.experience += amount
-        # Формула для наступного рівня: exp = 100 * (level ** 1.5)
-        leveled_up = False
-        while hero.experience >= int(100 * (hero.level ** 1.5)):
-            hero.experience -= int(100 * (hero.level ** 1.5))
-            hero.level += 1
-            leveled_up = True
-        await self.commit_or_rollback()
-        await self.session.refresh(hero)
-        await emit("cache_invalidate", f"heroes:{hero.owner_id}*")
-        return hero, leveled_up
-
-    async def get_total_stats(self, hero_id: int):
-        """Return primary stats + equipment bonuses + derived stats."""
-        hero = await self.get_hero(hero_id, load_equipment=True)
-        if not hero:
-            raise HTTPException(status_code=404, detail="Hero not found")
-        # Base primary attributes
-        stats = {stat: getattr(hero, stat, 0) or 0 for stat in PRIMARY_STATS}
-        # Equipment bonuses
-        equipment_bonuses: dict[str, int] = {}
-        for eq in hero.equipment_items:
-            item = eq.item
-            for stat in PRIMARY_STATS:
-                bonus = getattr(item, f"bonus_{stat}", 0)
-                if bonus:
-                    equipment_bonuses[stat] = equipment_bonuses.get(stat, 0) + bonus
-                    stats[stat] += bonus
-        # Compute derived
-        derived = compute_derived_for_hero(hero, equipment_bonuses)
-        stats["derived"] = derived.model_dump()
-        return stats
-
-    def get_nickname(self, hero, perks=None, locale="en"):
-        from app.core.hero_config import NICKNAME_MAP
-        attrs = {stat: getattr(hero, stat, 0) or 0 for stat in PRIMARY_STATS}
-        max_attr = max(attrs.items(), key=lambda x: x[1])
-        trait_key = max_attr[0]
-        if perks:
-            max_perk = max(perks, key=lambda x: x[1]) if perks else (None, 0)
-            if max_perk[1] >= 100 or (max_perk[1] > max_attr[1] + 10):
-                trait_key = max_perk[0]
-        return NICKNAME_MAP.get(locale, NICKNAME_MAP["en"]).get(trait_key, "the Hero")
-
-    async def get_hero_with_perks(self, hero_id: int) -> HeroRead:
-        """Return a hero with related data and derived stats."""
+    async def get_hero_full(self, hero_id: int) -> HeroRead:
+        """Return a hero with all related data and derived stats."""
         hero = await self.get_hero(
             hero_id,
-            load_perks=True,
+            load_skills=True,
             load_body_parts=True,
             load_titles=True,
             load_history=True,
+            load_tags=True,
         )
         if not hero:
             raise HTTPException(status_code=404, detail="Hero not found")
-        # Perks
-        perks = []
-        for hp in hero.perks:
-            perk = await self.session.get(Perk, hp.perk_id)
-            if perk:
-                perks.append(PerkOut(
-                    id=perk.id,
-                    name=perk.name,
-                    description=perk.description,
-                    effect_type=perk.effect_type,
-                    max_level=perk.max_level,
-                    modifiers=perk.modifiers or {},
-                    affected=perk.affected or [],
-                    perk_level=hp.perk_level
-                ))
-        # Abilities (selectin loaded by default)
-        abilities_out = [
-            HeroAbilityOut.model_validate(ab, from_attributes=True)
-            for ab in (hero.abilities or [])
+
+        stats_out = None
+        if hero.stats:
+            stats_out = HeroStatsOut.model_validate(hero.stats, from_attributes=True)
+
+        # ── Build rich skill output ──────────────────────────────
+        skills_out: list[SkillDetailOut] = []
+        for sk in (hero.skills or []):
+            # Catalog metadata (joined via HeroSkill.catalog_entry)
+            catalog_out = None
+            if sk.catalog_entry:
+                catalog_out = SkillCatalogOut.model_validate(
+                    sk.catalog_entry, from_attributes=True,
+                )
+
+            # Normalised effects (selectin-loaded via HeroSkill.effects)
+            effects_out = [
+                SkillEffectOut.model_validate(eff, from_attributes=True)
+                for eff in (sk.effects or [])
+            ]
+
+            skills_out.append(SkillDetailOut(
+                id=sk.id,
+                skill_code=sk.skill_code,
+                slot_index=sk.slot_index,
+                is_signature=sk.is_signature,
+                source_type=sk.source_type.value if hasattr(sk.source_type, "value") else str(sk.source_type),
+                generation_level=sk.generation_level,
+                cost_generation_level=sk.cost_generation_level,
+                power_value=sk.power_value,
+                duration_value=sk.duration_value,
+                cooldown_value=sk.cooldown_value,
+                stamina_cost_value=sk.stamina_cost_value,
+                radius_value=sk.radius_value,
+                upgrade_count=sk.upgrade_count,
+                payload_json=sk.payload_json,
+                catalog=catalog_out,
+                effects=effects_out,
+            ))
+        tags_out = [
+            HeroTagOut.model_validate(t, from_attributes=True)
+            for t in (hero.tags or [])
         ]
         body_parts_out = [
             BodyPartOut.model_validate(bp, from_attributes=True)
@@ -304,39 +246,71 @@ class HeroService(BaseService):
             HeroHistoryOut.model_validate(entry, from_attributes=True)
             for entry in (hero.history_entries or [])
         ]
+
         # Derived stats
         derived = compute_derived_for_hero(hero)
-        hero_dict = HeroRead.model_validate(hero, from_attributes=True).model_dump()
-        hero_dict["perks"] = perks
-        hero_dict["abilities"] = abilities_out
+        derived_out = DerivedStatsOut(
+            max_hp=derived.max_hp,
+            initiative=derived.initiative,
+            accuracy=derived.accuracy,
+            evasion=derived.evasion,
+            critical_chance=derived.critical_chance,
+            critical_resistance=derived.critical_resistance,
+            armor_efficiency=derived.armor_efficiency,
+            recovery_speed=derived.recovery_speed,
+            trauma_resistance=derived.trauma_resistance,
+        )
+
+        hero_dict = HeroOut.model_validate(hero, from_attributes=True).model_dump()
+        hero_dict["stats"] = stats_out
+        hero_dict["skills"] = skills_out
+        hero_dict["tags"] = tags_out
         hero_dict["body_parts"] = body_parts_out
         hero_dict["titles"] = titles_out
         hero_dict["history"] = history_out
-        hero_dict["derived_stats"] = derived
+        hero_dict["derived_stats"] = derived_out
         return HeroRead(**hero_dict)
 
-    async def upgrade_perk(self, hero_id: int, perk_id: int, user_id: int, max_level: int = 100):
-        # first ensure the hero exists and belongs to the caller; we don't
-        # need to load its perks here since we'll query them separately.
-        hero = await self.get_hero(hero_id)
-        if not hero or hero.owner_id != user_id:
-            raise HTTPException(status_code=404, detail="Hero not found or not yours")
-        # query specific hero perk row instead of iterating lazy-loaded list
-        from app.database.models.hero import HeroPerk
+    async def get_total_stats(self, hero_id: int):
+        """Return core stats + equipment bonuses + derived stats."""
+        hero = await self.get_hero(hero_id, load_equipment=True)
+        if not hero:
+            raise HTTPException(status_code=404, detail="Hero not found")
 
-        result = await self.session.execute(
-            select(HeroPerk).where(
-                HeroPerk.hero_id == hero_id,
-                HeroPerk.perk_id == perk_id,
-            )
-        )
-        perk = result.scalars().first()
-        if not perk:
-            raise HTTPException(status_code=404, detail="Perk not found for this hero")
-        if perk.perk_level >= max_level:
-            raise HTTPException(status_code=400, detail=f"Perk already at max level {max_level}")
-        perk.perk_level += 1
-        await self.commit_or_rollback()
-        await self.session.refresh(perk)
-        await emit("cache_invalidate", f"heroes:{user_id}*")
-        return perk
+        from app.core.generation_config import CORE_STATS
+
+        base_stats = {}
+        if hero.stats:
+            base_stats = {stat: getattr(hero.stats, stat, 0) or 0 for stat in CORE_STATS}
+        else:
+            base_stats = {stat: 0 for stat in CORE_STATS}
+
+        # Equipment bonuses
+        equipment_bonuses: dict[str, int] = {}
+        for eq in hero.equipment_items:
+            item = eq.item
+            for stat in CORE_STATS:
+                bonus = getattr(item, f"bonus_{stat}", 0)
+                if bonus:
+                    equipment_bonuses[stat] = equipment_bonuses.get(stat, 0) + bonus
+                    base_stats[stat] += bonus
+
+        # Compute derived
+        derived = compute_derived_for_hero(hero, equipment_bonuses)
+        result = dict(base_stats)
+        result["derived"] = {
+            "max_hp": derived.max_hp,
+            "initiative": derived.initiative,
+            "accuracy": derived.accuracy,
+            "evasion": derived.evasion,
+            "critical_chance": derived.critical_chance,
+            "critical_resistance": derived.critical_resistance,
+            "armor_efficiency": derived.armor_efficiency,
+            "recovery_speed": derived.recovery_speed,
+            "trauma_resistance": derived.trauma_resistance,
+        }
+        return result
+
+    async def send_offline_messages(self, user_id: int, websocket: str):
+        from app.services.notification import NotificationService
+        await NotificationService.send_offline_messages(user_id, websocket)

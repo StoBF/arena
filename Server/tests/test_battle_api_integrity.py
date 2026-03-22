@@ -20,21 +20,9 @@ def _auth_headers(token: str) -> dict:
 async def _create_hero(async_session, owner_id: int, name: str) -> Hero:
     hero = Hero(
         name=name,
-        generation=1,
-        nickname=name,
-        strength=12,
-        agility=8,
-        intelligence=5,
-        endurance=10,
-        speed=9,
-        health=50,
-        defense=7,
-        luck=3,
-        field_of_view=6,
-        level=1,
-        experience=0,
-        locale="en",
         owner_id=owner_id,
+        primary_role="STRIKER",
+        locale="en",
     )
     async_session.add(hero)
     await async_session.commit()

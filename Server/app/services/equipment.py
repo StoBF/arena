@@ -10,6 +10,8 @@ class EquipmentService(BaseService):
         Equip item to hero with atomic transaction.
         Handles auto-swap of old equipment atomically.
         """
+        # Normalise slot to string for DB column comparisons
+        slot_str = slot.value if hasattr(slot, "value") else str(slot)
         async with self._txn():
             # Lock stash entry to check availability
             stash_result = await self.session.execute(
@@ -26,13 +28,13 @@ class EquipmentService(BaseService):
                 select(Item).where(Item.id == item_id)
             )
             item = item_result.scalars().first()
-            if not item or item.slot_type != slot:
+            if not item or item.slot_type != slot_str:
                 raise HTTPException(400, "Item cannot be equipped to this slot")
             
             # Check for existing equipment in slot (and lock if exists)
             old_eq_result = await self.session.execute(
                 select(Equipment)
-                .where(Equipment.hero_id == hero_id, Equipment.slot == slot)
+                .where(Equipment.hero_id == hero_id, Equipment.slot == slot_str)
                 .with_for_update()  # Lock old equipment if exists
             )
             old_eq = old_eq_result.scalars().first()
@@ -61,7 +63,7 @@ class EquipmentService(BaseService):
                 await self.session.delete(stash_entry)
             
             # Create new equipment record (within transaction)
-            equipment = Equipment(hero_id=hero_id, item_id=item_id, slot=slot)
+            equipment = Equipment(hero_id=hero_id, item_id=item_id, slot=slot_str)
             self.session.add(equipment)
             await self.session.flush()
             # Transaction auto-commits
@@ -74,11 +76,12 @@ class EquipmentService(BaseService):
         Unequip item from hero with atomic transaction.
         Ensures equipment and stash stay synchronized.
         """
+        slot_str = slot.value if hasattr(slot, "value") else str(slot)
         async with self._txn():
             # Lock equipment for the slot (if exists)
             equipment_result = await self.session.execute(
                 select(Equipment)
-                .where(Equipment.hero_id == hero_id, Equipment.slot == slot)
+                .where(Equipment.hero_id == hero_id, Equipment.slot == slot_str)
                 .with_for_update()  # Lock equipment
             )
             equipment = equipment_result.scalars().first()

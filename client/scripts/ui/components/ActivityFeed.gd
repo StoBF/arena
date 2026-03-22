@@ -7,7 +7,6 @@ const MAX_ENTRIES := 50
 const ENTRY_COLORS := {
 	"battle":   Color(0.95, 0.45, 0.35),
 	"auction":  Color(0.85, 0.75, 0.4),
-	"training": Color(0.4, 0.7, 0.95),
 	"healing":  Color(0.45, 0.85, 0.75),
 	"craft":    Color(0.7, 0.55, 0.85),
 	"system":   Color(0.6, 0.63, 0.7),
@@ -40,7 +39,7 @@ func _ready() -> void:
 	_scroll.add_child(_entries_vbox)
 
 
-## Add an event entry. category: "battle", "auction", "training", "healing", "craft", "system"
+## Add an event entry. category: "battle", "auction", "healing", "craft", "system"
 func add_entry(text: String, category: String = "default") -> void:
 	var timestamp := Time.get_time_string_from_system().substr(0, 5)
 	var color: Color = ENTRY_COLORS.get(category, ENTRY_COLORS["default"])

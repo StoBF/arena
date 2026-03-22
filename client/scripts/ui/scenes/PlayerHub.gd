@@ -12,7 +12,6 @@ const MODULE_SCENES := {
 	"inventory": preload("res://scenes/modules/InventoryModule.tscn"),
 	"auction": preload("res://scenes/modules/AuctionModule.tscn"),
 	"craft": preload("res://scenes/modules/CraftModule.tscn"),
-	"training": preload("res://scenes/modules/TrainingModule.tscn"),
 	"healing": preload("res://scenes/modules/HealingModule.tscn"),
 	"arena": preload("res://scenes/modules/ArenaModule.tscn"),
 	"boss_raid": preload("res://scenes/modules/BossRaidModule.tscn"),
@@ -38,7 +37,6 @@ const INACTIVE_BUTTON_COLOR := Color(0, 0, 0, 0)              # transparent
 @onready var inventory_button: Button = $RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu/InventoryButton
 @onready var craft_button: Button     = $RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu/CraftButton
 @onready var auction_button: Button   = $RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu/AuctionButton
-@onready var training_button: Button  = $RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu/TrainingButton
 @onready var healing_button: Button   = $RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu/HealingButton
 @onready var arena_button: Button     = $RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu/ArenaButton
 @onready var boss_raid_button: Button = $RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu/BossRaidButton
@@ -117,7 +115,6 @@ func _build_sidebar_map() -> void:
 		inventory_button: "inventory",
 		craft_button: "craft",
 		auction_button: "auction",
-		training_button: "training",
 		healing_button: "healing",
 		arena_button: "arena",
 		boss_raid_button: "boss_raid",
@@ -318,7 +315,7 @@ func _refresh_chat_histories() -> void:
 func _apply_announcements() -> void:
 	if chat_panel.has_method("set_announcements"):
 		chat_panel.set_announcements([
-			_tx("ui.playerhub.announce_xp", "Double XP weekend starts Friday"),
+			_tx("ui.playerhub.announce_event", "New hero generation event this weekend"),
 			_tx("ui.playerhub.announce_tax", "Auction taxes reduced for 24h"),
 			_tx("ui.playerhub.announce_maintenance", "Server maintenance at 03:00 UTC"),
 		])

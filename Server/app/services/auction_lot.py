@@ -47,8 +47,8 @@ class AuctionLotService(BaseService):
             hero = hero_result.scalars().first()
             if not hero or hero.owner_id != seller_id:
                 raise HTTPException(403, "You do not own this hero")
-            if hero.is_dead or hero.is_training:
-                raise HTTPException(400, "Hero is dead or in training")
+            if hero.is_dead:
+                raise HTTPException(400, "Hero is dead")
             if hero.is_on_auction:
                 raise HTTPException(400, "Hero is already on auction")
             if hero.equipment_items:

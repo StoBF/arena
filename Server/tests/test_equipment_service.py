@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from app.database.session import Base
 from app.database.models.hero import Hero
+from sqlalchemy import select
 from app.database.models.models import Item, Stash, SlotType
 from app.services.equipment import EquipmentService
 
@@ -32,7 +33,7 @@ async def test_equip_and_unequip(db):
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    hero = Hero(name="Hero", generation=1, nickname="H", strength=10, agility=10, endurance=10, speed=10, health=50, defense=5, luck=5, field_of_view=5, level=1, experience=0, locale="en", owner_id=user.id)
+    hero = Hero(name="Hero", owner_id=user.id, primary_role="VANGUARD", locale="en")
     db.add(hero)
     await db.commit()
     await db.refresh(hero)
@@ -71,7 +72,7 @@ async def test_equip_invalid_slot(db):
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    hero = Hero(name="SlotHero", generation=1, nickname="S", strength=10, agility=10, endurance=10, speed=10, health=50, defense=5, luck=5, field_of_view=5, level=1, experience=0, locale="en", owner_id=user.id)
+    hero = Hero(name="SlotHero", owner_id=user.id, primary_role="VANGUARD", locale="en")
     db.add(hero)
     await db.commit()
     await db.refresh(hero)

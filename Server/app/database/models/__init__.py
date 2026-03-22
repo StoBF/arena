@@ -2,12 +2,21 @@
 # This package initializer ensures all sub-modules (models) are imported,
 # so that SQLAlchemy's metadata includes every model.
 from app.database.base import Base
-from .hero import Hero, HeroPerk, HeroAbility, HeroHistory, HeroBodyPart, HeroTrainingQueue, HeroCombatStats, HeroTitle, HeroResurrectionEvent, HeroArchetype, AbilityType, AbilityDomain, BodyPartStatus, TrainingType, TrainingStatus, HeroCondition
+from .hero import (
+    # ── Models ──────────────────────────────────────────────────────
+    Hero, HeroStats, HeroGenerationLayer, HeroTag,
+    SkillsCatalog, HeroSkill, HeroSkillEffect, HeroHiddenTrait,
+    HeroBodyPart, HeroCombatStats, HeroTitle,
+    HeroResurrectionEvent, HeroHistory,
+    # ── Enums ───────────────────────────────────────────────────────
+    HeroRole, SkillFamily, CastType, TargetType, TargetTeam,
+    SkillSourceType, HeroCondition, BodyPartStatus,
+)
 from .user import User
 from .perk import Perk
 from .resource import GameResource
 from .craft import CraftRecipe, CraftRecipeResource, CraftedItem, CraftQueue
-from .pve import MobTemplate, BossPerk, MobPerk, RaidArenaInstance, PvEBattleLog
+from .pve import MobTemplate, RaidArenaInstance, PvEBattleLog
 from .raid_boss import RaidBoss, RaidDropItem, RecipeDrop
 from .tournament import TournamentTemplate, TournamentInstance
 from .event import EventDefinition, EventInstance

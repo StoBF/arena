@@ -161,13 +161,6 @@ alignment = 0
 [node name="SidebarSep2" type="HSeparator" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
 layout_mode = 2
 
-[node name="TrainingButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
-custom_minimum_size = Vector2(0, 38)
-layout_mode = 2
-text = "Training"
-icon = ExtResource("10")
-alignment = 0
-
 [node name="HealingButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
@@ -280,7 +273,6 @@ size_flags_horizontal = 3
 
 [node name="QuickStatus" type="Label" parent="RootMargin/RootVBox/BodyRow/CenterArea/BottomBarPanel/BottomBarMargin/QuickActions"]
 layout_mode = 2
-text = ""
 
 [node name="RightSidebarPanel" type="PanelContainer" parent="RootMargin/RootVBox/BodyRow"]
 custom_minimum_size = Vector2(320, 0)

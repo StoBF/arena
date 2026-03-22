@@ -45,7 +45,7 @@ func _build_ui() -> void:
 	header.name = "ModuleHeader"
 	root.add_child(header)
 	if header.has_method("set_title"):
-		header.set_title(CabinetStyle.text("ui.craft.title", "Workshop"))
+		header.set_title(CabinetStyle.text("ui.craft.title", "Crafting"))
 	if header.has_signal("refresh_pressed"):
 		header.refresh_pressed.connect(_load_recipes)
 
@@ -157,7 +157,7 @@ func _on_craft_pressed() -> void:
 func _apply_translations() -> void:
 	var header: ModuleHeader = get_node_or_null("VBoxContainer/ModuleHeader") as ModuleHeader
 	if header != null:
-		header.set_title(CabinetStyle.text("ui.craft.title", "Workshop"))
+		header.set_title(CabinetStyle.text("ui.craft.title", "Crafting"))
 	if _craft_button != null:
 		_craft_button.text = CabinetStyle.text("ui.craft.craft_button", "Craft")
 	if _recipes.is_empty() and _empty_state != null and _empty_state.has_method("set_content"):

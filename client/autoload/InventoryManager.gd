@@ -348,23 +348,40 @@ func rollback_optimistic_equip(hero_id: int, slot_type: String, snapshot: Dictio
 	_emit_inventory_changed()
 
 func calculate_hero_preview_stats(hero_data: Dictionary, equipment: Dictionary) -> Dictionary:
+	# V2: extract core stats from the nested "stats" object
+	var core: Dictionary = hero_data.get("stats", {})
 	var stats: Dictionary = {
 		"name": hero_data.get("name", "Unknown Hero"),
-		"level": int(hero_data.get("level", 1)),
-		"power": int(hero_data.get("power", 0)),
-		"strength": int(hero_data.get("strength", 0)),
-		"agility": int(hero_data.get("agility", 0)),
-		"health": int(hero_data.get("health", 0))
+		"hero_generation_level": int(hero_data.get("hero_generation_level", 1)),
+		"stamina": int(core.get("stamina", 0)),
+		"strength": int(core.get("strength", 0)),
+		"willpower": int(core.get("willpower", 0)),
+		"reflex": int(core.get("reflex", 0)),
+		"resilience": int(core.get("resilience", 0)),
+		"focus": int(core.get("focus", 0)),
+		"adaptability": int(core.get("adaptability", 0)),
+		"luck": int(core.get("luck", 0)),
+	}
+
+	# Item bonuses map v1 item columns → v2 stat keys
+	var _bonus_map: Dictionary = {
+		"bonus_strength": "stamina",
+		"bonus_agility": "reflex",
+		"bonus_intelligence": "willpower",
+		"bonus_endurance": "resilience",
+		"bonus_speed": "adaptability",
+		"bonus_health": "strength",
+		"bonus_defense": "focus",
+		"bonus_luck": "luck",
 	}
 
 	for slot_name: Variant in equipment.keys():
 		if not (equipment[slot_name] is Dictionary):
 			continue
 		var item: Dictionary = equipment[slot_name]
-		stats["power"] = int(stats.get("power", 0)) + _item_power(item)
-		stats["strength"] = int(stats.get("strength", 0)) + int(item.get("strength_bonus", 0))
-		stats["agility"] = int(stats.get("agility", 0)) + int(item.get("agility_bonus", 0))
-		stats["health"] = int(stats.get("health", 0)) + int(item.get("health_bonus", 0))
+		for bonus_key: String in _bonus_map.keys():
+			var stat_key: String = _bonus_map[bonus_key]
+			stats[stat_key] = int(stats.get(stat_key, 0)) + int(item.get(bonus_key, 0))
 
 	return stats
 
@@ -462,16 +479,14 @@ func calculate_stat_delta_for_equip(hero_id: int, item_id: int, slot_type: Strin
 	var next_equipment: Dictionary = current_equipment.duplicate(true)
 	var item: Dictionary = get_item_by_id(item_id, hero_id)
 	if item.is_empty():
-		return {"power": 0, "strength": 0, "agility": 0, "health": 0}
+		return {"stamina": 0, "strength": 0, "willpower": 0, "reflex": 0, "resilience": 0, "focus": 0, "adaptability": 0, "luck": 0}
 	next_equipment[slot_type] = item
 	var after_stats: Dictionary = calculate_hero_preview_stats(hero_data, next_equipment)
 
-	return {
-		"power": int(after_stats.get("power", 0)) - int(before_stats.get("power", 0)),
-		"strength": int(after_stats.get("strength", 0)) - int(before_stats.get("strength", 0)),
-		"agility": int(after_stats.get("agility", 0)) - int(before_stats.get("agility", 0)),
-		"health": int(after_stats.get("health", 0)) - int(before_stats.get("health", 0))
-	}
+	var delta: Dictionary = {}
+	for key: String in ["stamina", "strength", "willpower", "reflex", "resilience", "focus", "adaptability", "luck"]:
+		delta[key] = int(after_stats.get(key, 0)) - int(before_stats.get(key, 0))
+	return delta
 
 func _extract_items(parsed: Variant) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []

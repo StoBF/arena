@@ -1,3 +1,10 @@
+"""
+Action resolver — v2
+
+Deterministic single-action and PvP resolution using v2 hero stats
+(hero.stats relationship → HeroStats).  No perks, no leveling.
+Equipment bonuses are still read from hero.equipment_items.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,15 +15,20 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 
-from app.database.models.hero import Hero, HeroPerk
+from app.database.models.hero import Hero, HeroStats
 from app.database.models.models import Equipment
+from app.core.item_stat_map import ITEM_BONUS_STAT_MAP, equipment_stat_totals
 
 
 MAX_ROUNDS: int = 100
 TEAM_SIZE: int = 3
 
+
+# ───────────────────────────────────────────────────────────────────
+# Fighter
+# ───────────────────────────────────────────────────────────────────
 
 @dataclass
 class FighterState:
@@ -32,6 +44,10 @@ class FighterState:
     def alive(self) -> bool:
         return self.current_hp > 0
 
+
+# ───────────────────────────────────────────────────────────────────
+# Helpers
+# ───────────────────────────────────────────────────────────────────
 
 def _to_int(value: Any, default: int = 0) -> int:
     try:
@@ -56,161 +72,115 @@ def _entity_id(entity: Any, fallback: int = 0) -> int:
 
 
 def _get_stat(entity: Any, key: str, default: int = 0) -> int:
+    """
+    Get a v2 stat from an entity.  Works with Hero ORM objects (reads
+    from hero.stats relationship) and dicts (reads from stats sub-dict
+    or top-level).
+    """
     if isinstance(entity, dict):
+        # Try nested stats dict first, then top-level
+        base_stats = entity.get("stats") or entity.get("base_stats")
+        if isinstance(base_stats, dict) and key in base_stats:
+            return _to_int(base_stats.get(key), default)
         if key in entity:
             return _to_int(entity.get(key), default)
-        base_stats = entity.get("stats") or entity.get("base_stats")
-        if isinstance(base_stats, dict):
-            if key in base_stats:
-                return _to_int(base_stats.get(key), default)
-            if key == "vitality":
-                return _to_int(base_stats.get("endurance", default), default)
-            if key == "agility":
-                return _to_int(base_stats.get("speed", default), default)
-            if key == "strength":
-                return _to_int(base_stats.get("power", default), default)
-        if key == "level":
-            return _to_int(entity.get("level", 1), 1)
-        if key == "vitality":
-            return _to_int(entity.get("endurance", default), default)
-        if key == "agility":
-            return _to_int(entity.get("speed", default), default)
-        if key == "strength":
-            return _to_int(entity.get("power", default), default)
+        # v2 fallback: health is primary HP stat
         if key == "health":
-            base = _to_int(entity.get("health", 0), 0)
-            return base if base > 0 else max(20, _get_stat(entity, "vitality", 10) * 10)
+            return max(20, default)
         return default
 
     if isinstance(entity, int):
-        if key == "level":
-            return 1
         if key == "health":
             return 100
         return default
 
-    if key == "vitality":
-        return _to_int(getattr(entity, "endurance", default), default)
-    if key == "agility":
-        return _to_int(getattr(entity, "agility", getattr(entity, "speed", default)), default)
-    if key == "strength":
-        return _to_int(getattr(entity, "strength", default), default)
-    if key == "health":
-        base_health = _to_int(getattr(entity, "health", 0), 0)
-        if base_health > 0:
-            return base_health
-        return max(20, _get_stat(entity, "vitality", 10) * 10)
-    if key == "intelligence":
-        return _to_int(getattr(entity, "intelligence", default), default)
-    if key == "level":
-        return max(1, _to_int(getattr(entity, "level", 1), 1))
-    return _to_int(getattr(entity, key, default), default)
-
-
-def _extract_perks(entity: Any) -> List[HeroPerk]:
-    if isinstance(entity, dict):
-        return []
-    perks = getattr(entity, "perks", [])
-    return list(perks) if perks else []
-
-
-def _extract_equipment(entity: Any) -> List[Any]:
-    if isinstance(entity, dict):
-        return []
-    equipment = getattr(entity, "equipment_items", [])
-    return list(equipment) if equipment else []
-
-
-def _perk_bonus(entity: Any, kind: str) -> float:
-    bonus: float = 0.0
-    for hp in _extract_perks(entity):
-        level = max(1, _to_int(getattr(hp, "perk_level", 1), 1))
-        perk = getattr(hp, "perk", None)
-        modifiers = getattr(perk, "modifiers", None) if perk is not None else None
-        if isinstance(modifiers, dict):
-            if kind == "attack":
-                bonus += _to_float(modifiers.get("strength", 0)) * level
-                bonus += _to_float(modifiers.get("damage", 0)) * level
-            if kind == "defense":
-                bonus += _to_float(modifiers.get("defense", 0)) * level
-                bonus += _to_float(modifiers.get("endurance", 0)) * level
-            if kind == "agility":
-                bonus += _to_float(modifiers.get("agility", 0)) * level
-            if kind == "dodge":
-                bonus += _to_float(modifiers.get("dodge", 0)) * level
-            continue
-
-        perk_name = str(getattr(hp, "perk_name", "") or getattr(perk, "name", "")).lower()
-        if not perk_name:
-            continue
-        if kind == "attack" and ("gunner" in perk_name or "berserk" in perk_name or "slayer" in perk_name):
-            bonus += 2.0 * level
-        elif kind == "defense" and ("defender" in perk_name or "guardian" in perk_name or "shield" in perk_name):
-            bonus += 2.0 * level
-        elif kind == "agility" and ("trickster" in perk_name or "assassin" in perk_name or "swift" in perk_name):
-            bonus += 1.5 * level
-        elif kind == "dodge" and ("trickster" in perk_name or "evasion" in perk_name):
-            bonus += 1.0 * level
-    return bonus
+    # ORM Hero — read from stats relationship
+    stats_obj = getattr(entity, "stats", None)
+    if stats_obj is not None and hasattr(stats_obj, key):
+        return _to_int(getattr(stats_obj, key, default), default)
+    # Direct attribute fallback
+    if hasattr(entity, key):
+        return _to_int(getattr(entity, key, default), default)
+    return default
 
 
 def _equipment_bonus(entity: Any, kind: str) -> float:
+    """Sum equipment stat bonuses relevant to attack, defense, or agility.
+
+    Uses ``equipment_stat_totals()`` which maps v1 Item column names
+    to v2 stat keys via ``ITEM_BONUS_STAT_MAP``.
+    """
     bonus: float = 0.0
-    for eq in _extract_equipment(entity):
-        item = getattr(eq, "item", None)
-        if item is None:
-            continue
-        slot = str(getattr(eq, "slot", "") or "").lower()
-        if kind == "attack":
-            attack = _to_float(getattr(item, "bonus_strength", 0))
-            attack += _to_float(getattr(item, "bonus_intelligence", 0)) * 0.5
+    if isinstance(entity, (dict, int)):
+        return bonus
+    equipment = getattr(entity, "equipment_items", [])
+    if not equipment:
+        return bonus
+
+    totals = equipment_stat_totals(equipment)
+
+    if kind == "attack":
+        # Offensive: stamina (was strength+endurance) + willpower (was intelligence)
+        attack = float(totals.get("stamina", 0))
+        attack += float(totals.get("willpower", 0)) * 0.5
+        # Weapon slot multiplier
+        for eq in equipment:
+            slot = str(getattr(eq, "slot", "") or "").lower()
             if slot == "weapon":
                 attack *= 1.35
-            bonus += attack
-        elif kind == "defense":
-            def_bonus = _to_float(getattr(item, "bonus_defense", 0))
-            def_bonus += _to_float(getattr(item, "bonus_health", 0)) * 0.1
+                break
+        bonus = attack
+    elif kind == "defense":
+        def_bonus = float(totals.get("defense", 0))
+        def_bonus += float(totals.get("health", 0)) * 0.1
+        # Armor slot multiplier
+        for eq in equipment:
+            slot = str(getattr(eq, "slot", "") or "").lower()
             if slot in {"armor", "spacesuit", "shield", "helmet", "boots"}:
                 def_bonus *= 1.15
-            bonus += def_bonus
-        elif kind == "agility":
-            bonus += _to_float(getattr(item, "bonus_agility", 0))
+                break
+        bonus = def_bonus
+    elif kind == "agility":
+        bonus = float(totals.get("agility", 0))
     return bonus
 
 
 def _derive_combat_stats(entity: Any) -> Dict[str, float]:
-    strength = _to_float(_get_stat(entity, "strength", 10))
+    """Build combat stat block from v2 hero stats + equipment."""
+    health = _to_float(_get_stat(entity, "health", 100))
+    stamina = _to_float(_get_stat(entity, "stamina", 100))
+    defense = _to_float(_get_stat(entity, "defense", 10))
+    speed = _to_float(_get_stat(entity, "speed", 10))
     agility = _to_float(_get_stat(entity, "agility", 10))
-    intelligence = _to_float(_get_stat(entity, "intelligence", 8))
-    vitality = _to_float(_get_stat(entity, "vitality", 10))
-    level = _to_float(max(1, _get_stat(entity, "level", 1)))
+    luck = _to_float(_get_stat(entity, "luck", 5))
+    willpower = _to_float(_get_stat(entity, "willpower", 5))
 
     weapon_mod = _equipment_bonus(entity, "attack")
     armor_mod = _equipment_bonus(entity, "defense")
     agility_mod = _equipment_bonus(entity, "agility")
 
-    attack_perk = _perk_bonus(entity, "attack")
-    defense_perk = _perk_bonus(entity, "defense")
-    agility_perk = _perk_bonus(entity, "agility")
-    dodge_perk = _perk_bonus(entity, "dodge")
+    attack_power = stamina * 1.2 + willpower * 0.3 + weapon_mod
+    defense_power = defense * 1.2 + armor_mod
+    effective_agility = agility + agility_mod
 
-    attack_power = strength * 1.4 + intelligence * 0.6 + level * 1.1 + weapon_mod + attack_perk
-    defense_power = vitality * 1.2 + armor_mod + defense_perk
-    effective_agility = agility + agility_mod + agility_perk
-
-    max_hp = max(50, int(_get_stat(entity, "health", int(vitality * 10 + level * 12))))
+    max_hp = max(50, int(health))
     return {
-        "strength": strength,
+        "health": health,
+        "stamina": stamina,
         "agility": effective_agility,
-        "intelligence": intelligence,
-        "vitality": vitality,
-        "level": level,
+        "willpower": willpower,
+        "speed": speed,
+        "luck": luck,
         "attack_power": attack_power,
         "defense_power": defense_power,
-        "dodge_bonus": dodge_perk,
+        "dodge_bonus": luck * 0.002,
         "max_hp": float(max_hp),
     }
 
+
+# ───────────────────────────────────────────────────────────────────
+# Deterministic RNG
+# ───────────────────────────────────────────────────────────────────
 
 def _make_seed(*parts: Any) -> int:
     raw = "|".join(str(p) for p in parts)
@@ -219,11 +189,11 @@ def _make_seed(*parts: Any) -> int:
 
 
 def _turn_order_key(state: FighterState, rng: random.Random) -> float:
-    return state.stats["agility"] + state.stats["level"] * 0.2 + rng.random() * 0.001
+    return state.stats["speed"] + state.stats["agility"] * 0.1 + rng.random() * 0.001
 
 
 def _dodge_chance(defender: FighterState) -> float:
-    base = 0.02 + defender.stats["agility"] * 0.0025 + defender.stats["dodge_bonus"] * 0.002
+    base = 0.02 + defender.stats["agility"] * 0.0025 + defender.stats["dodge_bonus"]
     return max(0.02, min(0.45, base))
 
 
@@ -248,6 +218,10 @@ def _select_target(opponents: List[FighterState], rng: random.Random) -> Optiona
     return candidates[rng.randint(0, len(candidates) - 1)]
 
 
+# ───────────────────────────────────────────────────────────────────
+# Runtime HP tracking (transient, not persisted)
+# ───────────────────────────────────────────────────────────────────
+
 def _ensure_runtime_hp(entity: Any, stats: Dict[str, float]) -> int:
     if isinstance(entity, dict):
         hp = _to_int(entity.get("current_hp", 0), 0)
@@ -257,7 +231,6 @@ def _ensure_runtime_hp(entity: Any, stats: Dict[str, float]) -> int:
         return hp
     if isinstance(entity, int):
         return int(stats["max_hp"])
-
     hp = _to_int(getattr(entity, "_combat_hp", 0), 0)
     if hp <= 0:
         hp = int(stats["max_hp"])
@@ -285,20 +258,18 @@ def _owner_id(entity: Any) -> Optional[int]:
     return None
 
 
+# ───────────────────────────────────────────────────────────────────
+# Single-action resolver
+# ───────────────────────────────────────────────────────────────────
+
 async def resolve_action(
     db: AsyncSession,
     actor: Any,
     targets: List[Any],
-    context: Any
+    context: Any,
 ) -> Dict[str, Any]:
     """
     Deterministic single-action resolver used by PvE/Raid turns.
-
-    Damage formula:
-        damage = attack_power - defense + random_factor
-
-    Where attack/defense include base attributes, equipment modifiers and perk bonuses.
-    Agility influences dodge chance and target tiebreaking.
     """
     if not targets:
         return {
@@ -346,7 +317,11 @@ async def resolve_action(
             stats=ts,
         ))
 
-    seed = _make_seed(actor_state.entity_id, context, *(s.entity_id for s in target_states), actor_state.current_hp)
+    seed = _make_seed(
+        actor_state.entity_id, context,
+        *(s.entity_id for s in target_states),
+        actor_state.current_hp,
+    )
     rng = random.Random(seed)
     target = _select_target(target_states, rng)
     if target is None:
@@ -376,16 +351,20 @@ async def resolve_action(
     }
 
 
+# ───────────────────────────────────────────────────────────────────
+# PvP team loader + simulator
+# ───────────────────────────────────────────────────────────────────
+
 async def _load_player_team(db: AsyncSession, player_id: int, team_label: str) -> List[FighterState]:
     query = (
         select(Hero)
         .where(Hero.owner_id == player_id)
-        .where(Hero.is_deleted == False)
+        .where(Hero.is_deleted == False)  # noqa: E712
         .options(
-            selectinload(Hero.perks).selectinload(HeroPerk.perk),
+            joinedload(Hero.stats),
             selectinload(Hero.equipment_items).selectinload(Equipment.item),
         )
-        .order_by(Hero.level.desc(), Hero.id.asc())
+        .order_by(Hero.id.asc())
         .limit(TEAM_SIZE)
     )
     result = await db.execute(query)
@@ -413,7 +392,7 @@ def _team_alive(team: List[FighterState]) -> bool:
 async def simulate_pvp_battle(
     db: AsyncSession,
     player1_id: int,
-    player2_id: int
+    player2_id: int,
 ) -> Tuple[List[Dict[str, Any]], Optional[int]]:
     """
     Deterministic turn-based PvP simulation.
@@ -447,7 +426,10 @@ async def simulate_pvp_battle(
             break
 
         turn_order = [m for m in (team_a + team_b) if m.alive]
-        turn_order.sort(key=lambda m: (_turn_order_key(m, rng), m.entity_id), reverse=True)
+        turn_order.sort(
+            key=lambda m: (_turn_order_key(m, rng), m.entity_id),
+            reverse=True,
+        )
 
         for actor in turn_order:
             if not actor.alive:

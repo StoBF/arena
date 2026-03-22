@@ -214,7 +214,7 @@ func _on_healing_hero_selected(index: int) -> void:
 func _show_hero_detail() -> void:
 	_detail_panel.set_title(str(_selected_hero.get("name", "Hero")))
 	_detail_panel.set_fields({
-		"Level": str(_selected_hero.get("level", "-")),
+		"Role": str(_selected_hero.get("primary_role", "-")),
 		"Status": str(_selected_hero.get("status", "-")).capitalize(),
 		"Overall HP": "%s / %s" % [
 			str(_selected_hero.get("current_hp", "?")),

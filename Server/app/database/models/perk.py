@@ -9,7 +9,5 @@ class Perk(Base):
     description = Column(String(255), nullable=True)
     effect_type = Column(String(30), nullable=True)  # offensive/defensive/support/utility
     max_level = Column(Integer, default=100)
-    modifiers = Column(JSON, default={})  # Наприклад: {"strength": 2, "speed": 1}
-    affected = Column(JSON, default=[])   # Наприклад: ["strength", "speed"]
-
-# Для міграції: HeroPerk має отримати perk_id (FK на perks.id) замість perk_name 
+    modifiers = Column(JSON, default={})  # v2 stat keys, e.g. {"stamina": 2, "reflex": 1}
+    affected = Column(JSON, default=[])   # v2 stat keys, e.g. ["stamina", "reflex"]

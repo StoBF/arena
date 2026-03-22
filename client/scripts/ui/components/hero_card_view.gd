@@ -18,10 +18,22 @@ func _ready() -> void:
 func set_hero(hero: Dictionary) -> void:
 	_hero_id = int(hero.get("id", -1))
 	name_label.text = str(hero.get("name", "Hero"))
-	meta_label.text = "Level %s | Gen %s" % [str(hero.get("level", "-")), str(hero.get("generation", hero.get("gen", "-")))]
-	stats_label.text = _build_stats(hero)
+
+	# Roles
+	var primary: String = str(hero.get("primary_role", "")).capitalize()
+	var secondary: String = str(hero.get("secondary_role", "")).capitalize()
+	if primary.is_empty() or primary == "None":
+		primary = "-"
+	var role_text: String = primary
+	if not secondary.is_empty() and secondary != "None" and secondary != primary:
+		role_text += " / " + secondary
+	meta_label.text = role_text + "  |  Gen %s" % str(hero.get("hero_generation_level", "1"))
+
+	# Compact summary: tags + skill count
+	stats_label.text = _build_summary(hero)
+
 	var portrait_path: String = str(hero.get("portrait", ""))
-	if portrait_path.is_empty() == false and ResourceLoader.exists(portrait_path):
+	if not portrait_path.is_empty() and ResourceLoader.exists(portrait_path):
 		portrait.texture = load(portrait_path)
 	else:
 		portrait.texture = null
@@ -29,15 +41,22 @@ func set_hero(hero: Dictionary) -> void:
 func set_hero_data(hero: Dictionary, _selected: bool = false) -> void:
 	set_hero(hero)
 
-func _build_stats(hero: Dictionary) -> String:
-	var strength: Variant = hero.get("strength", "-")
-	var agility: Variant = hero.get("agility", "-")
-	var endurance: Variant = hero.get("endurance", "-")
-	var intelligence: Variant = hero.get("intelligence", "-")
-	if hero.has("attributes") and hero["attributes"] is Dictionary:
-		var attributes := hero["attributes"] as Dictionary
-		strength = attributes.get("strength", strength)
-		agility = attributes.get("agility", agility)
-		endurance = attributes.get("endurance", endurance)
-		intelligence = attributes.get("intelligence", intelligence)
-	return "STR %s  AGI %s  END %s  INT %s" % [str(strength), str(agility), str(endurance), str(intelligence)]
+func _build_summary(hero: Dictionary) -> String:
+	var parts: PackedStringArray = []
+
+	# Top tags (2-4)
+	var tags: Array = []
+	if hero.has("tags") and hero["tags"] is Array:
+		tags = hero["tags"] as Array
+	var tag_labels: PackedStringArray = UIModels.top_tags(tags, 3)
+	if not tag_labels.is_empty():
+		parts.append(", ".join(tag_labels))
+
+	# Skill family summary
+	var skills: Array = []
+	if hero.has("skills") and hero["skills"] is Array:
+		skills = hero["skills"] as Array
+	var skill_summary: String = UIModels.skill_family_summary(skills)
+	parts.append(skill_summary)
+
+	return "\n".join(parts)

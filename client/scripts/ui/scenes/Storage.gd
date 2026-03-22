@@ -239,11 +239,11 @@ func _hero_preview_text() -> String:
 		var hero := hero_variant as Dictionary
 		if int(hero.get("id", -1)) != _selected_hero_id:
 			continue
-		return "%s\nGen %s | Lv %s\nW:%s L:%s" % [
+		return "%s\nGen %s | %s\nKills:%s Deaths:%s" % [
 			str(hero.get("name", "-")),
-			str(hero.get("generation", hero.get("gen", "-"))),
-			str(hero.get("level", "-")),
-			str(hero.get("wins", hero.get("victories", "-"))),
-			str(hero.get("losses", hero.get("defeats", "-"))),
+			str(hero.get("hero_generation_level", "-")),
+			str(hero.get("primary_role", "-")),
+			str(hero.get("total_kills", "-")),
+			str(hero.get("total_deaths", "-")),
 		]
 	return tr("ui.storage.no_hero_selected")

@@ -8,10 +8,9 @@ from app.services.auction import AuctionService
 
 # Stable advisory lock ID for global auction sweeps (must fit signed bigint range)
 AUCTION_SWEEP_LOCK_ID = 941337001
-REQUIRED_AUCTION_MIGRATION = "e6f7a8b9c0d1"
+REQUIRED_AUCTION_MIGRATION = "0001"
 
 _schema_warning_logged = False
-_revision_warning_logged = False
 
 
 def _inspect_required_auction_schema(sync_session) -> dict:
@@ -44,19 +43,11 @@ def _inspect_required_auction_schema(sync_session) -> dict:
 
 
 async def _auction_schema_ready(session) -> bool:
-    global _schema_warning_logged, _revision_warning_logged
+    global _schema_warning_logged
 
     report = await session.run_sync(_inspect_required_auction_schema)
     missing = report["missing"]
     revision = report["revision"]
-
-    if revision != REQUIRED_AUCTION_MIGRATION and not _revision_warning_logged:
-        logging.error(
-            "[AUCTION] database migration state is not current. alembic_version=%s, required=%s.",
-            revision,
-            REQUIRED_AUCTION_MIGRATION,
-        )
-        _revision_warning_logged = True
 
     if not missing:
         return True
