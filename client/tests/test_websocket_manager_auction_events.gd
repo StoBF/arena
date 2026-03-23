@@ -17,17 +17,17 @@ func after_each() -> void:
 
 func test_emits_bid_update_event() -> void:
 	_received_bid = false
-	_manager._handle_auction_packet('{"event":"bid_update","data":{"lot_id":42,"current_bid":123.5}}')
+	_manager.process_auction_raw_packet('{"event":"bid_update","data":{"lot_id":42,"current_bid":123.5}}')
 	assert_true(_received_bid, "bid_update event should be emitted")
 
 func test_emits_lot_closed_event() -> void:
 	_received_closed = false
-	_manager._handle_auction_packet('{"event":"lot_closed","data":{"lot_id":42}}')
+	_manager.process_auction_raw_packet('{"event":"lot_closed","data":{"lot_id":42}}')
 	assert_true(_received_closed, "lot_closed event should be emitted")
 
 func test_emits_lot_created_event() -> void:
 	_received_created = false
-	_manager._handle_auction_packet('{"event":"lot_created","data":{"lot_id":77,"name":"New Lot"}}')
+	_manager.process_auction_raw_packet('{"event":"lot_created","data":{"lot_id":77,"name":"New Lot"}}')
 	assert_true(_received_created, "lot_created event should be emitted")
 
 func _on_bid(_data: Dictionary) -> void:

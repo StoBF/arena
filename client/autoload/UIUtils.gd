@@ -55,6 +55,27 @@ func show_info(message: String) -> void:
 	_show_toast(message, INFO_COLOR)
 
 
+## Async confirmation dialog. Returns true if user confirmed, false if canceled.
+func confirm_async(message: String) -> bool:
+	var dialog := ConfirmationDialog.new()
+	dialog.dialog_text = message
+	dialog.ok_button_text = "OK"
+	dialog.cancel_button_text = "Cancel"
+	_canvas_layer.add_child(dialog)
+	dialog.popup_centered()
+	var result := false
+	dialog.confirmed.connect(func() -> void:
+		result = true
+		dialog.queue_free()
+	)
+	dialog.canceled.connect(func() -> void:
+		dialog.queue_free()
+	)
+	while is_instance_valid(dialog):
+		await get_tree().process_frame
+	return result
+
+
 func _show_toast(message: String, color: Color) -> void:
 	# Enforce max visible toasts
 	while _active_toasts.size() >= TOAST_MAX:

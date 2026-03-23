@@ -32,6 +32,7 @@ AuctionManager="*res://autoload/AuctionManager.gd"
 WebSocketManager="*res://autoload/WebSocketManager.gd"
 AuthManager="*res://autoload/AuthManager.gd"
 ServerStatusManager="*res://autoload/ServerStatusManager.gd"
+UIManager="*res://scripts/ui/controllers/UIManager.gd"
 
 [display]
 
@@ -44,6 +45,10 @@ window/stretch/aspect="expand"
 
 project/assembly_name="Arena_manager"
 project/solution_directory="E:\\GOG Games\\arena\\client"
+
+[editor]
+
+version_control/autoload_on_startup=true
 
 [gui]
 

@@ -178,11 +178,13 @@ Autoload list from `project.godot`:
 
 ### 2.11 `WebSocketManager.gd`
 - Responsibility:
-  - Maintains `/ws/auctions` websocket subscription with reconnection/backoff.
+  - Unified WebSocket handling for chat channels and auction. Maintains `/ws/{channel}` and `/ws/auctions` with exponential backoff reconnection.
 - Main functions:
-  - `ensure_auction_subscription`, `_handle_auction_packet`, `_schedule_auction_reconnect`.
+  - Chat: `ensure_chat_subscription`, `stop_chat_subscription`, `send_chat_message`.
+  - Auction: `ensure_auction_subscription`, `stop_auction_subscription`.
+  - Test hook: `process_auction_raw_packet(raw)` for unit tests.
 - Usage:
-  - `Auction.gd` live updates path.
+  - `PlayerHub.gd` (chat), `Auction.gd` (auction live updates).
 
 ### 2.12 `LocalizationManager.gd`
 - Responsibility:

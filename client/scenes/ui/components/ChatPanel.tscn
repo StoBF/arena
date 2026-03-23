@@ -1,6 +1,30 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/components/ChatPanel.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grid"]
+bg_color = Color(0.10, 0.11, 0.14, 0.98)
+border_color = Color(0.28, 0.32, 0.40, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
+bg_color = Color(0.14, 0.16, 0.20, 1)
+border_color = Color(0.28, 0.32, 0.40, 1)
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 1
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
 
 [node name="ChatPanel" type="Control"]
 layout_mode = 3
@@ -14,62 +38,104 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-size_flags_horizontal = 3
-size_flags_vertical = 3
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="ChatHeader" type="PanelContainer" parent="Root"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="HeaderMargin" type="MarginContainer" parent="Root/ChatHeader"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 4
+
+[node name="HeaderRow" type="HBoxContainer" parent="Root/ChatHeader/HeaderMargin"]
+layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="Root"]
+[node name="ChatLabel" type="Label" parent="Root/ChatHeader/HeaderMargin/HeaderRow"]
 layout_mode = 2
-text = "Chat"
+theme_override_colors/font_color = Color(0.9, 0.86, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "Communications"
+
+[node name="HeaderSpacer" type="Control" parent="Root/ChatHeader/HeaderMargin/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ChannelIndicator" type="Label" parent="Root/ChatHeader/HeaderMargin/HeaderRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.65, 0.8, 1)
+theme_override_font_sizes/font_size = 11
+text = "Global"
 
 [node name="Tabs" type="TabContainer" parent="Root"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/side_margin = 4
 
-[node name="Global" type="Control" parent="Root/Tabs"]
+[node name="Global" type="PanelContainer" parent="Root/Tabs"]
 layout_mode = 2
 metadata/_tab_index = 0
 
-[node name="Trade" type="Control" parent="Root/Tabs"]
-layout_mode = 2
-metadata/_tab_index = 1
-
-[node name="System" type="Control" parent="Root/Tabs"]
-layout_mode = 2
-metadata/_tab_index = 2
-
-[node name="Messages" type="ItemList" parent="Root"]
+[node name="MessagesGlobal" type="ItemList" parent="Root/Tabs/Global"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_grid")
+theme_override_constants/v_separation = 3
+allow_reselect = true
 
-[node name="InputRow" type="HBoxContainer" parent="Root"]
+[node name="Trade" type="PanelContainer" parent="Root/Tabs"]
 layout_mode = 2
+metadata/_tab_index = 1
 
-[node name="MessageInput" type="LineEdit" parent="Root/InputRow"]
+[node name="MessagesTrade" type="ItemList" parent="Root/Tabs/Trade"]
 layout_mode = 2
 size_flags_horizontal = 3
-placeholder_text = "Type message..."
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_grid")
+theme_override_constants/v_separation = 3
+allow_reselect = true
 
-[node name="SendButton" type="Button" parent="Root/InputRow"]
+[node name="System" type="PanelContainer" parent="Root/Tabs"]
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="MessagesSystem" type="ItemList" parent="Root/Tabs/System"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_grid")
+theme_override_constants/v_separation = 3
+allow_reselect = true
+
+[node name="InputArea" type="PanelContainer" parent="Root"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="InputMargin" type="MarginContainer" parent="Root/InputArea"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 5
+
+[node name="InputRow" type="HBoxContainer" parent="Root/InputArea/InputMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="MessageInput" type="LineEdit" parent="Root/InputArea/InputMargin/InputRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Type a message..."
+
+[node name="SendButton" type="Button" parent="Root/InputArea/InputMargin/InputRow"]
+custom_minimum_size = Vector2(60, 0)
 layout_mode = 2
 text = "Send"
-
-[node name="SystemTitle" type="Label" parent="Root"]
-layout_mode = 2
-text = "System Messages"
-
-[node name="SystemMessages" type="ItemList" parent="Root"]
-custom_minimum_size = Vector2(0, 80)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="AnnouncementsTitle" type="Label" parent="Root"]
-layout_mode = 2
-text = "Global Announcements"
-
-[node name="Announcements" type="ItemList" parent="Root"]
-custom_minimum_size = Vector2(0, 90)
-layout_mode = 2
-size_flags_horizontal = 3

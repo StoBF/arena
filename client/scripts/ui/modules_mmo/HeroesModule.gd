@@ -137,25 +137,19 @@ func _render_heroes(heroes: Array) -> void:
 		status_label.text = ""
 		return
 	_empty_state.visible = false
-	   for hero_variant in heroes:
-		   if not hero_variant is Dictionary:
-			   continue
-		   var card: Control = HERO_CARD_SCENE.instantiate()
-		   cards_grid.add_child(card)
-		   if card.has_method("set_hero"):
-			   card.set_hero(hero_variant as Dictionary)
-		   if card.has_signal("delete_requested"):
-			   card.delete_requested.connect(_on_delete_hero)
-		   if card.has_signal("auction_requested"):
-			   card.auction_requested.connect(_on_auction_hero)
-	func _on_delete_hero(hero_id: int) -> void:
-		if not UIUtils.confirm("Are you sure you want to delete this hero?"):
-			 return
-		await ApiClient.delete_hero(hero_id)
-		await HeroManager.load_heroes()
-
-	func _on_auction_hero(hero_id: int) -> void:
-		UIManager.open_view("auction", {"hero_id": hero_id})
+	for hero_variant in heroes:
+		if not hero_variant is Dictionary:
+			continue
+		var card: Control = HERO_CARD_SCENE.instantiate()
+		cards_grid.add_child(card)
+		if card.has_method("set_hero"):
+			card.set_hero(hero_variant as Dictionary)
+		if card.has_signal("selected"):
+			card.selected.connect(_on_card_selected)
+		if card.has_signal("delete_requested"):
+			card.delete_requested.connect(_on_delete_hero)
+		if card.has_signal("auction_requested"):
+			card.auction_requested.connect(_on_auction_hero)
 	var selected_id: int = int(AppState.selected_hero.get("id", HeroManager.get_active_hero_id()))
 	var selected_from_list: Dictionary = _find_hero_by_id(heroes, selected_id)
 	if selected_from_list.is_empty() and not heroes.is_empty() and heroes[0] is Dictionary:
@@ -164,6 +158,17 @@ func _render_heroes(heroes: Array) -> void:
 		_apply_hero_details(selected_from_list)
 		HeroManager.set_active_hero_id(int(selected_from_list.get("id", -1)))
 	status_label.text = "%d heroes" % heroes.size()
+
+
+func _on_delete_hero(hero_id: int) -> void:
+	if not await UIUtils.confirm_async("Are you sure you want to delete this hero?"):
+		return
+	await ApiClient.delete_hero(hero_id)
+	await HeroManager.load_heroes()
+
+
+func _on_auction_hero(hero_id: int) -> void:
+	EventBus.navigate_to(EventBus.SCENE_AUCTION)
 
 func _on_card_selected(hero_id: int) -> void:
 	var hero: Dictionary = HeroManager.get_hero_by_id(hero_id)

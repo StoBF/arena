@@ -1,7 +1,6 @@
-[gd_scene load_steps=13 format=3 uid="uid://c8dvj8cox31vg"]
+[gd_scene load_steps=15 format=3 uid="uid://c8dvj8cox31vg"]
 
 [ext_resource type="Script" uid="uid://b6wtwpa5tkqhe" path="res://scripts/ui/scenes/PlayerHub.gd" id="1"]
-[ext_resource type="Texture2D" uid="uid://dol7s3auq5cpb" path="res://images/a3d9253e-b813-4dd0-9571-896255d70f1a.png" id="2_fqcn4"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/CurrencyBar.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/NotificationBadge.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/ChatPanel.tscn" id="5"]
@@ -11,6 +10,9 @@
 [ext_resource type="Texture2D" uid="uid://dnagrme5ieicn" path="res://item_icons/Tree Branch.png" id="9"]
 [ext_resource type="Texture2D" uid="uid://bxyufiyfqbg42" path="res://item_icons/Brown Shirt.png" id="10"]
 [ext_resource type="Texture2D" uid="uid://yc6tl0uewy4y" path="res://item_icons/Brown Boots.png" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/HeroBottomBar.tscn" id="12"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/HeroInfoPanel.tscn" id="13"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/HeroDisplayPanel.tscn" id="14"]
 
 [sub_resource type="Theme" id="Theme_h8otj"]
 
@@ -31,24 +33,19 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 10
+theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
+theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 10
-
-[node name="A3d9253eB8134Dd09571896255d70f1a" type="Sprite2D" parent="RootMargin"]
-position = Vector2(959, 342.87503)
-scale = Vector2(1.8730469, 1.4436036)
-texture = ExtResource("2_fqcn4")
 
 [node name="RootVBox" type="VBoxContainer" parent="RootMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="TopBarPanel" type="PanelContainer" parent="RootMargin/RootVBox"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 
 [node name="TopBarMargin" type="MarginContainer" parent="RootMargin/RootVBox/TopBarPanel"]
@@ -61,24 +58,32 @@ theme_override_constants/margin_bottom = 6
 [node name="TopBar" type="HBoxContainer" parent="RootMargin/RootVBox/TopBarPanel/TopBarMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 theme_override_constants/separation = 16
 
-[node name="PlayerInfo" type="VBoxContainer" parent="RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar"]
+[node name="PlayerInfo" type="HBoxContainer" parent="RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar"]
 layout_mode = 2
-
-[node name="UsernameLabel" type="Label" parent="RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar/PlayerInfo"]
-layout_mode = 2
-text = "Player: -"
-
-[node name="StatusLabel" type="Label" parent="RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar/PlayerInfo"]
-layout_mode = 2
-text = "Server: offline"
+theme_override_constants/separation = 8
 
 [node name="ServerStatusIndicator" type="ColorRect" parent="RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar/PlayerInfo"]
-custom_minimum_size = Vector2(8, 8)
+custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
+size_flags_vertical = 4
 color = Color(0.6, 0.6, 0.6, 1)
+
+[node name="InfoLabels" type="VBoxContainer" parent="RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar/PlayerInfo"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="UsernameLabel" type="Label" parent="RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar/PlayerInfo/InfoLabels"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Player: —"
+
+[node name="StatusLabel" type="Label" parent="RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar/PlayerInfo/InfoLabels"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "Server: offline"
 
 [node name="TopSpacer" type="Control" parent="RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar"]
 layout_mode = 2
@@ -88,225 +93,295 @@ size_flags_horizontal = 3
 layout_mode = 2
 
 [node name="NotificationsButton" type="Button" parent="RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar"]
-custom_minimum_size = Vector2(150, 36)
+custom_minimum_size = Vector2(100, 36)
 layout_mode = 2
 text = "Alerts"
 icon = ExtResource("8")
 
 [node name="NotificationBadge" parent="RootMargin/RootVBox/TopBarPanel/TopBarMargin/TopBar/NotificationsButton" instance=ExtResource("4")]
 layout_mode = 0
-offset_left = 126.0
+offset_left = 78.0
 offset_top = 2.0
 
-[node name="BodyRow" type="HBoxContainer" parent="RootMargin/RootVBox"]
+[node name="MainRow" type="HBoxContainer" parent="RootMargin/RootVBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
-[node name="LeftSidebarPanel" type="PanelContainer" parent="RootMargin/RootVBox/BodyRow"]
-custom_minimum_size = Vector2(200, 0)
+[node name="LeftSidebarPanel" type="PanelContainer" parent="RootMargin/RootVBox/MainRow"]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="LeftMenuMargin" type="MarginContainer" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel"]
+[node name="LeftMenuMargin" type="MarginContainer" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 14
 
-[node name="LeftMenu" type="VBoxContainer" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin"]
+[node name="LeftMenu" type="VBoxContainer" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 4
 
-[node name="GameTitle" type="Label" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+[node name="GameTitle" type="Label" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.88, 0.72, 1)
+theme_override_font_sizes/font_size = 15
 text = "Arena Manager"
 horizontal_alignment = 1
 
-[node name="SidebarSep1" type="HSeparator" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+[node name="SidebarSep1" type="HSeparator" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
 layout_mode = 2
 
-[node name="EconomyLabel" type="Label" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+[node name="EconomyLabel" type="Label" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.7, 0.3, 1)
-text = "Economy"
+theme_override_colors/font_color = Color(0.85, 0.75, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "ECONOMY"
 
-[node name="HeroesButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
-custom_minimum_size = Vector2(0, 38)
+[node name="HeroesButton" type="Button" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Heroes"
 icon = ExtResource("6")
 alignment = 0
 
-[node name="InventoryButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
-custom_minimum_size = Vector2(0, 38)
+[node name="InventoryButton" type="Button" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Inventory"
 icon = ExtResource("7")
 alignment = 0
 
-[node name="CraftButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
-custom_minimum_size = Vector2(0, 38)
+[node name="CraftButton" type="Button" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Workshop"
 icon = ExtResource("9")
 alignment = 0
 
-[node name="AuctionButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
-custom_minimum_size = Vector2(0, 38)
+[node name="AuctionButton" type="Button" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Auction"
 icon = ExtResource("8")
 alignment = 0
 
-[node name="SidebarSep2" type="HSeparator" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+[node name="SidebarSep2" type="HSeparator" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
 layout_mode = 2
 
-[node name="CombatLabel" type="Label" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+[node name="CombatLabel" type="Label" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.8, 0.3, 1)
-text = "Combat"
+theme_override_colors/font_color = Color(0.75, 0.85, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "COMBAT"
 
-[node name="HealingButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
-custom_minimum_size = Vector2(0, 38)
+[node name="HealingButton" type="Button" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Healing"
 icon = ExtResource("11")
 alignment = 0
 
-[node name="SidebarSep3" type="HSeparator" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
-layout_mode = 2
-
-[node name="ArenaButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
-custom_minimum_size = Vector2(0, 38)
+[node name="ArenaButton" type="Button" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Arena"
 icon = ExtResource("6")
 alignment = 0
 
-[node name="BossRaidButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
-custom_minimum_size = Vector2(0, 38)
+[node name="BossRaidButton" type="Button" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Boss Raids"
 icon = ExtResource("10")
 alignment = 0
 
-[node name="MenuSpacer" type="Control" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+[node name="MenuSpacer" type="Control" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="SettingsButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
-custom_minimum_size = Vector2(0, 38)
+[node name="SidebarSep3" type="HSeparator" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+layout_mode = 2
+
+[node name="SettingsButton" type="Button" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Settings"
 icon = ExtResource("11")
 alignment = 0
 
-[node name="LogoutButton" type="Button" parent="RootMargin/RootVBox/BodyRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
-custom_minimum_size = Vector2(0, 38)
+[node name="LogoutButton" type="Button" parent="RootMargin/RootVBox/MainRow/LeftSidebarPanel/LeftMenuMargin/LeftMenu"]
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Logout"
 icon = ExtResource("11")
 alignment = 0
 
-[node name="CenterArea" type="VBoxContainer" parent="RootMargin/RootVBox/BodyRow"]
+[node name="CenterColumn" type="VBoxContainer" parent="RootMargin/RootVBox/MainRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="MainPanel" type="PanelContainer" parent="RootMargin/RootVBox/BodyRow/CenterArea"]
+[node name="HubHeader" type="HBoxContainer" parent="RootMargin/RootVBox/MainRow/CenterColumn"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GenerateHeroButton" type="Button" parent="RootMargin/RootVBox/MainRow/CenterColumn/HubHeader"]
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Generate Hero"
+icon = ExtResource("9")
+
+[node name="HeaderSpacer" type="Control" parent="RootMargin/RootVBox/MainRow/CenterColumn/HubHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HubActionsRow" type="HBoxContainer" parent="RootMargin/RootVBox/MainRow/CenterColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ActionQueuePvP" type="Button" parent="RootMargin/RootVBox/MainRow/CenterColumn/HubActionsRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Queue PvP"
+icon = ExtResource("6")
+
+[node name="ActionBossRaid" type="Button" parent="RootMargin/RootVBox/MainRow/CenterColumn/HubActionsRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Boss Raid"
+icon = ExtResource("10")
+
+[node name="ActionMarket" type="Button" parent="RootMargin/RootVBox/MainRow/CenterColumn/HubActionsRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Market"
+icon = ExtResource("8")
+
+[node name="QuickStatus" type="Label" parent="RootMargin/RootVBox/MainRow/CenterColumn/HubActionsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="StackArea" type="Control" parent="RootMargin/RootVBox/MainRow/CenterColumn"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="MainMargin" type="MarginContainer" parent="RootMargin/RootVBox/BodyRow/CenterArea/MainPanel"]
+[node name="ModulePanel" type="PanelContainer" parent="RootMargin/RootVBox/MainRow/CenterColumn/StackArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainMargin" type="MarginContainer" parent="RootMargin/RootVBox/MainRow/CenterColumn/StackArea/ModulePanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="ModuleContainer" type="Control" parent="RootMargin/RootVBox/BodyRow/CenterArea/MainPanel/MainMargin"]
+[node name="ModuleContainer" type="Control" parent="RootMargin/RootVBox/MainRow/CenterColumn/StackArea/ModulePanel/MainMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="BottomBarPanel" type="PanelContainer" parent="RootMargin/RootVBox/BodyRow/CenterArea"]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
+[node name="HeroDetailPanel" type="PanelContainer" parent="RootMargin/RootVBox/MainRow/CenterColumn/StackArea"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="BottomBarMargin" type="MarginContainer" parent="RootMargin/RootVBox/BodyRow/CenterArea/BottomBarPanel"]
+[node name="DetailMargin" type="MarginContainer" parent="RootMargin/RootVBox/MainRow/CenterColumn/StackArea/HeroDetailPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 6
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
-[node name="QuickActions" type="HBoxContainer" parent="RootMargin/RootVBox/BodyRow/CenterArea/BottomBarPanel/BottomBarMargin"]
+[node name="DetailVBox" type="VBoxContainer" parent="RootMargin/RootVBox/MainRow/CenterColumn/StackArea/HeroDetailPanel/DetailMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
-[node name="ActionCreateHero" type="Button" parent="RootMargin/RootVBox/BodyRow/CenterArea/BottomBarPanel/BottomBarMargin/QuickActions"]
-custom_minimum_size = Vector2(140, 0)
+[node name="CloseHeroDetailButton" type="Button" parent="RootMargin/RootVBox/MainRow/CenterColumn/StackArea/HeroDetailPanel/DetailMargin/DetailVBox"]
+custom_minimum_size = Vector2(100, 32)
 layout_mode = 2
-text = "Create Hero"
-icon = ExtResource("9")
+size_flags_horizontal = 0
+text = "<  Back"
 
-[node name="ActionQueuePvP" type="Button" parent="RootMargin/RootVBox/BodyRow/CenterArea/BottomBarPanel/BottomBarMargin/QuickActions"]
-custom_minimum_size = Vector2(140, 0)
-layout_mode = 2
-text = "Queue PvP"
-icon = ExtResource("6")
-
-[node name="ActionBossRaid" type="Button" parent="RootMargin/RootVBox/BodyRow/CenterArea/BottomBarPanel/BottomBarMargin/QuickActions"]
-custom_minimum_size = Vector2(140, 0)
-layout_mode = 2
-text = "Boss Raid"
-icon = ExtResource("10")
-
-[node name="ActionMarket" type="Button" parent="RootMargin/RootVBox/BodyRow/CenterArea/BottomBarPanel/BottomBarMargin/QuickActions"]
-custom_minimum_size = Vector2(140, 0)
-layout_mode = 2
-text = "Open Market"
-icon = ExtResource("8")
-
-[node name="BottomSpacer" type="Control" parent="RootMargin/RootVBox/BodyRow/CenterArea/BottomBarPanel/BottomBarMargin/QuickActions"]
+[node name="HeroSplit" type="HBoxContainer" parent="RootMargin/RootVBox/MainRow/CenterColumn/StackArea/HeroDetailPanel/DetailMargin/DetailVBox"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 20
 
-[node name="QuickStatus" type="Label" parent="RootMargin/RootVBox/BodyRow/CenterArea/BottomBarPanel/BottomBarMargin/QuickActions"]
-layout_mode = 2
-
-[node name="RightSidebarPanel" type="PanelContainer" parent="RootMargin/RootVBox/BodyRow"]
+[node name="HeroInfoPanel" parent="RootMargin/RootVBox/MainRow/CenterColumn/StackArea/HeroDetailPanel/DetailMargin/DetailVBox/HeroSplit" instance=ExtResource("13")]
 custom_minimum_size = Vector2(320, 0)
-layout_mode = 2
+size_flags_horizontal = 0
 size_flags_vertical = 3
 
-[node name="RightSidebarMargin" type="MarginContainer" parent="RootMargin/RootVBox/BodyRow/RightSidebarPanel"]
+[node name="HeroDisplayPanel" parent="RootMargin/RootVBox/MainRow/CenterColumn/StackArea/HeroDetailPanel/DetailMargin/DetailVBox/HeroSplit" instance=ExtResource("14")]
+
+[node name="OverlayDockLayer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 291.0
+offset_top = 688.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HeroBottomDock" type="PanelContainer" parent="OverlayDockLayer"]
+custom_minimum_size = Vector2(430, 150)
+layout_mode = 1
+offset_top = 170.0
+offset_right = 1021.0
+offset_bottom = 384.0
+
+[node name="HeroBottomDockMargin" type="MarginContainer" parent="OverlayDockLayer/HeroBottomDock"]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="RightSidebarVBox" type="VBoxContainer" parent="RootMargin/RootVBox/BodyRow/RightSidebarPanel/RightSidebarMargin"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 8
-
-[node name="ChatPanel" parent="RootMargin/RootVBox/BodyRow/RightSidebarPanel/RightSidebarMargin/RightSidebarVBox" instance=ExtResource("5")]
-layout_mode = 2
+[node name="HeroBottomBar" parent="OverlayDockLayer/HeroBottomDock/HeroBottomDockMargin" instance=ExtResource("12")]
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="ActivityFeedPlaceholder" type="VBoxContainer" parent="RootMargin/RootVBox/BodyRow/RightSidebarPanel/RightSidebarMargin/RightSidebarVBox"]
-custom_minimum_size = Vector2(0, 140)
+[node name="ChatDock" type="PanelContainer" parent="OverlayDockLayer"]
+custom_minimum_size = Vector2(360, 250)
+layout_mode = 1
+offset_left = 1134.0
+offset_right = 1618.0
+offset_bottom = 381.0
+
+[node name="ChatDockMargin" type="MarginContainer" parent="OverlayDockLayer/ChatDock"]
 layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="ChatPanel" parent="OverlayDockLayer/ChatDock/ChatDockMargin" instance=ExtResource("5")]
+custom_minimum_size = Vector2(0, 230)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
