@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Body, Request, Response
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_session
 from app.schemas.user import UserCreate, UserLogin, UserOut, UserWithBalance, TokenResponse, TokenRefreshResponse
@@ -116,21 +118,26 @@ async def login(login_data: UserLogin, request: Request, response: Response, db:
 )
 @limiter.limit("5/minute")
 async def google_login(request: Request, response: Response, google_token: str = Body(...), db: AsyncSession = Depends(get_session)):
-    email = google_token  # In production, parse through Google API
+    try:
+        # Specify CLIENT_ID if you want to verify aud claim, else None
+        idinfo = id_token.verify_oauth2_token(google_token, google_requests.Request(), None)
+        email = idinfo.get("email")
+        if not email:
+            raise ValueError("No email in Google token")
+    except Exception as e:
+        logger.warning(f"[AUTH_GOOGLE_LOGIN_FAIL] Invalid Google token: {e}")
+        raise HTTPException(status_code=401, detail="Invalid Google ID token")
+
     user = await AuthService(db).get_user_by_email_or_username(email)
     if not user:
-        # Generate a username from email prefix for Google accounts
         base_username = email.split("@")[0]
         user = await AuthService(db).create_user(email=email, username=base_username, password=None, is_google=True)
-    
+
     tokens = AuthService(db).generate_tokens(user)
     active_session_registry.register_access_token(tokens["access_token"])
-    
-    # Set refresh token in HTTP-only secure cookie
+
     _set_refresh_cookie(response, tokens["refresh_token"])
-    
     logger.info(f"[AUTH_GOOGLE_LOGIN_SUCCESS] user_id={user.id} family={tokens.get('family')}")
-    
     return {
         "access_token": tokens["access_token"],
         "refresh_token": tokens["refresh_token"],

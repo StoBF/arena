@@ -162,6 +162,23 @@ async def resurrect_hero(
     )
 
 
+@router.post(
+    "/{hero_id}/heal",
+    response_model=HeroRead,
+    summary="Heal an injured hero",
+    description="Restores hero to full HP and healthy condition.",
+)
+async def heal_hero(
+    hero_id: int,
+    db: AsyncSession = Depends(get_session),
+    user=Depends(get_current_user_info),
+):
+    hero_service = HeroService(db)
+    hero = await hero_service.heal_hero(hero_id, user["user_id"])
+    return await _serialize_hero(hero_service, hero)
+
+
+
 @router.get(
     "/{hero_id}/status",
     response_model=HeroStatusResponse,

@@ -21,7 +21,7 @@ router = APIRouter(prefix="/auctions", tags=["Auction"])
 async def create_auction(data: AuctionCreate, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionService(db)
     auction = await service.create_auction(seller_id=current_user["user_id"], item_id=data.item_id, start_price=data.start_price, duration=data.duration, quantity=data.quantity)
-    return AuctionOut.from_orm(auction)
+    return AuctionOut.model_validate(auction, from_attributes=True)
 
 @router.get(
     "/",
@@ -39,20 +39,21 @@ async def list_auctions(
     cached = await redis_cache.get(cache_key)
     if cached is not None:
         return cached
-    
+
     service = AuctionService(db)
     result = await service.list_auctions(active_only=True, limit=limit, offset=offset)
-    
+
+    items = [AuctionOut.model_validate(a, from_attributes=True) for a in result["items"]]
     response = {
-        "items": [AuctionOut.from_orm(a) for a in result["items"]],
+        "items": items,
         "total": result["total"],
         "limit": result["limit"],
-        "offset": result["offset"]
+        "offset": result["offset"],
     }
     await redis_cache.set(
         cache_key,
         {
-            "items": [a.dict() for a in response["items"]],
+            "items": [a.model_dump() for a in items],
             "total": response["total"],
             "limit": response["limit"],
             "offset": response["offset"],
@@ -70,7 +71,7 @@ async def list_auctions(
 async def cancel_auction(auction_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionService(db)
     auction = await service.cancel_auction(auction_id, seller_id=current_user["user_id"])
-    return AuctionOut.from_orm(auction)
+    return AuctionOut.model_validate(auction, from_attributes=True)
 
 @router.post(
     "/{auction_id}/close",
@@ -80,14 +81,13 @@ async def cancel_auction(auction_id: int, db: AsyncSession = Depends(get_session
 )
 async def close_auction(auction_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionService(db)
-    # Only the seller or an admin may manually close an auction
     auction = await service.get_auction(auction_id)
     if not auction:
         raise HTTPException(404, "Auction not found")
     if auction.seller_id != current_user["user_id"] and current_user.get("role") != "admin":
         raise HTTPException(403, "Only the seller or an admin can close this auction")
     auction = await service.close_auction(auction_id)
-    return AuctionOut.from_orm(auction)
+    return AuctionOut.model_validate(auction, from_attributes=True)
 
 @router.post(
     "/lots",
@@ -98,7 +98,7 @@ async def close_auction(auction_id: int, db: AsyncSession = Depends(get_session)
 async def create_auction_lot(data: AuctionLotCreate, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionLotService(db)
     lot = await service.create_auction_lot(hero_id=data.hero_id, seller_id=current_user["user_id"], starting_price=data.starting_price, duration=data.duration, buyout_price=data.buyout_price)
-    return AuctionLotOut.from_orm(lot)
+    return AuctionLotOut.model_validate(lot, from_attributes=True)
 
 @router.get(
     "/lots",
@@ -119,16 +119,18 @@ async def list_auction_lots(
 
     service = AuctionLotService(db)
     result = await service.list_auction_lots(limit=limit, offset=offset)
+
+    items = [AuctionLotOut.model_validate(l, from_attributes=True) for l in result["items"]]
     response = {
-        "items": [AuctionLotOut.from_orm(l) for l in result["items"]],
+        "items": items,
         "total": result["total"],
         "limit": result["limit"],
-        "offset": result["offset"]
+        "offset": result["offset"],
     }
     await redis_cache.set(
         cache_key,
         {
-            "items": [l.dict() for l in response["items"]],
+            "items": [l.model_dump() for l in items],
             "total": response["total"],
             "limit": response["limit"],
             "offset": response["offset"],
@@ -148,7 +150,7 @@ async def get_auction(auction_id: int, db: AsyncSession = Depends(get_session), 
     auction = await service.get_auction(auction_id)
     if not auction:
         raise HTTPException(404, "Auction not found")
-    return AuctionOut.from_orm(auction)
+    return AuctionOut.model_validate(auction, from_attributes=True)
 
 @router.post(
     "/lots/{lot_id}/close",
@@ -158,14 +160,29 @@ async def get_auction(auction_id: int, db: AsyncSession = Depends(get_session), 
 )
 async def close_auction_lot(lot_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionLotService(db)
-    # Only the seller or an admin may manually close a lot
     lot = await service.get_auction_lot(lot_id)
     if not lot:
         raise HTTPException(404, "Auction lot not found")
     if lot.seller_id != current_user["user_id"] and current_user.get("role") != "admin":
         raise HTTPException(403, "Only the seller or an admin can close this lot")
     lot = await service.close_auction_lot(lot_id)
-    return AuctionLotOut.from_orm(lot)
+    return AuctionLotOut.model_validate(lot, from_attributes=True)
+
+@router.post(
+    "/lots/{lot_id}/buyout",
+    response_model=AuctionLotOut,
+    summary="Buy out a hero auction lot immediately",
+    description="Immediately purchases a hero auction lot at the buyout price."
+)
+async def buyout_auction_lot(lot_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
+    service = AuctionLotService(db)
+    lot = await service.get_auction_lot(lot_id)
+    if not lot:
+        raise HTTPException(404, "Auction lot not found")
+    if lot.buyout_price is None:
+        raise HTTPException(400, "This lot has no buyout price set")
+    lot = await service.close_auction_lot(lot_id, winner_id=current_user["user_id"])
+    return AuctionLotOut.model_validate(lot, from_attributes=True)
 
 @router.post(
     "/lots/{lot_id}/delete",
@@ -176,7 +193,7 @@ async def close_auction_lot(lot_id: int, db: AsyncSession = Depends(get_session)
 async def delete_auction_lot(lot_id: int, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = AuctionLotService(db)
     lot = await service.delete_auction_lot(lot_id, seller_id=current_user["user_id"])
-    return AuctionLotOut.from_orm(lot)
+    return AuctionLotOut.model_validate(lot, from_attributes=True)
 
 @router.post(
     "/autobid",
@@ -187,4 +204,4 @@ async def delete_auction_lot(lot_id: int, db: AsyncSession = Depends(get_session
 async def set_autobid(data: AutoBidCreate, db: AsyncSession = Depends(get_session), current_user=Depends(get_current_user_info)):
     service = BidService(db)
     autobid = await service.set_auto_bid(user_id=current_user["user_id"], auction_id=data.auction_id, lot_id=data.lot_id, max_amount=data.max_amount)
-    return AutoBidOut.from_orm(autobid)
+    return AutoBidOut.model_validate(autobid, from_attributes=True)

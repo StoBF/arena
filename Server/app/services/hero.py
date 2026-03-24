@@ -9,7 +9,7 @@ from sqlalchemy.future import select
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from fastapi import HTTPException
-from app.database.models.hero import Hero
+from app.database.models.hero import Hero, HeroCondition
 from app.database.models.user import User
 from app.services.base_service import BaseService
 from app.services.hero_generation import generate_hero
@@ -132,6 +132,22 @@ class HeroService(BaseService):
         hero.is_deleted = False
         hero.deleted_at = None
         await self.commit_or_rollback()
+        await emit("cache_invalidate", f"heroes:{user_id}*")
+        return hero
+
+
+    async def heal_hero(self, hero_id: int, user_id: int):
+        """Restore hero to full HP and HEALTHY condition."""
+        hero = await self.get_hero(hero_id, only_active=True)
+        if not hero or hero.owner_id != user_id:
+            raise HTTPException(status_code=404, detail="Hero not found")
+        if hero.is_dead or hero.is_permadead:
+            raise HTTPException(status_code=400, detail="Cannot heal a dead hero")
+        derived = compute_derived_for_hero(hero)
+        hero.current_hp = derived.max_hp
+        hero.condition = HeroCondition.HEALTHY
+        await self.commit_or_rollback()
+        await self.session.refresh(hero)
         await emit("cache_invalidate", f"heroes:{user_id}*")
         return hero
 

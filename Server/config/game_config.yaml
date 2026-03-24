@@ -1,0 +1,213 @@
+# ============================================================
+# Hero Manager RPG — Game Balance Configuration
+# ============================================================
+# Змінюйте будь-яке значення тут і перезапустіть сервер.
+# Без перекомпіляції. Без змін у коді.
+# ============================================================
+
+# ── Генерація героя ─────────────────────────────────────────
+hero_generation:
+  # Базовий діапазон потужності нового героя (% від максимуму статів)
+  base_power_min_pct: 55       # мінімум 55% від max статів
+  base_power_max_pct: 75       # максимум 75% від max статів
+
+  # Платні буsti генерації (зсув діапазону вгору)
+  tier_boost:
+    tier1:
+      cost_gold:  500
+      power_boost_pct: 5       # +5% до min та max діапазону
+    tier2:
+      cost_gold: 1500
+      power_boost_pct: 15
+    tier3:
+      cost_gold: 4000
+      power_boost_pct: 30
+
+  # Шанс отримати рідкісні ознаки при генерації
+  hidden_trait_chance: 0.08    # 8%
+  legendary_trait_chance: 0.01 # 1%
+
+# ── Воскресіння героя ────────────────────────────────────────
+resurrection:
+  window_days: 7               # кількість днів після смерті для воскресіння
+  base_success_chance: 0.05    # 5% шанс успіху крафту артефакту
+  post_revival_hp_pct: 0.30    # герой прокидається з 30% HP
+
+  # Вартість матеріалів для базового спроби (1-го воскресіння)
+  base_materials:
+    titan_heart:   1
+    void_crystal:  3
+    elder_bone:    5
+    soulfire_dust: 10
+
+  base_gold_cost: 5000         # золото за 1-у спробу
+
+  # Кожне наступне воскресіння дорожче (множник)
+  cost_escalation_per_revival: 0.20   # +20% за кожне попереднє воскресіння
+
+# ── Лікування героя ─────────────────────────────────────────
+healing:
+  # Час лікування у секундах (за частиною тіла і ступенем травми)
+  durations_sec:
+    injured:
+      head:      3600    # 1 год
+      torso:     3600
+      left_arm:  1800    # 30 хв
+      right_arm: 1800
+      left_leg:  1800
+      right_leg: 1800
+    severely_injured:
+      head:      14400   # 4 год
+      torso:     14400
+      left_arm:   7200   # 2 год
+      right_arm:  7200
+      left_leg:   7200
+      right_leg:  7200
+
+  # Ціна запуску лікування (золото)
+  cost_gold:
+    injured:
+      head:      50
+      torso:     50
+      left_arm:  30
+      right_arm: 30
+      left_leg:  30
+      right_leg: 30
+    severely_injured:
+      head:      150
+      torso:     150
+      left_arm:   80
+      right_arm:  80
+      left_leg:   80
+      right_leg:  80
+
+  # Прискорення — скільки коштує пропустити 1 годину (золото)
+  speedup_gold_per_hour: 100
+
+# ── Ставки на бої ────────────────────────────────────────────
+betting:
+  house_edge_pct: 0.05    # 5% комісія системи з пулу, що програв
+  min_bet_gold:   10      # мінімальна ставка
+  max_bet_gold:   10000   # максимальна ставка
+
+# ── Щоденні квести ───────────────────────────────────────────
+quests:
+  daily_quest_count:  3   # квестів на день
+  weekly_quest_count: 1   # тижневих квестів
+  streak_mult_per_7days: 1.25  # +25% нагороди кожні 7 днів поспіль
+  login_bonus_per_7days_gold: 500  # бонус за 7-денний стрік логіну
+
+# ── Альянси ──────────────────────────────────────────────────
+alliance:
+  max_clans:      5      # максимум кланів в альянсі
+  max_members:    150    # максимум учасників через усі клани
+  upkeep_per_clan: 200   # золото upkeep за кожен клан на тиждень
+
+  # Штраф до доходу від територій при великому альянсі
+  size_income_penalty_pct:
+    1: 0.00
+    2: 0.00
+    3: 0.00
+    4: 0.05    # 5%
+    5: 0.12    # 12%
+
+  # XP пороги для підвищення рангу
+  rank_xp_thresholds:
+    guild:  0
+    order:  1000
+    empire: 10000
+
+# ── Рейди ────────────────────────────────────────────────────
+raids:
+  # Шанс випадіння по тирах лута
+  tier1_drop_chance: 1.00   # завжди (guaranteed)
+  tier2_drop_chance: 0.35   # 35%
+  tier3_drop_chance: 0.05   # 5%
+
+  # Антизловживання: мінімальний внесок для отримання нагород
+  min_contribution_pct: 0.02  # 2% від загального DPS
+
+  # XP формула коефіцієнти
+  xp_base_scale: 1.0
+  xp_resistance_factor_max: 1.50
+  xp_antiabuse_floor: 0.10
+
+# ── Крафт ─────────────────────────────────────────────────────
+crafting:
+  queue_max_slots: 3     # максимум паралельних рецептів у черзі
+  speedup_gold_per_hour: 50  # золото за пропуск 1 години черги
+
+  # Шанси успіху для особливих рецептів (1.0 = 100%, 0.05 = 5%)
+  success_chances:
+    phoenix_core:      0.05   # Серцевина Фенікса (воскресіння)
+    legendary_weapon:  0.15   # легендарна зброя
+    epic_weapon:       0.40   # епічна зброя
+    rare_armor:        0.65   # рідкісна броня
+    common_item:       1.00   # звичайні речі
+
+  # Ресурси за рецептами (переопрацювання без змін коду)
+  recipes:
+    phoenix_core:
+      titan_heart:   1
+      void_crystal:  3
+      elder_bone:    5
+      soulfire_dust: 10
+    battle_trophy:
+      iron_ore:  20
+      coal:       5
+
+# ── Крамниця валюти (Stripe) ──────────────────────────────────
+currency_shop:
+  # Пакети золота за реальні гроші
+  packages:
+    - id: starter
+      gold:       1000
+      bonus_gold:    0
+      usd_price:  0.99
+
+    - id: small
+      gold:       5000
+      bonus_gold:  500
+      usd_price:  4.99
+
+    - id: medium
+      gold:      12000
+      bonus_gold: 2000
+      usd_price:  9.99
+
+    - id: large
+      gold:      25000
+      bonus_gold: 5000
+      usd_price: 19.99
+
+    - id: mega
+      gold:      60000
+      bonus_gold: 15000
+      usd_price: 49.99
+
+    - id: ultimate
+      gold:      150000
+      bonus_gold: 50000
+      usd_price:  99.99
+
+# ── PvP бої ──────────────────────────────────────────────────
+pvp:
+  elo_k_factor: 32          # К-фактор для ELO рейтингу
+  winner_gold_base: 150     # базова нагорода переможцю
+  loser_gold_base: 25       # втішна нагорода переможеному
+
+# ── Аукціон ──────────────────────────────────────────────────
+auction:
+  listing_fee_pct: 0.02     # 2% від стартової ціни при виставленні
+  sale_commission_pct: 0.05 # 5% системна комісія з угоди
+  max_listing_duration_days: 7
+  min_listing_duration_hours: 1
+
+# ── Економічні регулятори ──────────────────────────────────────
+economy:
+  # Gold sink — механізми виведення золота з обігу
+  daily_tax_on_idle_gold_pct: 0.0  # 0% (вимкнено за замовчуванням)
+  clan_treasury_sink_pct: 0.20     # 20% кланових доходів "згоряє"
+
+  # Інфляційний обмежувач: максимальний баланс гравця (0 = без обмежень)
+  max_player_gold: 0

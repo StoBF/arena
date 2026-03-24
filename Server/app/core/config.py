@@ -16,7 +16,9 @@ class Settings:
     # Reads DATABASE_URL from environment; falls back to a persistent on-disk SQLite DB.
     # In-memory SQLite loses all data on process restart, so never use it as the default.
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///%s" % _DEFAULT_SQLITE_PATH.as_posix())
-    JWT_SECRET_KEY: str = "supersecretkey"
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
+    if not JWT_SECRET_KEY:
+        raise RuntimeError("JWT_SECRET_KEY environment variable must be set!")
     JWT_ALGORITHM: str = "HS256"
     
     # Token expiration times (separate for access and refresh)

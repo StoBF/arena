@@ -3,6 +3,12 @@ from typing import List
 from typing import Any, Optional
 from datetime import datetime
 
+
+class RaidStartIn(BaseModel):
+    boss_id: int
+    hero_ids: List[int]
+
+
 class RaidDropItemOut(BaseModel):
     item_name: str
     chance: float
@@ -47,4 +53,4 @@ class PvEBattleLogOut(BaseModel):
 class RewardOut(BaseModel):
     type: str
     id: int
-    qty: Optional[int] = 1 
+    qty: Optional[int] = 1

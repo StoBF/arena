@@ -8,7 +8,7 @@ Removed from v1:
   PerkUpgradeRequest, AbilityType/AbilityDomain/TrainingType/TrainingStatus
 """
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 from typing import Literal, List, Optional, Dict, Any
 from datetime import datetime
 
@@ -270,6 +270,28 @@ class HeroOut(BaseModel):
     deleted_at: Optional[datetime] = None
     is_on_auction: bool = False
     created_at: Optional[datetime] = None
+
+    @computed_field
+    @property
+    def status(self) -> str:
+        """Maps server condition to the client-readable status string."""
+        if self.is_dead:
+            return "dead"
+        _map: dict = {
+            HeroCondition.HEALTHY: "idle",
+            HeroCondition.WOUNDED: "injured",
+            HeroCondition.SEVERELY_INJURED: "injured",
+            HeroCondition.CRIPPLED: "injured",
+            HeroCondition.DEAD: "dead",
+        }
+        return _map.get(self.condition, "idle")
+
+    @computed_field
+    @property
+    def is_healing(self) -> bool:
+        """Placeholder for the future timed-healing mechanic."""
+        return False
+
 
 
 # ─── Hero Read (with relationships + derived stats) ──────────────────────

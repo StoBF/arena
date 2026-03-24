@@ -1,3 +1,5 @@
+
+import logging
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.models.models import Bid, Auction, AuctionLot, AutoBid
@@ -10,6 +12,8 @@ from app.services.base_service import BaseService
 from datetime import datetime
 from decimal import Decimal
 from app.core.redis_pubsub import publish_auction_update
+
+logger = logging.getLogger(__name__)
 
 
 async def _broadcast_bid_event(auction_id: int, current_price: Decimal | int | float, bidder_id: int) -> None:
@@ -100,7 +104,7 @@ class BidService(BaseService):
             existing_bid = existing_result.scalars().first()
             if existing_bid:
                 # Return previous result (idempotent behavior)
-                print(f"[BID_IDEMPOTENT] Returning previous bid {existing_bid.id} for request_id {request_id}")
+                logger.info(f"[BID_IDEMPOTENT] Returning previous bid {existing_bid.id} for request_id {request_id}")
                 return existing_bid
 
         # Use BaseService._txn() for correct nested behaviour
@@ -197,7 +201,7 @@ class BidService(BaseService):
             existing_bid = existing_result.scalars().first()
             if existing_bid:
                 # Return previous result (idempotent behavior)
-                print(f"[BID_IDEMPOTENT] Returning previous bid {existing_bid.id} for request_id {request_id}")
+                logger.info(f"[BID_IDEMPOTENT] Returning previous bid {existing_bid.id} for request_id {request_id}")
                 return existing_bid
 
         async with self._txn():

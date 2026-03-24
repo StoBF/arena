@@ -27,4 +27,33 @@ from .models import (
     ChatMessage, OfflineMessage, Equipment, Stash,
     PvPMatch, PvPBattleLog, LeaderboardEntry,
 )
-from . import quantum_models  # noqa: F401 – registers quantum_* tables 
+from .armor import ArmorItem, ArmorSetBonus, PlayerArmorInventory, ArmorSlot, ArmorSetType
+from .battle_room import (
+    BattleRoom, HeroOrder, BattleResult, PlayerResourceInventory,
+    BattleRoomStatus, HeroStance,
+)
+from .clan import (
+    Clan, ClanMember, ClanApplication, ClanActivityLog,
+    ClanStorageItem, ClanStorageTransaction,
+    ClanMeetup, ClanMeetupParticipant, ClanChatMessage,
+    RaidTicket, RaidRegistration, RaidTournament, RaidTournamentMatch,
+    ClanType, ClanMode, ClanRole, RecruitmentMode,
+    ApplicationStatus, MeetupStatus, StorageAction, TicketOwnerType,
+)
+from .raid_v2 import (
+    RaidBossTemplate, RaidBossSpawn, RaidBossProgress, RaidBossMutation,
+    RaidBossPhase, RaidDropEntry,
+    RaidRoom, RaidParticipant,
+    RaidCoalition, RaidCoalitionClan,
+    RaidAccessScore, RaidBattleLog, RaidContribution, RaidRewardRoll,
+    RaidBossHistory,
+)
+from . import quantum_models  # noqa: F401 – registers quantum_* tables
+from .game_systems import (
+    DailyQuestTemplate, PlayerDailyQuest, PlayerStreak,
+    BettingMarket, MatchBet,
+    HeroHealOrder,
+    ResurrectionAttempt,
+    CurrencyPurchase,
+    Alliance, AllianceMember, AllianceWarChest,
+)

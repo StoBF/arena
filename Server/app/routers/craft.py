@@ -1,10 +1,12 @@
-# app/routers/craft.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from app.services.craft import CraftService
-from app.schemas.craft import CraftRecipeOut, CraftStartIn, CraftQueueOut, CraftedItemOut, DisenchantIn, DisenchantOut
+from app.schemas.craft import (
+    CraftRecipeOut, CraftStartIn, CraftFinishIn,
+    CraftQueueOut, CraftedItemOut, DisenchantIn, DisenchantOut,
+)
 from app.database.models.craft import CraftQueue
 from app.database.session import get_session
 from app.auth import get_current_user_info
@@ -30,13 +32,13 @@ async def start_craft(
 
 @router.post("/finish", response_model=CraftedItemOut)
 async def finish_craft(
-    payload: CraftQueueOut,
+    payload: CraftFinishIn,
     current_user=Depends(get_current_user_info),
     db: AsyncSession = Depends(get_session)
 ):
     """Complete a craft once ready."""
     try:
-        return await CraftService(db).finish_craft(payload.id)
+        return await CraftService(db).finish_craft(payload.queue_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -75,4 +77,4 @@ async def get_craft_queue(
     """Get the user's current craft queue entries."""
     uid = current_user["user_id"]
     result = await db.execute(CraftQueue.__table__.select().where(CraftQueue.user_id == uid))
-    return result.scalars().all() 
+    return result.scalars().all()

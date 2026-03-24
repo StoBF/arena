@@ -18,5 +18,7 @@ setup(
         "slowapi",
         "python-dotenv",
         "faker",
+        "stripe>=7.0",
+        "pyyaml>=6.0",
     ],
 )

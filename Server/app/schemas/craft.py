@@ -11,7 +11,7 @@ class CraftRecipeResourceOut(BaseModel):
     id: int
     resource_id: int
     quantity: int
-    type: str  # 'pvp' або 'pve'
+    type: str  # 'pvp' or 'pve'
     model_config = ConfigDict(from_attributes=True)
 
 class CraftRecipeOut(BaseModel):
@@ -45,9 +45,12 @@ class CraftQueueOut(BaseModel):
 class CraftStartIn(BaseModel):
     recipe_id: int
 
+class CraftFinishIn(BaseModel):
+    queue_id: int
+
 class DisenchantIn(BaseModel):
     crafted_id: int
 
 class DisenchantOut(BaseModel):
     returned_resources: Dict[int, int]
-    model_config = ConfigDict(from_attributes=True) 
+    model_config = ConfigDict(from_attributes=True)
