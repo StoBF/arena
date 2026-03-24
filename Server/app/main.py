@@ -34,6 +34,24 @@ from app.routers.tournaments import router as tournaments_router
 from app.routers.events import router as events_router
 from app.routers.server import router as server_router
 from app.routers.auctions_ws import router as auctions_ws_router
+from app.routers.battle_room import router as battle_room_router
+from app.routers.resources import router as resources_router
+from app.routers.armor import router as armor_router
+from app.routers.clan import router as clan_router
+from app.routers.clan_ws import router as clan_ws_router
+from app.routers.live_battle import router as live_battle_router
+from app.routers.raid_boss import (
+    router as raid_boss_router,
+    rooms_router as raid_rooms_router,
+    coalition_router as raid_coalition_router,
+    access_router as raid_access_router,
+)
+from app.routers.daily_quests import router as daily_quests_router
+from app.routers.betting import router as betting_router
+from app.routers.healing import router as healing_router
+from app.routers.resurrection import router as resurrection_router
+from app.routers.currency_shop import router as currency_shop_router
+from app.routers.alliance import router as alliance_router
 
 setup_logging()
 
@@ -52,6 +70,16 @@ async def lifespan(app: FastAPI):
     await wait_for_postgres_ready()
     await create_database_if_not_exists()
     await create_db_and_tables()
+
+    # Seed reference data (resources, armor items, set bonuses)
+    try:
+        from app.database.seeds.resources_seed import seed_resources
+        from app.database.seeds.armor_seed import seed_armor
+        async with AsyncSessionLocal() as _seed_session:
+            await seed_resources(_seed_session)
+            await seed_armor(_seed_session)
+    except Exception:
+        logging.exception("[SEED] startup seed failed; continuing")
 
     if settings.REDIS_URL:
         await redis_cache.connect()
@@ -237,6 +265,24 @@ app.include_router(tournaments_router)
 app.include_router(events_router)
 app.include_router(server_router)
 app.include_router(auctions_ws_router, tags=["Auction WS"])
+app.include_router(battle_room_router)
+app.include_router(resources_router)
+app.include_router(armor_router)
+app.include_router(clan_router)
+app.include_router(clan_ws_router)
+app.include_router(live_battle_router)
+app.include_router(raid_boss_router)
+app.include_router(raid_rooms_router)
+app.include_router(raid_coalition_router)
+app.include_router(raid_access_router)
+
+# Game Systems v1
+app.include_router(daily_quests_router)
+app.include_router(betting_router)
+app.include_router(healing_router)
+app.include_router(resurrection_router)
+app.include_router(currency_shop_router)
+app.include_router(alliance_router)
 
 if __name__ == "__main__":
     import uvicorn
